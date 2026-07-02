@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NT AI Mediation
 
-## Getting Started
+NT AI Digital Mediation Platform built with Next.js App Router, TypeScript, Tailwind CSS, and Supabase client scaffolding.
 
-First, run the development server:
+## Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Production Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+```
 
-## Learn More
+The app is configured for Next.js standalone output so it can run inside a container without the full source tree.
 
-To learn more about Next.js, take a look at the following resources:
+## Supabase Foundation
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Required environment variables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Create `.env.local` for local development:
 
-## Deploy on Vercel
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Use the same variables in Google Cloud Run:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+gcloud run services update nt-ai-mediation \
+  --region asia-southeast1 \
+  --project YOUR_PROJECT_ID \
+  --update-env-vars NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co,NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+```
+
+Do not expose the Supabase service role key in browser code or `NEXT_PUBLIC_*` variables.
+
+### Run the database schema
+
+Apply the schema in the Supabase SQL Editor:
+
+1. Open your Supabase project.
+2. Go to SQL Editor.
+3. Paste the contents of `supabase/schema.sql`.
+4. Run the SQL.
+
+Or run it with the Supabase CLI after linking the project:
+
+```bash
+supabase link --project-ref YOUR_PROJECT_REF
+supabase db push
+```
+
+The schema creates the initial platform tables, role enum, indexes, update triggers, and Row Level Security policies.
+
+## Google Cloud Run Deployment
+
+### Requirements
+
+- Google Cloud project with Cloud Run enabled
+- Artifact Registry or another container registry
+- Supabase environment variables available in Cloud Run
+
+### Build the image
+
+```bash
+docker build -t gcr.io/YOUR_PROJECT_ID/nt-ai-mediation:latest .
+```
+
+### Push the image
+
+```bash
+docker push gcr.io/YOUR_PROJECT_ID/nt-ai-mediation:latest
+```
+
+### Deploy to Cloud Run
+
+```bash
+gcloud run deploy nt-ai-mediation \
+  --image gcr.io/YOUR_PROJECT_ID/nt-ai-mediation:latest \
+  --region asia-southeast1 \
+  --platform managed \
+  --allow-unauthenticated \
+  --port 3000 \
+  --set-env-vars NEXT_PUBLIC_SUPABASE_URL=YOUR_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+```
+
+### Production domain
+
+Map `ai-mediation.rattanan.dev` to the Cloud Run service using a domain mapping in Google Cloud.
+
+### Notes
+
+- The container listens on `process.env.PORT`, which Cloud Run sets automatically.
+- Keep secrets in Cloud Run environment variables or Secret Manager.
+- Update the deployment image tag for each release.

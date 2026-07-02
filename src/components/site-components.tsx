@@ -59,7 +59,7 @@ export function AppFooter() {
         </div>
         <div className="grid gap-2 text-sm text-[#4B5563] sm:grid-cols-2">
           <p>Thai-first public sector UX</p>
-          <p>Vercel deployment ready</p>
+          <p>Google Cloud Run deployment ready</p>
           <p>Supabase client prepared</p>
           <p>Responsive enterprise interface</p>
         </div>

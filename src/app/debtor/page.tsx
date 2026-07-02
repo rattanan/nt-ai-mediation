@@ -1,14 +1,31 @@
-import { FileText } from "lucide-react";
-import { PortalPage } from "@/components/portal-page";
+import { CalendarClock, ClipboardList, FileText, Home, MessageSquareText, Scale, ShieldCheck } from "lucide-react";
+import { PortalShell } from "@/components/portal-shell";
 
 export default function DebtorPortalPage() {
   return (
-    <PortalPage
-      title="Debtor Portal Preview"
-      description="พื้นที่ตัวอย่างสำหรับลูกหนี้เพื่อเริ่มต้นลงทะเบียน ตรวจสอบข้อมูลเคส และติดตามขั้นตอนการไกล่เกลี่ย"
-      icon={FileText}
-      accentClass="bg-gradient-to-br from-[#FFF9D7] to-white"
-      highlights={["ลงทะเบียนเคสหนี้", "ตอบแบบสัมภาษณ์ AI", "ติดตามนัดหมายและผลการไกล่เกลี่ย"]}
+    <PortalShell
+      roleLabel="Debtor Portal"
+      title="แดชบอร์ดลูกหนี้"
+      subtitle="ติดตามคำขอไกล่เกลี่ย การสัมภาษณ์ AI และข้อตกลงของคุณ"
+      sidebarItems={[
+        { label: "ภาพรวม", icon: Home, active: true },
+        { label: "คำขอไกล่เกลี่ย", icon: FileText },
+        { label: "สัมภาษณ์ AI", icon: MessageSquareText },
+        { label: "นัดหมาย", icon: CalendarClock },
+        { label: "ข้อตกลง", icon: Scale },
+      ]}
+      metrics={[
+        { label: "จำนวนคำขอไกล่เกลี่ย", value: "0", caption: "ยังไม่มีคำขอที่ส่งเข้าสู่ระบบ", icon: ClipboardList },
+        { label: "สถานะการสัมภาษณ์ AI", value: "รอเริ่ม", caption: "พร้อมเปิดใช้งานเมื่อเชื่อมต่อ auth", icon: MessageSquareText },
+        { label: "นัดหมายถัดไป", value: "-", caption: "ยังไม่มีนัดหมายในระบบ", icon: CalendarClock },
+        { label: "ข้อตกลงที่รอติดตาม", value: "0", caption: "ไม่มีข้อตกลงค้างติดตาม", icon: ShieldCheck },
+      ]}
+      table={{
+        title: "รายการคำขอไกล่เกลี่ย",
+        description: "ตาราง mock สำหรับแสดงคำขอและสถานะเมื่อต่อข้อมูลจริง",
+        columns: ["เลขคำขอ", "เจ้าหนี้", "ยอดหนี้", "สถานะ", "อัปเดตล่าสุด"],
+        actionLabel: "สร้างคำขอใหม่",
+      }}
     />
   );
 }
