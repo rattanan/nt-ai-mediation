@@ -2,14 +2,15 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
   Bell,
-  ChevronDown,
   ClipboardList,
   FileText,
   Home,
+  LogOut,
   Search,
   Settings,
   Sparkles,
 } from "lucide-react";
+import { logout } from "@/app/auth/actions";
 
 type MetricCard = {
   label: string;
@@ -35,6 +36,7 @@ export function PortalShell({
   roleLabel,
   title,
   subtitle,
+  userName,
   metrics,
   sidebarItems,
   table,
@@ -42,6 +44,7 @@ export function PortalShell({
   roleLabel: string;
   title: string;
   subtitle: string;
+  userName: string;
   metrics: MetricCard[];
   sidebarItems: SidebarItem[];
   table: EmptyTable;
@@ -108,13 +111,16 @@ export function PortalShell({
                 >
                   <Bell className="h-4 w-4" />
                 </button>
-                <button
-                  type="button"
-                  className="flex h-10 items-center gap-2 rounded-lg bg-[#1F2937] px-3 text-sm font-semibold text-white hover:bg-black"
-                >
-                  เจ้าหน้าที่
-                  <ChevronDown className="h-4 w-4" />
-                </button>
+                <form action={logout}>
+                  <button
+                    type="submit"
+                    className="flex h-10 items-center gap-2 rounded-lg bg-[#1F2937] px-3 text-sm font-semibold text-white hover:bg-black"
+                  >
+                    <span className="hidden max-w-28 truncate sm:inline">{userName}</span>
+                    <span className="sm:hidden">ออก</span>
+                    <LogOut className="h-4 w-4" />
+                  </button>
+                </form>
               </div>
             </div>
           </header>

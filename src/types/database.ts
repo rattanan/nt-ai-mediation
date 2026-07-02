@@ -33,6 +33,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       creditors: {
         Row: {
@@ -74,6 +75,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       mediators: {
         Row: {
@@ -109,6 +111,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       debtor_cases: {
         Row: {
@@ -156,6 +159,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       mediation_sessions: {
         Row: {
@@ -197,6 +201,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       settlement_agreements: {
         Row: {
@@ -241,6 +246,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       case_documents: {
         Row: {
@@ -276,6 +282,7 @@ export type Database = {
           file_size_bytes?: number | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       audit_logs: {
         Row: {
@@ -305,6 +312,7 @@ export type Database = {
           metadata?: Json;
           created_at?: string;
         };
+        Relationships: [];
       };
     };
     Views: Record<string, never>;

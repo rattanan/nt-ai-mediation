@@ -1,12 +1,18 @@
 import { CalendarClock, ClipboardList, FileText, Home, MessageSquareText, Scale, ShieldCheck } from "lucide-react";
+import { requireRole } from "@/lib/auth/server";
 import { PortalShell } from "@/components/portal-shell";
 
-export default function DebtorPortalPage() {
+export const dynamic = "force-dynamic";
+
+export default async function DebtorPortalPage() {
+  const profile = await requireRole("debtor");
+
   return (
     <PortalShell
       roleLabel="Debtor Portal"
       title="แดชบอร์ดลูกหนี้"
       subtitle="ติดตามคำขอไกล่เกลี่ย การสัมภาษณ์ AI และข้อตกลงของคุณ"
+      userName={profile.full_name}
       sidebarItems={[
         { label: "ภาพรวม", icon: Home, active: true },
         { label: "คำขอไกล่เกลี่ย", icon: FileText },

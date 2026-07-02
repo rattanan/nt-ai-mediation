@@ -1,12 +1,18 @@
 import { BadgeCheck, Banknote, CalendarClock, ClipboardList, Home, Landmark, Scale } from "lucide-react";
+import { requireRole } from "@/lib/auth/server";
 import { PortalShell } from "@/components/portal-shell";
 
-export default function CreditorPortalPage() {
+export const dynamic = "force-dynamic";
+
+export default async function CreditorPortalPage() {
+  const profile = await requireRole("creditor");
+
   return (
     <PortalShell
       roleLabel="Creditor Portal"
       title="แดชบอร์ดเจ้าหนี้"
       subtitle="ติดตามเคสที่เข้าสู่กระบวนการ นัดหมายเจรจา และข้อตกลงที่ต้องอนุมัติ"
+      userName={profile.full_name}
       sidebarItems={[
         { label: "ภาพรวม", icon: Home, active: true },
         { label: "เคสลูกหนี้", icon: ClipboardList },

@@ -27,7 +27,7 @@ Create `.env.local` for local development:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
 ```
 
 Use the same variables in Google Cloud Run:
@@ -36,7 +36,7 @@ Use the same variables in Google Cloud Run:
 gcloud run services update nt-ai-mediation \
   --region asia-southeast1 \
   --project YOUR_PROJECT_ID \
-  --update-env-vars NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co,NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+  --update-env-vars NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
 ```
 
 Do not expose the Supabase service role key in browser code or `NEXT_PUBLIC_*` variables.
@@ -88,7 +88,7 @@ gcloud run deploy nt-ai-mediation \
   --platform managed \
   --allow-unauthenticated \
   --port 3000 \
-  --set-env-vars NEXT_PUBLIC_SUPABASE_URL=YOUR_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+  --set-env-vars NEXT_PUBLIC_SUPABASE_URL=YOUR_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
 ```
 
 ### Production domain

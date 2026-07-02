@@ -1,0 +1,7 @@
+interface:
+  display_name: "UI Designer"
+  short_description: "Premium SaaS and dashboard UI"
+  default_prompt: "Use $ui-designer-skill to design a production-ready Thai-first SaaS UI with shadcn/ui, Tailwind CSS, lucide-react, and subtle Framer Motion."
+
+policy:
+  allow_implicit_invocation: true

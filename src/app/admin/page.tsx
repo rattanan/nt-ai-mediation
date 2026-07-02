@@ -1,12 +1,18 @@
 import { Activity, AlertTriangle, ClipboardList, FileSearch, Gauge, Home, Users2 } from "lucide-react";
+import { requireRole } from "@/lib/auth/server";
 import { PortalShell } from "@/components/portal-shell";
 
-export default function AdminPortalPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AdminPortalPage() {
+  const profile = await requireRole("admin");
+
   return (
     <PortalShell
       roleLabel="Admin Portal"
       title="แดชบอร์ดผู้ดูแลระบบ"
       subtitle="กำกับดูแลภาพรวมเคส Matching, SLA และ audit ของแพลตฟอร์ม"
+      userName={profile.full_name}
       sidebarItems={[
         { label: "ภาพรวม", icon: Home, active: true },
         { label: "จัดการเคส", icon: ClipboardList },

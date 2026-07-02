@@ -1,12 +1,18 @@
 import { CalendarCheck2, ClipboardCheck, ClipboardList, Gavel, Home, TrendingUp, Users2 } from "lucide-react";
+import { requireRole } from "@/lib/auth/server";
 import { PortalShell } from "@/components/portal-shell";
 
-export default function MediatorPortalPage() {
+export const dynamic = "force-dynamic";
+
+export default async function MediatorPortalPage() {
+  const profile = await requireRole("mediator");
+
   return (
     <PortalShell
       roleLabel="Mediator Portal"
       title="แดชบอร์ดผู้ไกล่เกลี่ย"
       subtitle="จัดการเคสที่ได้รับมอบหมาย นัดหมาย และการสรุปผลการไกล่เกลี่ย"
+      userName={profile.full_name}
       sidebarItems={[
         { label: "ภาพรวม", icon: Home, active: true },
         { label: "เคสของฉัน", icon: ClipboardList },
