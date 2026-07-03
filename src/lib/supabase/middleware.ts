@@ -1,7 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { getRoleHome, isAppRole } from "@/lib/auth/routes";
-import { appUrl, isEmailVerified } from "@/lib/auth/verification";
+import {
+  appUrl,
+  getFullNameFromUser,
+  getOrganizationNameFromUser,
+  getRoleFromUserMetadata,
+  isEmailVerified,
+} from "@/lib/auth/verification";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import type { Database } from "@/types/database";
 import type { AppRole } from "@/types/database";
@@ -80,17 +86,38 @@ export async function updateSession(request: NextRequest) {
     .from("profiles")
     .select("role, account_status")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  const role = profile?.role;
+  let role = profile?.role;
+  let accountStatus = profile?.account_status;
 
   if (!role || !isAppRole(role)) {
-    const registerUrl = appUrl("/register");
-    registerUrl.searchParams.set("message", "กรุณาสร้างโปรไฟล์และเลือกบทบาทผู้ใช้งาน");
-    return NextResponse.redirect(registerUrl);
+    const fallbackRole = getRoleFromUserMetadata(user);
+    const { data: createdProfile, error: createProfileError } = await supabase
+      .from("profiles")
+      .upsert({
+        id: user.id,
+        role: fallbackRole,
+        email: user.email ?? null,
+        full_name: getFullNameFromUser(user),
+        organization_name: getOrganizationNameFromUser(user),
+        email_verified: true,
+        account_status: "active",
+      })
+      .select("role, account_status")
+      .single();
+
+    if (createProfileError || !createdProfile?.role || !isAppRole(createdProfile.role)) {
+      const loginUrl = appUrl("/login");
+      loginUrl.searchParams.set("message", "เข้าสู่ระบบแล้ว แต่ยังสร้างโปรไฟล์ไม่ได้ กรุณาติดต่อผู้ดูแลระบบ");
+      return NextResponse.redirect(loginUrl);
+    }
+
+    role = createdProfile.role;
+    accountStatus = createdProfile.account_status;
   }
 
-  if (profile.account_status === "suspended" || profile.account_status === "disabled") {
+  if (accountStatus === "suspended" || accountStatus === "disabled") {
     const loginUrl = appUrl("/login");
     loginUrl.searchParams.set("message", "บัญชีนี้ยังไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแลระบบ");
     return NextResponse.redirect(loginUrl);
