@@ -10,6 +10,14 @@ export type CreditorResponseStatus =
   | "settlement_proposed"
   | "settlement_approved";
 export type CreditorCampaignStatus = "draft" | "pending_review" | "published" | "expired";
+export type MediatorProfileStatus =
+  | "draft"
+  | "submitted"
+  | "under_review"
+  | "needs_revision"
+  | "approved"
+  | "rejected"
+  | "suspended";
 export type CaseStatus =
   | "draft"
   | "submitted"
@@ -21,6 +29,7 @@ export type CaseStatus =
   | "creditor_rejected"
   | "matched"
   | "mediator_matching"
+  | "mediator_selected"
   | "scheduled"
   | "appointment_scheduling"
   | "in_mediation"
@@ -224,6 +233,7 @@ export type Database = {
           admin_review_note: string | null;
           creditor_response_note: string | null;
           rejection_reason: string | null;
+          selected_mediator_profile_id: string | null;
           status: CaseStatus;
           submitted_at: string | null;
           created_at: string;
@@ -255,6 +265,7 @@ export type Database = {
           admin_review_note?: string | null;
           creditor_response_note?: string | null;
           rejection_reason?: string | null;
+          selected_mediator_profile_id?: string | null;
           status?: CaseStatus;
           submitted_at?: string | null;
           created_at?: string;
@@ -286,6 +297,7 @@ export type Database = {
           admin_review_note?: string | null;
           creditor_response_note?: string | null;
           rejection_reason?: string | null;
+          selected_mediator_profile_id?: string | null;
           status?: CaseStatus;
           submitted_at?: string | null;
           created_at?: string;
@@ -581,6 +593,218 @@ export type Database = {
         };
         Relationships: [];
       };
+      mediator_profiles: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string | null;
+          first_name: string;
+          last_name: string;
+          profile_photo_url: string | null;
+          citizen_id: string | null;
+          date_of_birth: string | null;
+          gender: string | null;
+          phone: string | null;
+          email: string | null;
+          address: string | null;
+          province: string | null;
+          district: string | null;
+          education_level: string | null;
+          education_detail: string | null;
+          occupation: string | null;
+          current_organization: string | null;
+          mediator_license_number: string | null;
+          mediator_registration_authority: string | null;
+          mediation_experience_years: number;
+          total_cases_handled: number;
+          successful_cases: number;
+          expertise_areas: Json;
+          debt_types_supported: Json;
+          languages: Json;
+          service_provinces: Json;
+          online_mediation_available: boolean;
+          onsite_mediation_available: boolean;
+          profile_summary: string | null;
+          status: MediatorProfileStatus;
+          admin_review_note: string | null;
+          approved_at: string | null;
+          approved_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title?: string | null;
+          first_name?: string;
+          last_name?: string;
+          profile_photo_url?: string | null;
+          citizen_id?: string | null;
+          date_of_birth?: string | null;
+          gender?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          address?: string | null;
+          province?: string | null;
+          district?: string | null;
+          education_level?: string | null;
+          education_detail?: string | null;
+          occupation?: string | null;
+          current_organization?: string | null;
+          mediator_license_number?: string | null;
+          mediator_registration_authority?: string | null;
+          mediation_experience_years?: number;
+          total_cases_handled?: number;
+          successful_cases?: number;
+          expertise_areas?: Json;
+          debt_types_supported?: Json;
+          languages?: Json;
+          service_provinces?: Json;
+          online_mediation_available?: boolean;
+          onsite_mediation_available?: boolean;
+          profile_summary?: string | null;
+          status?: MediatorProfileStatus;
+          admin_review_note?: string | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mediator_profiles"]["Insert"]>;
+        Relationships: [];
+      };
+      mediator_certifications: {
+        Row: {
+          id: string;
+          mediator_profile_id: string;
+          certification_name: string;
+          issuer: string | null;
+          issued_date: string | null;
+          certificate_url: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          mediator_profile_id: string;
+          certification_name: string;
+          issuer?: string | null;
+          issued_date?: string | null;
+          certificate_url?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mediator_certifications"]["Insert"]>;
+        Relationships: [];
+      };
+      mediator_experiences: {
+        Row: {
+          id: string;
+          mediator_profile_id: string;
+          organization_name: string | null;
+          role_title: string | null;
+          case_type: string | null;
+          description: string | null;
+          start_year: number | null;
+          end_year: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          mediator_profile_id: string;
+          organization_name?: string | null;
+          role_title?: string | null;
+          case_type?: string | null;
+          description?: string | null;
+          start_year?: number | null;
+          end_year?: number | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mediator_experiences"]["Insert"]>;
+        Relationships: [];
+      };
+      mediator_specialties: {
+        Row: {
+          id: string;
+          mediator_profile_id: string;
+          specialty: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          mediator_profile_id: string;
+          specialty: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mediator_specialties"]["Insert"]>;
+        Relationships: [];
+      };
+      mediator_availability: {
+        Row: {
+          id: string;
+          mediator_profile_id: string;
+          available_days: Json;
+          available_time_slots: Json;
+          max_cases_per_month: number;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          mediator_profile_id: string;
+          available_days?: Json;
+          available_time_slots?: Json;
+          max_cases_per_month?: number;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mediator_availability"]["Insert"]>;
+        Relationships: [];
+      };
+      mediator_documents: {
+        Row: {
+          id: string;
+          mediator_profile_id: string;
+          document_type: string;
+          file_name: string | null;
+          file_url: string;
+          visibility: "admin_only" | "public";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          mediator_profile_id: string;
+          document_type: string;
+          file_name?: string | null;
+          file_url: string;
+          visibility?: "admin_only" | "public";
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mediator_documents"]["Insert"]>;
+        Relationships: [];
+      };
+      mediator_review_logs: {
+        Row: {
+          id: string;
+          mediator_profile_id: string;
+          reviewer_profile_id: string | null;
+          from_status: MediatorProfileStatus | null;
+          to_status: MediatorProfileStatus;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          mediator_profile_id: string;
+          reviewer_profile_id?: string | null;
+          from_status?: MediatorProfileStatus | null;
+          to_status: MediatorProfileStatus;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mediator_review_logs"]["Insert"]>;
+        Relationships: [];
+      };
       mediation_sessions: {
         Row: {
           id: string;
@@ -756,6 +980,7 @@ export type Database = {
       creditor_campaign_status: CreditorCampaignStatus;
       creditor_officer_role: CreditorOfficerRole;
       creditor_response_status: CreditorResponseStatus;
+      mediator_profile_status: MediatorProfileStatus;
     };
     CompositeTypes: Record<string, never>;
   };

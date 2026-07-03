@@ -50,6 +50,9 @@ export default async function CaseDetailPage({
                   <Button type="submit" className="rounded-lg font-semibold">ส่งคำขอตรวจสอบ</Button>
                 </form>
               ) : null}
+              {["creditor_accepted", "mediator_matching", "matched"].includes(item.status) ? (
+                <Button href={`/debtor/cases/${item.id}/mediator`} className="rounded-lg font-semibold">เลือกผู้ไกล่เกลี่ย</Button>
+              ) : null}
             </div>
           </div>
 

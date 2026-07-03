@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type React from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Bell,
@@ -40,6 +41,7 @@ export function PortalShell({
   metrics,
   sidebarItems,
   table,
+  children,
 }: {
   roleLabel: string;
   title: string;
@@ -48,6 +50,7 @@ export function PortalShell({
   metrics: MetricCard[];
   sidebarItems: SidebarItem[];
   table: EmptyTable;
+  children?: React.ReactNode;
 }) {
   return (
     <div className="min-h-screen bg-[#F7F7F7] text-[#1F2937]">
@@ -141,22 +144,27 @@ export function PortalShell({
               ))}
             </div>
 
-            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {metrics.map(({ label, value, caption, icon: Icon }) => (
-                <div key={label} className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-medium text-[#6B7280]">{label}</p>
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#FFF2A8]">
-                      <Icon className="h-4 w-4" />
+            {metrics.length > 0 ? (
+              <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {metrics.map(({ label, value, caption, icon: Icon }) => (
+                  <div key={label} className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm font-medium text-[#6B7280]">{label}</p>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#FFF2A8]">
+                        <Icon className="h-4 w-4" />
+                      </div>
                     </div>
+                    <p className="mt-4 text-3xl font-semibold">{value}</p>
+                    <p className="mt-2 text-xs text-[#6B7280]">{caption}</p>
                   </div>
-                  <p className="mt-4 text-3xl font-semibold">{value}</p>
-                  <p className="mt-2 text-xs text-[#6B7280]">{caption}</p>
-                </div>
-              ))}
-            </section>
+                ))}
+              </section>
+            ) : null}
 
-            <section className="mt-6 grid gap-6 xl:grid-cols-[1fr_22rem]">
+            {children}
+
+            {table.columns.length > 0 ? (
+              <section className="mt-6 grid gap-6 xl:grid-cols-[1fr_22rem]">
               <div className="rounded-lg border border-black/5 bg-white shadow-sm">
                 <div className="flex flex-col gap-3 border-b border-black/5 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -236,7 +244,8 @@ export function PortalShell({
                   </p>
                 </div>
               </aside>
-            </section>
+              </section>
+            ) : null}
           </main>
         </div>
       </div>
