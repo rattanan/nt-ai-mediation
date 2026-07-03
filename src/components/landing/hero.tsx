@@ -1,8 +1,9 @@
 import Image from "next/image";
 import { ArrowRight, Play, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { LandingContent } from "@/data/landing";
 
-export function Hero() {
+export function Hero({ content }: { content: LandingContent["hero"] }) {
   return (
     <section className="relative overflow-hidden">
       <div
@@ -13,37 +14,36 @@ export function Hero() {
         <div className="flex flex-col items-start">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-muted-foreground shadow-sm">
             <Sparkles className="size-3.5 text-accent-blue" aria-hidden="true" />
-            AI-assisted resolution, PDPA-compliant
+            {content.badge}
           </span>
 
           <h1 className="mt-6 text-pretty text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            AI-Powered Digital <span className="text-foreground">Mediation Platform</span>
+            {content.titlePrefix} <span className="text-foreground">{content.titleHighlight}</span>
           </h1>
 
           <p className="mt-6 max-w-xl text-pretty text-lg leading-relaxed text-muted-foreground">
-            Resolve debt disputes faster with AI-assisted mediation. Connect debtors,
-            creditors, and certified mediators to reach fair settlements - without going to court.
+            {content.description}
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Button href="/login" size="lg" className="rounded-full font-semibold">
-              Start Mediation
+              {content.primaryCta}
               <ArrowRight className="size-4" aria-hidden="true" />
             </Button>
-            <Button href="/dashboard/mediator" size="lg" variant="outline" className="rounded-full font-semibold">
-              Find a Mediator
+            <Button href="/mediator" size="lg" variant="outline" className="rounded-full font-semibold">
+              {content.secondaryCta}
             </Button>
             <Button size="lg" variant="ghost" className="rounded-full font-semibold">
               <span className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
                 <Play className="size-3 fill-current" aria-hidden="true" />
               </span>
-              Watch Demo
+              {content.demoCta}
             </Button>
           </div>
 
           <div className="mt-10 flex items-center gap-2 text-sm text-muted-foreground">
             <ShieldCheck className="size-4 text-success" aria-hidden="true" />
-            Trusted by government agencies and enterprise creditors
+            {content.trustNote}
           </div>
         </div>
 
@@ -52,7 +52,7 @@ export function Hero() {
           <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-xl shadow-black/5">
             <Image
               src="/images/hero-mediation.png"
-              alt="AI assistant mediating a conversation between a debtor and a certified mediator"
+              alt={content.imageAlt}
               width={1024}
               height={768}
               className="h-full w-full object-cover"
@@ -65,8 +65,8 @@ export function Hero() {
               <ShieldCheck className="size-5" aria-hidden="true" />
             </span>
             <div>
-              <p className="text-sm font-semibold">Settlement reached</p>
-              <p className="text-xs text-muted-foreground">Signed digitally in 12 days</p>
+              <p className="text-sm font-semibold">{content.floatingTitle}</p>
+              <p className="text-xs text-muted-foreground">{content.floatingDescription}</p>
             </div>
           </div>
         </div>

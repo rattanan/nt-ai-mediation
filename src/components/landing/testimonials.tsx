@@ -1,15 +1,15 @@
 import { Quote } from "lucide-react";
 import { SectionHeading } from "@/components/landing/section-heading";
-import { testimonials } from "@/data/landing";
+import type { LandingContent } from "@/data/landing";
 
-export function Testimonials() {
+export function Testimonials({ content }: { content: LandingContent["testimonials"] }) {
   return (
     <section className="py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <SectionHeading eyebrow="Testimonials" title="Outcomes people trust" />
+        <SectionHeading eyebrow={content.eyebrow} title={content.title} />
 
         <div className="mt-14 grid gap-6 lg:grid-cols-3">
-          {testimonials.map((testimonial) => (
+          {content.items.map((testimonial) => (
             <figure
               key={testimonial.name}
               className="flex flex-col justify-between rounded-3xl border border-border bg-card p-8 shadow-sm"

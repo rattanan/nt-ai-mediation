@@ -1,0 +1,120 @@
+import { submitCreditorResponse } from "@/app/creditor/actions";
+import { CreditorShell } from "@/components/creditor/creditor-shell";
+import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { requireRole } from "@/lib/auth/server";
+import { caseStatusLabels } from "@/lib/cases";
+import { getCreditorCase, getCreditorOfficer, getCreditorOrganization, getCreditorResponses } from "@/lib/creditor";
+
+export const dynamic = "force-dynamic";
+
+export default async function CreditorCaseDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ success?: string; error?: string }>;
+}) {
+  const profile = await requireRole("creditor");
+  const { id } = await params;
+  const { success, error } = await searchParams;
+  const officer = await getCreditorOfficer(profile.id);
+  const organization = await getCreditorOrganization(officer?.organization_id);
+
+  if (!organization) {
+    return (
+      <CreditorShell profile={profile} activePath="/creditor" title="ไม่พบองค์กรเจ้าหนี้" subtitle="กรุณาลงทะเบียนองค์กรก่อนดูรายละเอียดเคส">
+        <Alert variant="destructive">ไม่พบองค์กรเจ้าหนี้ที่เชื่อมกับบัญชีนี้</Alert>
+      </CreditorShell>
+    );
+  }
+
+  const item = await getCreditorCase(id, organization.id);
+  const responses = await getCreditorResponses(id, organization.id);
+
+  return (
+    <CreditorShell profile={profile} activePath="/creditor" title={`เคส ${item.case_number}`} subtitle="ตรวจสอบคำขอไกล่เกลี่ยและส่งคำตอบกลับ">
+      {success ? <Alert variant="success" className="mb-5">{success}</Alert> : null}
+      {error ? <Alert variant="destructive" className="mb-5">{error}</Alert> : null}
+
+      <div className="grid gap-6 xl:grid-cols-[1fr_26rem]">
+        <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
+          <div className="border-b border-black/5 pb-5">
+            <Badge>{caseStatusLabels[item.status]}</Badge>
+            <h2 className="mt-3 text-2xl font-semibold">{item.creditor_name}</h2>
+            <p className="mt-1 text-sm text-[#6B7280]">{item.debt_type} · {Number(item.debt_amount).toLocaleString("th-TH")} บาท</p>
+          </div>
+
+          <dl className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div><dt className="text-sm text-[#6B7280]">ประเภทเจ้าหนี้</dt><dd className="font-medium">{item.creditor_type}</dd></div>
+            <div><dt className="text-sm text-[#6B7280]">ค้างชำระ</dt><dd className="font-medium">{item.overdue_months} เดือน</dd></div>
+            <div><dt className="text-sm text-[#6B7280]">พื้นที่</dt><dd className="font-medium">{item.district}, {item.province}</dd></div>
+            <div><dt className="text-sm text-[#6B7280]">เบอร์ติดต่อลูกหนี้</dt><dd className="font-medium">{item.contact_phone}</dd></div>
+          </dl>
+
+          <div className="mt-6 space-y-5">
+            <div>
+              <h3 className="font-semibold">สรุปข้อมูลลูกหนี้</h3>
+              <p className="mt-2 rounded-lg bg-[#F8FAFC] p-4 text-sm leading-6 text-[#374151]">
+                ข้อมูลผู้ยื่นคำขอจะแสดงจากโปรไฟล์ลูกหนี้เมื่อเชื่อมข้อมูลเพิ่มเติม
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold">รายละเอียดปัญหา</h3>
+              <p className="mt-2 whitespace-pre-line rounded-lg bg-[#F8FAFC] p-4 text-sm leading-6 text-[#374151]">{item.problem_description}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold">แนวทางที่ต้องการ</h3>
+              <p className="mt-2 whitespace-pre-line rounded-lg bg-[#F8FAFC] p-4 text-sm leading-6 text-[#374151]">{item.desired_solution}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold">เอกสารแนบ</h3>
+              <p className="mt-2 rounded-lg bg-[#F8FAFC] p-4 text-sm text-[#6B7280]">ยังไม่มี UI แสดงเอกสารใน prototype นี้</p>
+            </div>
+            <div>
+              <h3 className="font-semibold">สรุปการสัมภาษณ์โดย AI</h3>
+              <p className="mt-2 rounded-lg bg-[#F8FAFC] p-4 text-sm text-[#6B7280]">ข้อมูลสรุปจาก AI จะแสดงเมื่อโมดูลสัมภาษณ์พร้อมใช้งาน</p>
+            </div>
+          </div>
+        </section>
+
+        <aside className="space-y-5">
+          <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
+            <h2 className="font-semibold">การตอบกลับของเจ้าหนี้</h2>
+            <form action={submitCreditorResponse} className="mt-4 space-y-3">
+              <input type="hidden" name="case_id" value={item.id} />
+              <select name="response" className="h-11 w-full rounded-lg border border-[#D1D5DB] bg-white px-3 text-sm">
+                <option value="accepted">รับคำขอไกล่เกลี่ย</option>
+                <option value="rejected">ปฏิเสธคำขอไกล่เกลี่ย</option>
+                <option value="needs_more_info">ขอข้อมูลเพิ่มเติม</option>
+                <option value="settlement_proposed">เสนอเงื่อนไขชำระหนี้</option>
+                <option value="settlement_approved">อนุมัติข้อตกลงสุดท้าย</option>
+              </select>
+              <textarea name="reason" className="min-h-24 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" placeholder="เหตุผล / หมายเหตุ" />
+              <textarea name="requested_information" className="min-h-20 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" placeholder="ข้อมูลเพิ่มเติมที่ต้องการ" />
+              <textarea name="proposed_terms" className="min-h-24 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" placeholder="เงื่อนไข settlement ที่เสนอ" />
+              <Input name="settlement_amount" type="number" min="0" step="0.01" placeholder="ยอด settlement" />
+              <Input name="monthly_payment" type="number" min="0" step="0.01" placeholder="ยอดชำระต่อเดือน" />
+              <Button type="submit" className="h-11 w-full rounded-lg font-semibold">บันทึกการตอบกลับ</Button>
+            </form>
+          </section>
+
+          <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
+            <h2 className="font-semibold">ประวัติการตอบกลับ</h2>
+            <div className="mt-4 space-y-3">
+              {responses.length === 0 ? <p className="text-sm text-[#6B7280]">ยังไม่มีการตอบกลับ</p> : responses.map((response) => (
+                <div key={response.id} className="rounded-lg bg-[#F8FAFC] p-3">
+                  <p className="text-sm font-semibold">{response.response}</p>
+                  <p className="mt-1 text-xs text-[#6B7280]">{new Date(response.created_at).toLocaleString("th-TH")}</p>
+                  {response.reason ? <p className="mt-2 text-sm">{response.reason}</p> : null}
+                </div>
+              ))}
+            </div>
+          </section>
+        </aside>
+      </div>
+    </CreditorShell>
+  );
+}

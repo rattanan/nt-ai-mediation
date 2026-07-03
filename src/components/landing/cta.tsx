@@ -1,7 +1,8 @@
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { LandingContent } from "@/data/landing";
 
-export function CTA() {
+export function CTA({ content }: { content: LandingContent["cta"] }) {
   return (
     <section className="pb-20 lg:pb-28">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -12,23 +13,23 @@ export function CTA() {
           />
           <div className="relative mx-auto max-w-2xl">
             <h2 className="text-balance text-3xl font-bold tracking-tight text-background sm:text-4xl">
-              Start your digital mediation today
+              {content.title}
             </h2>
             <p className="mt-4 text-pretty text-lg text-background/70">
-              Join thousands resolving debt disputes faster, fairer, and without the courtroom.
+              {content.description}
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Button href="/login" size="lg" className="rounded-full font-semibold">
-                Start Mediation
+                {content.primaryCta}
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Button>
               <Button
-                href="/dashboard/mediator"
+                href="/mediator"
                 size="lg"
                 variant="outline"
                 className="rounded-full border-background/30 bg-transparent font-semibold text-background hover:bg-background/10 hover:text-background"
               >
-                Find a Mediator
+                {content.secondaryCta}
               </Button>
             </div>
           </div>

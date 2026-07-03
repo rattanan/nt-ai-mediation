@@ -1,9 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { appUrl } from "@/lib/auth/verification";
 import { createClient } from "@/lib/supabase/client";
+import type { AppRole } from "@/types/database";
 
-export function GoogleOAuthButton({ label }: { label: string }) {
+type GoogleOAuthButtonProps = {
+  label: string;
+  role?: AppRole;
+};
+
+export function GoogleOAuthButton({ label, role }: GoogleOAuthButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -12,10 +19,16 @@ export function GoogleOAuthButton({ label }: { label: string }) {
     setErrorMessage(null);
 
     const supabase = createClient();
+    const redirectUrl = appUrl("/auth/callback");
+
+    if (role) {
+      redirectUrl.searchParams.set("role", role);
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: redirectUrl.toString(),
       },
     });
 

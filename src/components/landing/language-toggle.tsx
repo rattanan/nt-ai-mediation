@@ -1,8 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-
-export type Language = "th" | "en";
+import type { Language } from "@/data/landing";
 
 const languages: Array<{ value: Language; label: string }> = [
   { value: "th", label: "ไทย" },

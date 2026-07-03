@@ -1,10 +1,10 @@
 import type { AppRole } from "@/types/database";
 
 export const roleHome: Record<AppRole, string> = {
-  debtor: "/dashboard/debtor",
-  mediator: "/dashboard/mediator",
-  creditor: "/dashboard/creditor",
-  admin: "/dashboard/admin",
+  debtor: "/debtor",
+  mediator: "/mediator",
+  creditor: "/creditor",
+  admin: "/admin/dashboard",
 };
 
 export function getRoleHome(role: AppRole) {

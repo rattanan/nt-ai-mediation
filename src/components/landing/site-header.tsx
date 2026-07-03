@@ -4,12 +4,17 @@ import { useState } from "react";
 import Image from "next/image";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { headerNavLinks } from "@/data/landing";
-import { LanguageToggle, type Language } from "@/components/landing/language-toggle";
+import type { LandingContent, Language } from "@/data/landing";
+import { LanguageToggle } from "@/components/landing/language-toggle";
 
-export function SiteHeader() {
+type SiteHeaderProps = {
+  content: LandingContent;
+  language: Language;
+  onLanguageChange: (language: Language) => void;
+};
+
+export function SiteHeader({ content, language, onLanguageChange }: SiteHeaderProps) {
   const [open, setOpen] = useState(false);
-  const [language, setLanguage] = useState<Language>("th");
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl">
@@ -25,12 +30,12 @@ export function SiteHeader() {
           />
           <span className="hidden h-6 w-px bg-border sm:block" aria-hidden="true" />
           <span className="hidden text-base font-semibold tracking-tight text-muted-foreground sm:block">
-            AI Mediation
+            {content.brandLabel}
           </span>
         </a>
 
         <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
-          {headerNavLinks.map((link) => (
+          {content.headerNavLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
@@ -42,12 +47,12 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <LanguageToggle value={language} onChange={setLanguage} />
+          <LanguageToggle value={language} onChange={onLanguageChange} />
           <Button href="/login" variant="ghost" className="font-medium">
-            Sign in
+            {content.signInLabel}
           </Button>
           <Button href="/login" className="rounded-full font-semibold">
-            Start Mediation
+            {content.startLabel}
           </Button>
         </div>
 
@@ -65,7 +70,7 @@ export function SiteHeader() {
       {open ? (
         <div className="border-t border-border/60 bg-background md:hidden">
           <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-6 py-4" aria-label="Mobile">
-            {headerNavLinks.map((link) => (
+            {content.headerNavLinks.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
@@ -76,12 +81,12 @@ export function SiteHeader() {
               </a>
             ))}
             <div className="mt-2 flex flex-col gap-2">
-              <LanguageToggle value={language} onChange={setLanguage} className="w-fit" />
+              <LanguageToggle value={language} onChange={onLanguageChange} className="w-fit" />
               <Button href="/login" variant="outline" className="w-full">
-                Sign in
+                {content.signInLabel}
               </Button>
               <Button href="/login" className="w-full rounded-full font-semibold">
-                Start Mediation
+                {content.startLabel}
               </Button>
             </div>
           </nav>

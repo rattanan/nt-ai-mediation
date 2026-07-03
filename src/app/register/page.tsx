@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { UserPlus, Sparkles } from "lucide-react";
 import { register } from "@/app/auth/actions";
+import { GoogleOAuthButton } from "@/components/auth/google-oauth-button";
 import { getCurrentProfile } from "@/lib/auth/server";
 import { getRoleHome } from "@/lib/auth/routes";
 import { redirect } from "next/navigation";
-import { GoogleOAuthButton } from "@/components/auth/google-oauth-button";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +55,10 @@ export default async function RegisterPage({
             ) : null}
 
             <div className="mt-6">
-              <GoogleOAuthButton label="สมัครด้วย Google" />
+              <GoogleOAuthButton label="สมัครหรือเข้าสู่ระบบด้วย Google" role="debtor" />
+              <p className="mt-2 text-center text-xs text-[#6B7280]">
+                การสมัครด้วย Google จะตั้งค่าบทบาทเริ่มต้นเป็นลูกหนี้
+              </p>
             </div>
 
             <div className="my-6 flex items-center gap-3">
@@ -64,7 +67,7 @@ export default async function RegisterPage({
               <div className="h-px flex-1 bg-[#E5E7EB]" />
             </div>
 
-            <form action={register} className="space-y-4">
+            <form action={register} className="mt-6 space-y-4">
               <label className="block">
                 <span className="text-sm font-medium">ชื่อ-นามสกุล</span>
                 <input
@@ -105,7 +108,6 @@ export default async function RegisterPage({
                   <option value="debtor">ลูกหนี้</option>
                   <option value="mediator">ผู้ไกล่เกลี่ย</option>
                   <option value="creditor">เจ้าหนี้</option>
-                  <option value="admin">ผู้ดูแลระบบ</option>
                 </select>
               </label>
               <label className="block">

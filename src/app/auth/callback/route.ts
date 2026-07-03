@@ -1,28 +1,36 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { AppRole } from "@/types/database";
-import { getRoleHome } from "@/lib/auth/routes";
+import { getRoleHome, isAppRole } from "@/lib/auth/routes";
+import {
+  getFullNameFromUser,
+  getOrganizationNameFromUser,
+  getRoleFromUserMetadata,
+  appUrl,
+  isEmailVerified,
+  writeAuditLog,
+} from "@/lib/auth/verification";
 
-function redirectWithMessage(request: NextRequest, path: string, message: string) {
-  const url = request.nextUrl.clone();
-  url.pathname = path;
-  url.search = `?message=${encodeURIComponent(message)}`;
+function redirectWithMessage(_request: NextRequest, path: string, message: string) {
+  const url = appUrl(path);
+  url.searchParams.set("message", message);
   return NextResponse.redirect(url);
 }
 
 export async function GET(request: NextRequest) {
   const requestUrl = request.nextUrl;
   const code = requestUrl.searchParams.get("code");
+  const requestedRole = requestUrl.searchParams.get("role");
 
   if (!code) {
-    return redirectWithMessage(request, "/login", "ไม่พบรหัสยืนยันจาก Google กรุณาลองอีกครั้ง");
+    return redirectWithMessage(request, "/login", "ลิงก์ยืนยันไม่ถูกต้องหรือหมดอายุ กรุณาลองอีกครั้ง");
   }
 
   const supabase = await createClient();
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
   if (exchangeError) {
-    return redirectWithMessage(request, "/login", "เข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองอีกครั้ง");
+    return redirectWithMessage(request, "/login", "ยืนยันบัญชีหรือเข้าสู่ระบบไม่สำเร็จ กรุณาลองอีกครั้ง");
   }
 
   const {
@@ -30,7 +38,15 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return redirectWithMessage(request, "/login", "ไม่พบข้อมูลผู้ใช้งานจาก Google กรุณาลองอีกครั้ง");
+    return redirectWithMessage(request, "/login", "ไม่พบข้อมูลผู้ใช้งาน กรุณาลองอีกครั้ง");
+  }
+
+  if (!isEmailVerified(user)) {
+    return redirectWithMessage(
+      request,
+      `/verify-email?email=${encodeURIComponent(user.email ?? "")}`,
+      "กรุณาตรวจสอบอีเมลของคุณเพื่อยืนยันบัญชี ก่อนเข้าสู่ระบบ",
+    );
   }
 
   const { data: existingProfile, error: profileLookupError } = await supabase
@@ -46,29 +62,34 @@ export async function GET(request: NextRequest) {
   let role = (existingProfile?.role ?? null) as AppRole | null;
 
   if (!role) {
-    role = "debtor";
-    const fullName =
-      typeof user.user_metadata.full_name === "string"
-        ? user.user_metadata.full_name
-        : typeof user.user_metadata.name === "string"
-          ? user.user_metadata.name
-          : user.email ?? "Google User";
-
-    const { error: createProfileError } = await supabase.from("profiles").insert({
-      id: user.id,
-      role,
-      full_name: fullName,
-      organization_name: null,
-    });
-
-    if (createProfileError) {
-      return redirectWithMessage(request, "/login", "สร้างโปรไฟล์หลังเข้าสู่ระบบด้วย Google ไม่สำเร็จ");
-    }
+    role = requestedRole && isAppRole(requestedRole) ? requestedRole : getRoleFromUserMetadata(user);
   }
 
-  const redirectUrl = request.nextUrl.clone();
-  redirectUrl.pathname = getRoleHome(role);
-  redirectUrl.search = "";
+  const { error: profileUpdateError } = await supabase.from("profiles").upsert({
+    id: user.id,
+    role,
+    email: user.email ?? null,
+    full_name: getFullNameFromUser(user),
+    organization_name: getOrganizationNameFromUser(user),
+    email_verified: true,
+    account_status: "active",
+  });
+
+  if (profileUpdateError) {
+    return redirectWithMessage(request, "/login", "อัปเดตโปรไฟล์หลังยืนยันบัญชีไม่สำเร็จ กรุณาลองอีกครั้ง");
+  }
+
+  await writeAuditLog(supabase, "EMAIL_VERIFICATION_COMPLETED", { email: user.email ?? null }, user.id);
+
+  const providers = Array.isArray(user.app_metadata?.providers) ? user.app_metadata.providers : [];
+  const isGoogleUser = user.app_metadata?.provider === "google" || providers.includes("google");
+
+  if (!isGoogleUser) {
+    const confirmedUrl = appUrl("/auth/email-confirmed");
+    return NextResponse.redirect(confirmedUrl);
+  }
+
+  const redirectUrl = appUrl(getRoleHome(role));
 
   return NextResponse.redirect(redirectUrl);
 }

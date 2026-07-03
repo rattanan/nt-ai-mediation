@@ -1,7 +1,7 @@
 import Image from "next/image";
-import { footerColumns } from "@/data/landing";
+import type { LandingContent } from "@/data/landing";
 
-export function SiteFooter() {
+export function SiteFooter({ content }: { content: LandingContent["footer"] }) {
   return (
     <footer className="border-t border-border bg-card/40">
       <div className="mx-auto max-w-7xl px-6 py-14 lg:px-8">
@@ -16,16 +16,15 @@ export function SiteFooter() {
                 className="h-9 w-auto"
               />
               <span className="text-base font-semibold tracking-tight text-muted-foreground">
-                Mediation
+                {content.logoLabel}
               </span>
             </a>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
-              AI-powered digital mediation, helping resolve debt disputes quickly, fairly, and
-              securely - without going to court.
+              {content.description}
             </p>
           </div>
 
-          {footerColumns.map((column) => (
+          {content.columns.map((column) => (
             <div key={column.heading}>
               <h3 className="text-sm font-semibold">{column.heading}</h3>
               <ul className="mt-4 space-y-3">
@@ -46,10 +45,9 @@ export function SiteFooter() {
 
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 sm:flex-row">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} NT AI Digital Mediation Platform. All rights
-            reserved.
+            &copy; {new Date().getFullYear()} {content.rights}
           </p>
-          <p className="text-sm text-muted-foreground">Made for a fairer resolution.</p>
+          <p className="text-sm text-muted-foreground">{content.tagline}</p>
         </div>
       </div>
     </footer>

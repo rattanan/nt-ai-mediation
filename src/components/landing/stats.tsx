@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { landingStats, type Stat } from "@/data/landing";
+import type { Stat } from "@/data/landing";
 
 function formatValue(current: number, stat: Stat) {
   const rounded =
@@ -44,7 +44,7 @@ function Counter({ stat, start }: { stat: Stat; start: boolean }) {
   );
 }
 
-export function Stats() {
+export function Stats({ stats }: { stats: Stat[] }) {
   const [visible, setVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -72,7 +72,7 @@ export function Stats() {
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div ref={ref} className="rounded-3xl border border-border bg-primary/10 px-8 py-14">
           <div className="grid gap-10 text-center sm:grid-cols-2 lg:grid-cols-4">
-            {landingStats.map((stat) => (
+            {stats.map((stat) => (
               <div key={stat.label} className="flex flex-col items-center">
                 <Counter stat={stat} start={visible} />
                 <span className="mt-2 text-sm font-medium text-muted-foreground">
