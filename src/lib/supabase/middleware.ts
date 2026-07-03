@@ -84,12 +84,11 @@ export async function updateSession(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, account_status")
+    .select("role")
     .eq("id", user.id)
     .maybeSingle();
 
   let role = profile?.role;
-  let accountStatus = profile?.account_status;
 
   if (!role || !isAppRole(role)) {
     const fallbackRole = getRoleFromUserMetadata(user);
@@ -104,7 +103,7 @@ export async function updateSession(request: NextRequest) {
         email_verified: true,
         account_status: "active",
       })
-      .select("role, account_status")
+      .select("role")
       .single();
 
     if (createProfileError) {
@@ -120,7 +119,7 @@ export async function updateSession(request: NextRequest) {
           role: fallbackRole,
           full_name: getFullNameFromUser(user),
         })
-        .select("role, account_status")
+        .select("role")
         .single();
 
       createdProfile = minimalResult.data;
@@ -141,13 +140,6 @@ export async function updateSession(request: NextRequest) {
     }
 
     role = createdProfile.role;
-    accountStatus = createdProfile.account_status;
-  }
-
-  if (accountStatus === "suspended" || accountStatus === "disabled") {
-    const loginUrl = appUrl("/login");
-    loginUrl.searchParams.set("message", "บัญชีนี้ยังไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแลระบบ");
-    return NextResponse.redirect(loginUrl);
   }
 
   if (role !== expectedRole) {

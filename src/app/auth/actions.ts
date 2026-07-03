@@ -30,7 +30,7 @@ type ProfileSeed = {
 async function upsertProfile(seed: ProfileSeed) {
   const supabase = await createClient();
 
-  return supabase.from("profiles").upsert({
+  const fullResult = await supabase.from("profiles").upsert({
     id: seed.id,
     role: seed.role,
     email: seed.email ?? null,
@@ -38,6 +38,23 @@ async function upsertProfile(seed: ProfileSeed) {
     organization_name: seed.organizationName || null,
     email_verified: seed.emailVerified ?? false,
     account_status: seed.accountStatus ?? "pending_verification",
+  });
+
+  if (!fullResult.error) {
+    return fullResult;
+  }
+
+  console.error("Full profile upsert failed, retrying legacy profile shape", {
+    code: fullResult.error.code,
+    message: fullResult.error.message,
+  });
+
+  return supabase.from("profiles").upsert({
+    id: seed.id,
+    role: seed.role,
+    full_name: seed.fullName,
+    phone: null,
+    organization_name: seed.organizationName || null,
   });
 }
 
@@ -76,7 +93,7 @@ export async function login(formData: FormData) {
 
   const { data: profileData, error: profileError } = await supabase
     .from("profiles")
-    .select("role, account_status")
+    .select("role")
     .eq("id", user.id)
     .maybeSingle();
   const profile = profileData as { role: AppRole; account_status?: string } | null;
@@ -104,10 +121,6 @@ export async function login(formData: FormData) {
     }
 
     redirect(getRoleHome(role));
-  }
-
-  if (profile.account_status === "suspended" || profile.account_status === "disabled") {
-    authRedirect("/login", "บัญชีนี้ยังไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแลระบบ");
   }
 
   redirect(getRoleHome(profile.role));

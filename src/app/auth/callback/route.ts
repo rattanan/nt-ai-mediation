@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     role = requestedRole && isAppRole(requestedRole) ? requestedRole : getRoleFromUserMetadata(user);
   }
 
-  const { error: profileUpdateError } = await supabase.from("profiles").upsert({
+  let { error: profileUpdateError } = await supabase.from("profiles").upsert({
     id: user.id,
     role,
     email: user.email ?? null,
@@ -74,6 +74,22 @@ export async function GET(request: NextRequest) {
     email_verified: true,
     account_status: "active",
   });
+
+  if (profileUpdateError) {
+    console.error("Full profile upsert failed in auth callback, retrying legacy profile shape", {
+      code: profileUpdateError.code,
+      message: profileUpdateError.message,
+    });
+
+    const legacyResult = await supabase.from("profiles").upsert({
+      id: user.id,
+      role,
+      full_name: getFullNameFromUser(user),
+      organization_name: getOrganizationNameFromUser(user),
+    });
+
+    profileUpdateError = legacyResult.error;
+  }
 
   if (profileUpdateError) {
     return redirectWithMessage(request, "/login", "อัปเดตโปรไฟล์หลังยืนยันบัญชีไม่สำเร็จ กรุณาลองอีกครั้ง");
