@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
   const requestUrl = request.nextUrl;
   const code = requestUrl.searchParams.get("code");
   const requestedRole = requestUrl.searchParams.get("role");
+  const returnUrl = requestUrl.searchParams.get("returnUrl");
 
   if (!code) {
     return redirectWithMessage(request, "/login", "ลิงก์ยืนยันไม่ถูกต้องหรือหมดอายุ กรุณาลองอีกครั้ง");
@@ -105,7 +106,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(confirmedUrl);
   }
 
-  const redirectUrl = appUrl(getRoleHome(role));
+  const redirectUrl = appUrl(returnUrl?.startsWith("/") ? returnUrl : getRoleHome(role));
 
   return NextResponse.redirect(redirectUrl);
 }

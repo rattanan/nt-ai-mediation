@@ -61,6 +61,7 @@ async function upsertProfile(seed: ProfileSeed) {
 export async function login(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const returnUrl = String(formData.get("return_url") ?? "").trim();
 
   if (!email || !password) {
     authRedirect("/login", "กรุณากรอกอีเมลและรหัสผ่าน");
@@ -120,10 +121,10 @@ export async function login(formData: FormData) {
       authRedirect("/login", "เข้าสู่ระบบแล้ว แต่ยังสร้างโปรไฟล์ไม่ได้ กรุณาติดต่อผู้ดูแลระบบ");
     }
 
-    redirect(getRoleHome(role));
+    redirect(returnUrl.startsWith("/") ? returnUrl : getRoleHome(role));
   }
 
-  redirect(getRoleHome(profile.role));
+  redirect(returnUrl.startsWith("/") ? returnUrl : getRoleHome(profile.role));
 }
 
 export async function register(formData: FormData) {

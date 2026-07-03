@@ -1,4 +1,4 @@
-import { submitCreditorResponse } from "@/app/creditor/actions";
+import { acceptCreditorCase, rejectCreditorCase, requestCreditorMoreInfo, submitCreditorResponse } from "@/app/creditor/actions";
 import { CreditorShell } from "@/components/creditor/creditor-shell";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -82,22 +82,35 @@ export default async function CreditorCaseDetailPage({
 
         <aside className="space-y-5">
           <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
-            <h2 className="font-semibold">การตอบกลับของเจ้าหนี้</h2>
+            <h2 className="font-semibold">การพิจารณาของเจ้าหนี้</h2>
+            <form action={acceptCreditorCase} className="mt-4 space-y-3">
+              <input type="hidden" name="case_id" value={item.id} />
+              <textarea name="note" className="min-h-24 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" placeholder="หมายเหตุสำหรับการพิจารณา" />
+              <Button type="submit" className="h-11 w-full rounded-lg font-semibold">รับคำขอไกล่เกลี่ย</Button>
+            </form>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <form action={requestCreditorMoreInfo}>
+                <input type="hidden" name="case_id" value={item.id} />
+                <input type="hidden" name="note" value="เจ้าหนี้ขอข้อมูลเพิ่มเติม" />
+                <Button type="submit" variant="outline" className="h-11 w-full rounded-lg font-semibold">ขอข้อมูลเพิ่ม</Button>
+              </form>
+              <form action={rejectCreditorCase}>
+                <input type="hidden" name="case_id" value={item.id} />
+                <input type="hidden" name="note" value="เจ้าหนี้ปฏิเสธคำขอ" />
+                <Button type="submit" variant="outline" className="h-11 w-full rounded-lg font-semibold">ปฏิเสธ</Button>
+              </form>
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
+            <h2 className="font-semibold">เสนอเงื่อนไข settlement</h2>
             <form action={submitCreditorResponse} className="mt-4 space-y-3">
               <input type="hidden" name="case_id" value={item.id} />
-              <select name="response" className="h-11 w-full rounded-lg border border-[#D1D5DB] bg-white px-3 text-sm">
-                <option value="accepted">รับคำขอไกล่เกลี่ย</option>
-                <option value="rejected">ปฏิเสธคำขอไกล่เกลี่ย</option>
-                <option value="needs_more_info">ขอข้อมูลเพิ่มเติม</option>
-                <option value="settlement_proposed">เสนอเงื่อนไขชำระหนี้</option>
-                <option value="settlement_approved">อนุมัติข้อตกลงสุดท้าย</option>
-              </select>
-              <textarea name="reason" className="min-h-24 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" placeholder="เหตุผล / หมายเหตุ" />
-              <textarea name="requested_information" className="min-h-20 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" placeholder="ข้อมูลเพิ่มเติมที่ต้องการ" />
+              <input type="hidden" name="response" value="settlement_proposed" />
               <textarea name="proposed_terms" className="min-h-24 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" placeholder="เงื่อนไข settlement ที่เสนอ" />
               <Input name="settlement_amount" type="number" min="0" step="0.01" placeholder="ยอด settlement" />
               <Input name="monthly_payment" type="number" min="0" step="0.01" placeholder="ยอดชำระต่อเดือน" />
-              <Button type="submit" className="h-11 w-full rounded-lg font-semibold">บันทึกการตอบกลับ</Button>
+              <Button type="submit" variant="outline" className="h-11 w-full rounded-lg font-semibold">บันทึกข้อเสนอ</Button>
             </form>
           </section>
 

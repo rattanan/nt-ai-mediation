@@ -110,3 +110,69 @@ export async function submitCreditorResponse(formData: FormData) {
 
   redirect(`/creditor/cases/${caseId}?success=${encodeURIComponent("บันทึกการตอบกลับแล้ว")}`);
 }
+
+async function updateCreditorCase(formData: FormData, response: CreditorResponseStatus, nextStatus: "creditor_accepted" | "creditor_rejected" | "needs_more_info", defaultMessage: string) {
+  const profile = await requireRole("creditor");
+  const officer = await getCreditorOfficer(profile.id);
+  const caseId = String(formData.get("case_id") ?? "");
+  const note = String(formData.get("note") ?? "").trim();
+
+  if (!officer?.organization_id || !caseId) {
+    redirectWithError("/creditor", "ไม่พบองค์กรเจ้าหนี้หรือเคสที่ต้องการดำเนินการ");
+  }
+
+  const supabase = await createClient();
+  const { data: currentCase } = await supabase
+    .from("cases")
+    .select("status, creditor_organization_id")
+    .eq("id", caseId)
+    .eq("creditor_organization_id", officer.organization_id)
+    .maybeSingle();
+
+  if (!currentCase) {
+    redirectWithError("/creditor", "ไม่พบเคสที่เชื่อมกับองค์กรนี้");
+  }
+
+  const { error } = await supabase
+    .from("cases")
+    .update({
+      status: nextStatus,
+      creditor_response_note: note || defaultMessage,
+      rejection_reason: nextStatus === "creditor_rejected" ? note || defaultMessage : null,
+    })
+    .eq("id", caseId)
+    .eq("creditor_organization_id", officer.organization_id);
+
+  if (error) {
+    redirectWithError(`/creditor/cases/${caseId}`, "อัปเดตคำตอบเจ้าหนี้ไม่สำเร็จ");
+  }
+
+  await supabase.from("case_creditor_responses").insert({
+    case_id: caseId,
+    organization_id: officer.organization_id,
+    officer_id: officer.id,
+    response,
+    reason: note || null,
+  });
+
+  await supabase.from("case_status_history").insert({
+    case_id: caseId,
+    from_status: currentCase.status,
+    to_status: nextStatus,
+    note: note || defaultMessage,
+  });
+
+  redirect(`/creditor/cases/${caseId}?success=${encodeURIComponent("บันทึกการพิจารณาแล้ว")}`);
+}
+
+export async function acceptCreditorCase(formData: FormData) {
+  await updateCreditorCase(formData, "accepted", "creditor_accepted", "เจ้าหนี้รับคำขอไกล่เกลี่ย");
+}
+
+export async function rejectCreditorCase(formData: FormData) {
+  await updateCreditorCase(formData, "rejected", "creditor_rejected", "เจ้าหนี้ปฏิเสธคำขอไกล่เกลี่ย");
+}
+
+export async function requestCreditorMoreInfo(formData: FormData) {
+  await updateCreditorCase(formData, "needs_more_info", "needs_more_info", "เจ้าหนี้ขอข้อมูลเพิ่มเติม");
+}

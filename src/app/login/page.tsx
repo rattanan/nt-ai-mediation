@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ message?: string }>;
+  searchParams: Promise<{ message?: string; returnUrl?: string }>;
 }) {
   const profile = await getCurrentProfile();
 
@@ -19,7 +19,8 @@ export default async function LoginPage({
     redirect(getRoleHome(profile.role));
   }
 
-  const { message } = await searchParams;
+  const { message, returnUrl } = await searchParams;
+  const safeReturnUrl = returnUrl?.startsWith("/") ? returnUrl : "";
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] text-[#111827]">
@@ -63,7 +64,7 @@ export default async function LoginPage({
             ) : null}
 
             <div className="mt-6">
-              <GoogleOAuthButton label="เข้าสู่ระบบด้วย Google" />
+              <GoogleOAuthButton label="เข้าสู่ระบบด้วย Google" returnUrl={safeReturnUrl} />
             </div>
 
             <div className="my-6 flex items-center gap-3">
@@ -73,6 +74,7 @@ export default async function LoginPage({
             </div>
 
             <form action={login} className="space-y-4">
+              <input type="hidden" name="return_url" value={safeReturnUrl} />
               <label className="block">
                 <span className="text-sm font-medium">อีเมล</span>
                 <div className="relative mt-2">
@@ -115,7 +117,7 @@ export default async function LoginPage({
 
             <p className="mt-6 text-center text-sm text-[#6B7280]">
               ยังไม่มีบัญชี?{" "}
-              <Link href="/register" className="font-semibold text-[#8A6500] hover:text-[#111827]">
+              <Link href={`/register${safeReturnUrl ? `?returnUrl=${encodeURIComponent(safeReturnUrl)}` : ""}`} className="font-semibold text-[#8A6500] hover:text-[#111827]">
                 สร้างบัญชีใหม่
               </Link>
             </p>

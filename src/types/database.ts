@@ -9,14 +9,22 @@ export type CreditorResponseStatus =
   | "needs_more_info"
   | "settlement_proposed"
   | "settlement_approved";
+export type CreditorCampaignStatus = "draft" | "pending_review" | "published" | "expired";
 export type CaseStatus =
   | "draft"
   | "submitted"
   | "reviewing"
+  | "admin_review"
   | "needs_more_info"
+  | "creditor_review"
+  | "creditor_accepted"
+  | "creditor_rejected"
   | "matched"
+  | "mediator_matching"
   | "scheduled"
+  | "appointment_scheduling"
   | "in_mediation"
+  | "settlement_draft"
   | "settled"
   | "not_settled"
   | "closed";
@@ -196,16 +204,26 @@ export type Database = {
           debtor_user_id: string;
           assigned_mediator_id: string | null;
           creditor_organization_id: string | null;
+          creditor_campaign_id: string | null;
           creditor_name: string;
           creditor_type: string;
           debt_type: string;
           debt_amount: number;
           overdue_months: number;
+          contract_number: string | null;
+          account_number: string | null;
+          monthly_income: number | null;
+          monthly_expense: number | null;
+          affordable_monthly_payment: number | null;
           province: string;
           district: string;
           contact_phone: string;
           problem_description: string;
           desired_solution: string;
+          uploaded_documents: Json;
+          admin_review_note: string | null;
+          creditor_response_note: string | null;
+          rejection_reason: string | null;
           status: CaseStatus;
           submitted_at: string | null;
           created_at: string;
@@ -217,16 +235,26 @@ export type Database = {
           debtor_user_id?: string;
           assigned_mediator_id?: string | null;
           creditor_organization_id?: string | null;
+          creditor_campaign_id?: string | null;
           creditor_name: string;
           creditor_type: string;
           debt_type: string;
           debt_amount: number;
           overdue_months?: number;
+          contract_number?: string | null;
+          account_number?: string | null;
+          monthly_income?: number | null;
+          monthly_expense?: number | null;
+          affordable_monthly_payment?: number | null;
           province: string;
           district: string;
           contact_phone: string;
           problem_description: string;
           desired_solution: string;
+          uploaded_documents?: Json;
+          admin_review_note?: string | null;
+          creditor_response_note?: string | null;
+          rejection_reason?: string | null;
           status?: CaseStatus;
           submitted_at?: string | null;
           created_at?: string;
@@ -238,16 +266,26 @@ export type Database = {
           debtor_user_id?: string;
           assigned_mediator_id?: string | null;
           creditor_organization_id?: string | null;
+          creditor_campaign_id?: string | null;
           creditor_name?: string;
           creditor_type?: string;
           debt_type?: string;
           debt_amount?: number;
           overdue_months?: number;
+          contract_number?: string | null;
+          account_number?: string | null;
+          monthly_income?: number | null;
+          monthly_expense?: number | null;
+          affordable_monthly_payment?: number | null;
           province?: string;
           district?: string;
           contact_phone?: string;
           problem_description?: string;
           desired_solution?: string;
+          uploaded_documents?: Json;
+          admin_review_note?: string | null;
+          creditor_response_note?: string | null;
+          rejection_reason?: string | null;
           status?: CaseStatus;
           submitted_at?: string | null;
           created_at?: string;
@@ -291,11 +329,16 @@ export type Database = {
           organization_name: string;
           organization_type: string;
           logo: string | null;
+          logo_url: string | null;
+          short_name: string | null;
+          website: string | null;
           tax_id: string | null;
           contact_email: string | null;
           contact_phone: string | null;
           address: string | null;
           status: CreditorOrganizationStatus;
+          is_public: boolean;
+          display_order: number;
           created_at: string;
           updated_at: string;
         };
@@ -304,11 +347,16 @@ export type Database = {
           organization_name: string;
           organization_type: string;
           logo?: string | null;
+          logo_url?: string | null;
+          short_name?: string | null;
+          website?: string | null;
           tax_id?: string | null;
           contact_email?: string | null;
           contact_phone?: string | null;
           address?: string | null;
           status?: CreditorOrganizationStatus;
+          is_public?: boolean;
+          display_order?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -317,11 +365,100 @@ export type Database = {
           organization_name?: string;
           organization_type?: string;
           logo?: string | null;
+          logo_url?: string | null;
+          short_name?: string | null;
+          website?: string | null;
           tax_id?: string | null;
           contact_email?: string | null;
           contact_phone?: string | null;
           address?: string | null;
           status?: CreditorOrganizationStatus;
+          is_public?: boolean;
+          display_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      creditor_campaigns: {
+        Row: {
+          id: string;
+          organization_id: string;
+          title: string;
+          subtitle: string | null;
+          description: string;
+          campaign_image_url: string | null;
+          campaign_start_date: string | null;
+          campaign_end_date: string | null;
+          conditions: Json;
+          benefits: Json;
+          required_documents: Json;
+          faqs: Json;
+          target_debt_type: string | null;
+          target_province: string | null;
+          call_to_action_text: string | null;
+          button_text: string;
+          button_link: string | null;
+          status: CreditorCampaignStatus;
+          is_featured: boolean;
+          display_order: number;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          review_note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          title: string;
+          subtitle?: string | null;
+          description: string;
+          campaign_image_url?: string | null;
+          campaign_start_date?: string | null;
+          campaign_end_date?: string | null;
+          conditions?: Json;
+          benefits?: Json;
+          required_documents?: Json;
+          faqs?: Json;
+          target_debt_type?: string | null;
+          target_province?: string | null;
+          call_to_action_text?: string | null;
+          button_text?: string;
+          button_link?: string | null;
+          status?: CreditorCampaignStatus;
+          is_featured?: boolean;
+          display_order?: number;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          title?: string;
+          subtitle?: string | null;
+          description?: string;
+          campaign_image_url?: string | null;
+          campaign_start_date?: string | null;
+          campaign_end_date?: string | null;
+          conditions?: Json;
+          benefits?: Json;
+          required_documents?: Json;
+          faqs?: Json;
+          target_debt_type?: string | null;
+          target_province?: string | null;
+          call_to_action_text?: string | null;
+          button_text?: string;
+          button_link?: string | null;
+          status?: CreditorCampaignStatus;
+          is_featured?: boolean;
+          display_order?: number;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_note?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -413,6 +550,33 @@ export type Database = {
           proposed_terms?: string | null;
           settlement_amount?: number | null;
           monthly_payment?: number | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      case_comments: {
+        Row: {
+          id: string;
+          case_id: string;
+          author_profile_id: string | null;
+          audience: "internal" | "debtor" | "creditor";
+          comment: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          case_id: string;
+          author_profile_id?: string | null;
+          audience?: "internal" | "debtor" | "creditor";
+          comment: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          case_id?: string;
+          author_profile_id?: string | null;
+          audience?: "internal" | "debtor" | "creditor";
+          comment?: string;
           created_at?: string;
         };
         Relationships: [];
@@ -589,6 +753,7 @@ export type Database = {
       app_role: AppRole;
       case_status: CaseStatus;
       creditor_organization_status: CreditorOrganizationStatus;
+      creditor_campaign_status: CreditorCampaignStatus;
       creditor_officer_role: CreditorOfficerRole;
       creditor_response_status: CreditorResponseStatus;
     };

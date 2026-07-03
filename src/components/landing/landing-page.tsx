@@ -6,6 +6,7 @@ import { CTA } from "@/components/landing/cta";
 import { Features } from "@/components/landing/features";
 import { Hero } from "@/components/landing/hero";
 import { Security } from "@/components/landing/security";
+import { ParticipatingCreditors } from "@/components/landing/participating-creditors";
 import { SiteFooter } from "@/components/landing/site-footer";
 import { SiteHeader } from "@/components/landing/site-header";
 import { Stats } from "@/components/landing/stats";
@@ -27,6 +28,7 @@ export function LandingPage() {
         <Features content={content.features} />
         <Timeline content={content.timeline} />
         <Benefits content={content.benefits} />
+        <ParticipatingCreditors />
         <Stats stats={content.stats} />
         <Security content={content.security} />
         <Testimonials content={content.testimonials} />

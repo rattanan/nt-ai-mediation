@@ -39,8 +39,8 @@ export default async function CreditorDashboardPage({
   const officer = await getCreditorOfficer(profile.id);
   const organization = await getCreditorOrganization(officer?.organization_id);
   const cases = await getCreditorCases(organization?.id);
-  const pending = cases.filter((item) => item.status === "submitted" || item.status === "reviewing").length;
-  const active = cases.filter((item) => ["matched", "scheduled", "in_mediation"].includes(item.status)).length;
+  const pending = cases.filter((item) => item.status === "creditor_review").length;
+  const active = cases.filter((item) => ["creditor_accepted", "mediator_matching", "matched", "scheduled", "in_mediation"].includes(item.status)).length;
   const approvalQueue = cases.filter((item) => item.status === "settled").length;
   const closed = cases.filter((item) => item.status === "closed" || item.status === "not_settled").length;
 

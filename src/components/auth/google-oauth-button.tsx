@@ -8,9 +8,10 @@ import type { AppRole } from "@/types/database";
 type GoogleOAuthButtonProps = {
   label: string;
   role?: AppRole;
+  returnUrl?: string;
 };
 
-export function GoogleOAuthButton({ label, role }: GoogleOAuthButtonProps) {
+export function GoogleOAuthButton({ label, role, returnUrl }: GoogleOAuthButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -23,6 +24,10 @@ export function GoogleOAuthButton({ label, role }: GoogleOAuthButtonProps) {
 
     if (role) {
       redirectUrl.searchParams.set("role", role);
+    }
+
+    if (returnUrl?.startsWith("/")) {
+      redirectUrl.searchParams.set("returnUrl", returnUrl);
     }
 
     const { error } = await supabase.auth.signInWithOAuth({
