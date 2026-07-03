@@ -93,7 +93,7 @@ export async function updateSession(request: NextRequest) {
 
   if (!role || !isAppRole(role)) {
     const fallbackRole = getRoleFromUserMetadata(user);
-    const { data: createdProfile, error: createProfileError } = await supabase
+    let { data: createdProfile, error: createProfileError } = await supabase
       .from("profiles")
       .upsert({
         id: user.id,
@@ -107,7 +107,34 @@ export async function updateSession(request: NextRequest) {
       .select("role, account_status")
       .single();
 
+    if (createProfileError) {
+      console.error("Full profile creation failed in middleware", {
+        code: createProfileError.code,
+        message: createProfileError.message,
+      });
+
+      const minimalResult = await supabase
+        .from("profiles")
+        .upsert({
+          id: user.id,
+          role: fallbackRole,
+          full_name: getFullNameFromUser(user),
+        })
+        .select("role, account_status")
+        .single();
+
+      createdProfile = minimalResult.data;
+      createProfileError = minimalResult.error;
+    }
+
     if (createProfileError || !createdProfile?.role || !isAppRole(createdProfile.role)) {
+      if (createProfileError) {
+        console.error("Minimal profile creation failed in middleware", {
+          code: createProfileError.code,
+          message: createProfileError.message,
+        });
+      }
+
       const loginUrl = appUrl("/login");
       loginUrl.searchParams.set("message", "เข้าสู่ระบบแล้ว แต่ยังสร้างโปรไฟล์ไม่ได้ กรุณาติดต่อผู้ดูแลระบบ");
       return NextResponse.redirect(loginUrl);

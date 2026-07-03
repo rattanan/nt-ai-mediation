@@ -26,6 +26,7 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+RUN mkdir -p ./.next/cache && chown -R nextjs:nodejs ./.next
 
 USER nextjs
 EXPOSE 3000
