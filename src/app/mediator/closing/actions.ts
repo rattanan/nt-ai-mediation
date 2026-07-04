@@ -12,6 +12,7 @@ import {
 import { requireRole } from "@/lib/auth/server";
 import { getMediatorProfileByUser } from "@/lib/mediators";
 import { createClient } from "@/lib/supabase/server";
+import { recalculateMediatorTrustScore } from "@/lib/trust-score";
 import type { MediationResultStatus, PaymentFrequency } from "@/types/database";
 
 function numberField(formData: FormData, name: string) {
@@ -147,6 +148,10 @@ export async function closeMediationCase(formData: FormData) {
 
   const nextStatus = resultStatus === "settled" ? "settled" : "not_settled";
   await supabase.from("cases").update({ status: nextStatus }).eq("id", caseId);
+  await supabase.from("mediator_profiles").update({
+    total_cases_handled: mediator.total_cases_handled + 1,
+    successful_cases: mediator.successful_cases + (resultStatus === "settled" ? 1 : 0),
+  }).eq("id", mediator.id);
   await supabase.from("case_status_history").insert({
     case_id: caseId,
     from_status: currentCase.status,
@@ -163,6 +168,7 @@ export async function closeMediationCase(formData: FormData) {
     documentUrl: document ? settlementDocumentUrl(document.id) : "",
     invoiceUrl: invoice ? invoiceDocumentUrl(invoice.id) : null,
   });
+  await recalculateMediatorTrustScore(mediator.id);
 
   redirect(`/mediator/closing/${caseId}/success?closing=${closing.id}`);
 }

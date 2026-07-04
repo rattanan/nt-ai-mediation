@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/auth/server";
 import { getMediatorProfileByUser, parseAvailabilityForm, parseMediatorProfileForm } from "@/lib/mediators";
 import { formError, type FormState } from "@/lib/form-state";
 import { createClient } from "@/lib/supabase/server";
+import { recalculateMediatorTrustScore } from "@/lib/trust-score";
 import type { AppointmentStatus, MeetingType } from "@/types/database";
 
 function go(path: string, message: string, kind: "success" | "error" = "success"): never {
@@ -268,6 +269,7 @@ export async function markAppointmentOutcome(formData: FormData) {
   if (nextStatus === "completed") {
     await supabase.from("cases").update({ status: "in_mediation" }).eq("id", appointment.case_id);
   }
+  await recalculateMediatorTrustScore(appointment.mediator_id);
 
   go(`/mediator/appointments/${appointment.id}`, "อัปเดตสถานะนัดหมายแล้ว");
 }

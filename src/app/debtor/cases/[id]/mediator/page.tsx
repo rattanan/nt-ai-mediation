@@ -3,9 +3,11 @@ import { DebtorShell } from "@/components/debtor/debtor-shell";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TrustScoreBadge } from "@/components/mediator/trust-score-badge";
 import { requireRole } from "@/lib/auth/server";
 import { getCaseForDebtor } from "@/lib/cases";
 import { getApprovedMediatorsForCase, jsonList } from "@/lib/mediators";
+import { getMediatorTrustScore } from "@/lib/trust-score";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,7 @@ export default async function SelectMediatorPage({
   const { error } = await searchParams;
   const item = await getCaseForDebtor(id, debtor.id);
   const mediators = await getApprovedMediatorsForCase(item.province, item.debt_type);
+  const trustScores = new Map((await Promise.all(mediators.map(async (mediator) => [mediator.id, await getMediatorTrustScore(mediator.id)] as const))));
   const action = selectMediatorForCase.bind(null, item.id);
 
   return (
@@ -39,6 +42,7 @@ export default async function SelectMediatorPage({
           </div>
         ) : mediators.map((mediator) => {
           const successRate = mediator.total_cases_handled > 0 ? Math.round((mediator.successful_cases / mediator.total_cases_handled) * 100) : 0;
+          const trustScore = trustScores.get(mediator.id) ?? null;
           return (
             <article key={mediator.id} className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-4">
@@ -54,6 +58,7 @@ export default async function SelectMediatorPage({
                 </div>
               </div>
               <p className="mt-4 line-clamp-3 text-sm leading-6 text-[#374151]">{mediator.profile_summary || "ไม่มีสรุปโปรไฟล์"}</p>
+              <div className="mt-4"><TrustScoreBadge score={trustScore} /></div>
               <div className="mt-4 flex flex-wrap gap-2">
                 {jsonList(mediator.expertise_areas).slice(0, 3).map((item) => <Badge key={item}>{item}</Badge>)}
               </div>

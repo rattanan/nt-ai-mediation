@@ -1,4 +1,4 @@
-import { approveMediator, rejectMediator, requestMediatorRevision, suspendMediator } from "@/app/admin/mediators/actions";
+import { approveMediator, recalculateAllTrustScores, rejectMediator, requestMediatorRevision, suspendMediator } from "@/app/admin/mediators/actions";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,9 @@ export default async function AdminMediatorReviewPage({
     <AdminShell profile={admin} activePath="/admin/mediators" title="Mediator Review" subtitle="ตรวจสอบ อนุมัติ และจัดการโปรไฟล์ผู้ไกล่เกลี่ย">
       {success ? <Alert variant="success" className="mb-5">{success}</Alert> : null}
       {error ? <Alert variant="destructive" className="mb-5">{error}</Alert> : null}
+      <form action={recalculateAllTrustScores} className="mb-5">
+        <Button type="submit" variant="outline" className="rounded-lg font-semibold">คำนวณ NT Trust Score ใหม่ทั้งหมด</Button>
+      </form>
       <div className="grid gap-6 xl:grid-cols-[24rem_1fr]">
         <section className="rounded-lg border border-black/5 bg-white shadow-sm">
           <div className="border-b border-black/5 px-5 py-4">

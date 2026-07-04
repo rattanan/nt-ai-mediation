@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { Benefits } from "@/components/landing/benefits";
 import { CTA } from "@/components/landing/cta";
 import { Features } from "@/components/landing/features";
@@ -15,7 +16,7 @@ import { Timeline } from "@/components/landing/timeline";
 import { TrustBar } from "@/components/landing/trust-bar";
 import { landingContent, type Language } from "@/data/landing";
 
-export function LandingPage() {
+export function LandingPage({ trustedMediatorsSection }: { trustedMediatorsSection?: ReactNode }) {
   const [language, setLanguage] = useState<Language>("th");
   const content = landingContent[language];
 
@@ -29,6 +30,7 @@ export function LandingPage() {
         <Timeline content={content.timeline} />
         <Benefits content={content.benefits} />
         <ParticipatingCreditors />
+        {trustedMediatorsSection}
         <Stats stats={content.stats} />
         <Security content={content.security} />
         <Testimonials content={content.testimonials} />

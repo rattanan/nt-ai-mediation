@@ -862,6 +862,46 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["mediator_review_logs"]["Insert"]>;
         Relationships: [];
       };
+      mediator_trust_scores: {
+        Row: {
+          id: string;
+          mediator_id: string;
+          overall_score: number;
+          rating_score: number;
+          success_rate_score: number;
+          experience_score: number;
+          response_score: number;
+          reliability_score: number;
+          qualification_score: number;
+          review_count: number;
+          average_rating: number;
+          completed_cases: number;
+          successful_cases: number;
+          badge_code: "gold_elite" | "platinum" | "trusted" | "verified" | "new_mediator";
+          calculated_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          mediator_id: string;
+          overall_score?: number;
+          rating_score?: number;
+          success_rate_score?: number;
+          experience_score?: number;
+          response_score?: number;
+          reliability_score?: number;
+          qualification_score?: number;
+          review_count?: number;
+          average_rating?: number;
+          completed_cases?: number;
+          successful_cases?: number;
+          badge_code?: "gold_elite" | "platinum" | "trusted" | "verified" | "new_mediator";
+          calculated_at?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mediator_trust_scores"]["Insert"]>;
+        Relationships: [];
+      };
       mediation_appointments: {
         Row: {
           id: string;

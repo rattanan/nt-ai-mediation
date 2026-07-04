@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin/auth";
 import { createClient } from "@/lib/supabase/server";
+import { recalculateMediatorTrustScore } from "@/lib/trust-score";
 import type { MediatorProfileStatus } from "@/types/database";
 
 function go(profileId: string, message: string, kind: "success" | "error" = "success"): never {
@@ -38,7 +39,18 @@ async function review(formData: FormData, nextStatus: MediatorProfileStatus, def
     note: note || defaultNote,
   });
 
+  if (nextStatus === "approved") {
+    await recalculateMediatorTrustScore(profileId);
+  }
+
   go(profileId, "บันทึกผลการตรวจสอบแล้ว");
+}
+
+export async function recalculateAllTrustScores() {
+  await requireAdmin();
+  const { recalculateAllMediatorTrustScores } = await import("@/lib/trust-score");
+  await recalculateAllMediatorTrustScores();
+  redirect(`/admin/mediators?success=${encodeURIComponent("คำนวณ NT Trust Score ใหม่แล้ว")}`);
 }
 
 export async function approveMediator(formData: FormData) {
