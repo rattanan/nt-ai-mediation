@@ -8,8 +8,36 @@ import { getCreditorOfficer } from "@/lib/creditor";
 import { createClient } from "@/lib/supabase/server";
 import type { CreditorResponseStatus } from "@/types/database";
 
+const CREDITOR_LOGOS_BUCKET = "creditor-logos";
+
 function redirectWithError(path: string, message: string): never {
   redirect(`${path}?error=${encodeURIComponent(message)}`);
+}
+
+async function uploadCreditorLogo(file: FormDataEntryValue | null, userId: string) {
+  if (!(file instanceof File) || file.size === 0) return null;
+  if (!file.type.startsWith("image/")) {
+    redirectWithError("/creditor/organization", "กรุณาอัปโหลดไฟล์รูปภาพสำหรับโลโก้");
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    redirectWithError("/creditor/organization", "โลโก้ต้องมีขนาดไม่เกิน 2MB");
+  }
+
+  const supabase = await createClient();
+  const extension = file.name.split(".").pop()?.toLowerCase() || "png";
+  const path = `${userId}/logo-${Date.now()}.${extension}`;
+  const { error } = await supabase.storage.from(CREDITOR_LOGOS_BUCKET).upload(path, file, {
+    contentType: file.type,
+    upsert: true,
+  });
+
+  if (error) {
+    console.error("Creditor logo upload failed", error);
+    redirectWithError("/creditor/organization", "อัปโหลดโลโก้ไม่สำเร็จ");
+  }
+
+  const { data } = supabase.storage.from(CREDITOR_LOGOS_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
 }
 
 export async function registerCreditorOrganization(formData: FormData) {
@@ -20,6 +48,7 @@ export async function registerCreditorOrganization(formData: FormData) {
   const contactEmail = String(formData.get("contact_email") ?? "").trim();
   const contactPhone = String(formData.get("contact_phone") ?? "").trim();
   const address = String(formData.get("address") ?? "").trim();
+  const logoUrl = await uploadCreditorLogo(formData.get("logo_file"), profile.id);
 
   if (!organizationName || !organizationType) {
     redirectWithError("/creditor/organization", "กรุณากรอกชื่อองค์กรและประเภทองค์กร");
@@ -35,6 +64,7 @@ export async function registerCreditorOrganization(formData: FormData) {
       contact_email: contactEmail || null,
       contact_phone: contactPhone || null,
       address: address || null,
+      logo_url: logoUrl,
       status: "pending",
     })
     .select("id")
@@ -58,6 +88,31 @@ export async function registerCreditorOrganization(formData: FormData) {
   });
 
   redirect(`/creditor?success=${encodeURIComponent("ส่งคำขอสมัครองค์กรแล้ว รอผู้ดูแลระบบอนุมัติ")}`);
+}
+
+export async function updateCreditorOrganizationLogo(formData: FormData) {
+  const profile = await requireRole("creditor");
+  const officer = await getCreditorOfficer(profile.id);
+  if (!officer?.organization_id) {
+    redirectWithError("/creditor/organization", "ไม่พบองค์กรเจ้าหนี้");
+  }
+
+  const logoUrl = await uploadCreditorLogo(formData.get("logo_file"), profile.id);
+  if (!logoUrl) {
+    redirectWithError("/creditor/organization", "กรุณาเลือกไฟล์โลโก้");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("creditor_organizations")
+    .update({ logo_url: logoUrl })
+    .eq("id", officer.organization_id);
+
+  if (error) {
+    redirectWithError("/creditor/organization", "บันทึกโลโก้ไม่สำเร็จ");
+  }
+
+  redirect(`/creditor/organization?success=${encodeURIComponent("อัปเดตโลโก้องค์กรแล้ว")}`);
 }
 
 export async function submitCreditorResponse(formData: FormData) {

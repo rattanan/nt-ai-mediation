@@ -15,8 +15,19 @@ type CampaignCard = {
   buttonText: string;
 };
 
+type CreditorCard = {
+  id: string;
+  organization_name: string;
+  short_name: string | null;
+  logo_url: string | null;
+  logo: string | null;
+  website: string | null;
+  organization_type: string;
+};
+
 export function ParticipatingCreditors() {
   const [campaigns, setCampaigns] = useState<CampaignCard[]>([]);
+  const [creditors, setCreditors] = useState<CreditorCard[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -34,12 +45,25 @@ export function ParticipatingCreditors() {
         }
       });
 
+    fetch("/api/public/creditors")
+      .then((response) => response.json())
+      .then((payload: { creditors?: CreditorCard[] }) => {
+        if (active) {
+          setCreditors(payload.creditors ?? []);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setCreditors([]);
+        }
+      });
+
     return () => {
       active = false;
     };
   }, []);
 
-  if (campaigns.length === 0) {
+  if (campaigns.length === 0 && creditors.length === 0) {
     return null;
   }
 
@@ -57,7 +81,7 @@ export function ParticipatingCreditors() {
         </div>
 
         <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {campaigns.map((campaign) => (
+          {campaigns.length > 0 ? campaigns.map((campaign) => (
             <article key={campaign.id} className="flex min-h-full flex-col rounded-2xl border border-black/5 bg-white p-6 shadow-sm">
               <div className="flex items-center gap-4">
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#F5B800]/30 bg-[#FFF8D9]">
@@ -106,6 +130,31 @@ export function ParticipatingCreditors() {
                   <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
               </div>
+            </article>
+          )) : creditors.map((creditor) => (
+            <article key={creditor.id} className="flex min-h-full flex-col rounded-2xl border border-black/5 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#F5B800]/30 bg-[#FFF8D9]">
+                  {creditor.logo_url || creditor.logo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={creditor.logo_url ?? creditor.logo ?? ""} alt="" className="h-full w-full object-contain p-2" />
+                  ) : (
+                    <Building2 className="h-7 w-7 text-[#A87900]" aria-hidden="true" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-[#6B7280]">{creditor.organization_type}</p>
+                  <h3 className="mt-1 text-lg font-semibold text-[#111827]">{creditor.short_name || creditor.organization_name}</h3>
+                </div>
+              </div>
+              <p className="mt-5 text-sm leading-6 text-[#4B5563]">
+                องค์กรเจ้าหนี้ที่ได้รับอนุมัติให้เข้าร่วมระบบไกล่เกลี่ยดิจิทัล
+              </p>
+              {creditor.website ? (
+                <Link href={creditor.website} className="mt-auto pt-6 text-sm font-semibold text-[#8A6500]">
+                  เว็บไซต์องค์กร
+                </Link>
+              ) : null}
             </article>
           ))}
         </div>

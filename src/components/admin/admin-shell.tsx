@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ReactNode } from "react";
 import {
   BarChart3,
@@ -46,7 +47,7 @@ export function AdminShell({
           <div className="border-b border-black/5 px-6 py-5">
             <Link href="/admin/dashboard" className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FFD200] font-bold">
-                NT
+                <Image src="/images/nt-logo.png" alt="NT" width={34} height={34} className="h-8 w-8 object-contain" />
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase text-[#A87900]">Admin Console</p>

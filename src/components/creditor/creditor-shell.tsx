@@ -1,16 +1,17 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ReactNode } from "react";
-import { BadgeCheck, CalendarClock, FileText, Home, LogOut, Settings, Sparkles } from "lucide-react";
+import { BadgeCheck, CalendarClock, FileText, Home, LogOut, Settings } from "lucide-react";
 import { logout } from "@/app/auth/actions";
 import type { AuthProfile } from "@/lib/auth/server";
 
 const navItems = [
   { href: "/creditor", label: "ภาพรวม", icon: Home },
   { href: "/creditor/organization", label: "องค์กรเจ้าหนี้", icon: BadgeCheck },
-  { href: "#", label: "เคส", icon: FileText },
-  { href: "#", label: "นัดหมาย", icon: CalendarClock },
+  { href: "/creditor/cases", label: "เคส", icon: FileText },
+  { href: "/creditor/appointments", label: "นัดหมาย", icon: CalendarClock },
   { href: "/creditor/billing", label: "Billing", icon: FileText },
-  { href: "#", label: "ตั้งค่า", icon: Settings },
+  { href: "/creditor/settings", label: "ตั้งค่า", icon: Settings },
 ];
 
 export function CreditorShell({
@@ -33,7 +34,7 @@ export function CreditorShell({
           <div className="border-b border-black/5 px-6 py-5">
             <Link href="/" className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FFD200]">
-                <Sparkles className="h-5 w-5" />
+                <Image src="/images/nt-logo.png" alt="NT" width={34} height={34} className="h-8 w-8 object-contain" />
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase text-[#A87900]">NT AI</p>

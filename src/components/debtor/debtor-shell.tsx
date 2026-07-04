@@ -1,6 +1,7 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ReactNode } from "react";
-import { CalendarClock, FileText, Home, LogOut, MessageSquareText, Scale, Sparkles } from "lucide-react";
+import { CalendarClock, FileText, Home, LogOut, MessageSquareText, Scale } from "lucide-react";
 import { logout } from "@/app/auth/actions";
 import type { AuthProfile } from "@/lib/auth/server";
 
@@ -8,8 +9,8 @@ const navItems = [
   { href: "/debtor", label: "ภาพรวม", icon: Home },
   { href: "/debtor/cases/new", label: "สร้างคำขอ", icon: FileText },
   { href: "#", label: "สัมภาษณ์ AI", icon: MessageSquareText },
-  { href: "#", label: "นัดหมาย", icon: CalendarClock },
-  { href: "#", label: "ข้อตกลง", icon: Scale },
+  { href: "/debtor/appointments", label: "นัดหมาย", icon: CalendarClock },
+  { href: "/debtor/agreements", label: "ข้อตกลง", icon: Scale },
 ];
 
 export function DebtorShell({
@@ -32,7 +33,7 @@ export function DebtorShell({
           <div className="border-b border-black/5 px-6 py-5">
             <Link href="/" className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FFD200]">
-                <Sparkles className="h-5 w-5" aria-hidden="true" />
+                <Image src="/images/nt-logo.png" alt="NT" width={34} height={34} className="h-8 w-8 object-contain" />
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase text-[#A87900]">NT AI</p>
@@ -79,7 +80,7 @@ export function DebtorShell({
               </form>
             </div>
             <nav className="flex gap-2 overflow-x-auto px-5 pb-4 lg:hidden">
-              {navItems.slice(0, 3).map((item) => (
+              {navItems.map((item) => (
                 <Link
                   key={item.label}
                   href={item.href}

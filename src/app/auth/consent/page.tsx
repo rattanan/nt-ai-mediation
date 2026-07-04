@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import Image from "next/image";
 import { ConsentForm } from "@/components/auth/consent-form";
 import { getActiveConsentVersion, userHasLatestConsent } from "@/lib/consent";
 import { getCurrentProfile } from "@/lib/auth/server";
@@ -28,7 +28,7 @@ export default async function ConsentPage({
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl flex-col justify-center">
         <Link href="/" className="mb-6 inline-flex items-center gap-3 self-start">
           <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#FFD200] text-[#111827]">
-            <ShieldCheck className="h-5 w-5" />
+            <Image src="/images/nt-logo.png" alt="NT" width={36} height={36} className="h-9 w-9 object-contain" />
           </div>
           <div>
             <p className="text-xs font-semibold uppercase text-[#8A6500] dark:text-[#FFD200]">NT AI</p>

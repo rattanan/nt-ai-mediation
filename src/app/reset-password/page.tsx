@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowLeft, ShieldCheck, Sparkles } from "lucide-react";
+import Image from "next/image";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
 import {
   Card,
@@ -19,7 +20,7 @@ export default function ResetPasswordPage() {
           <div className="hidden bg-[#111827] p-10 text-white lg:block">
             <Link href="/" className="inline-flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#FFD200] text-[#111827]">
-                <Sparkles className="h-5 w-5" aria-hidden="true" />
+                <Image src="/images/nt-logo.png" alt="NT" width={36} height={36} className="h-9 w-9 object-contain" />
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase text-[#FFD200]">NT AI</p>

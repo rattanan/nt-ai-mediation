@@ -21,7 +21,13 @@ export async function updateCreditorOrganizationStatus(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("creditor_organizations").update({ status }).eq("id", id);
+  const payload: { status: CreditorOrganizationStatus; is_public?: boolean } = { status };
+  if (status === "approved") payload.is_public = true;
+  if (status === "rejected" || status === "suspended") payload.is_public = false;
+  const { error } = await supabase
+    .from("creditor_organizations")
+    .update(payload)
+    .eq("id", id);
 
   if (error) {
     go("อัปเดตสถานะองค์กรไม่สำเร็จ", "error");

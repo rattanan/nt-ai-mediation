@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type React from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -9,7 +10,6 @@ import {
   LogOut,
   Search,
   Settings,
-  Sparkles,
 } from "lucide-react";
 import { logout } from "@/app/auth/actions";
 
@@ -60,7 +60,7 @@ export function PortalShell({
           <div className="border-b border-black/5 px-6 py-5">
             <Link href="/" className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FFD200]">
-                <Sparkles className="h-5 w-5" />
+                <Image src="/images/nt-logo.png" alt="NT" width={34} height={34} className="h-8 w-8 object-contain" />
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase text-[#F5B800]">NT AI</p>

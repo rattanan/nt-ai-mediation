@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { UserPlus, Sparkles } from "lucide-react";
+import Image from "next/image";
+import { UserPlus } from "lucide-react";
 import { GoogleOAuthButton } from "@/components/auth/google-oauth-button";
 import { RegisterForm } from "@/components/auth/register-form";
 import { getCurrentProfile } from "@/lib/auth/server";
@@ -34,7 +35,7 @@ export default async function RegisterPage({
           <div className="hidden bg-[#1F2937] p-10 text-white lg:block">
             <Link href="/" className="inline-flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#FFD200] text-[#1F2937]">
-                <Sparkles className="h-5 w-5" />
+                <Image src="/images/nt-logo.png" alt="NT" width={36} height={36} className="h-9 w-9 object-contain" />
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase text-[#FFD200]">NT AI</p>

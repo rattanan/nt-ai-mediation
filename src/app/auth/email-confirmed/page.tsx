@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { CheckCircle2, Sparkles } from "lucide-react";
+import Image from "next/image";
+import { CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +19,7 @@ export default function EmailConfirmedPage() {
           <div className="hidden bg-[#111827] p-10 text-white lg:block">
             <Link href="/" className="inline-flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#FFD200] text-[#111827]">
-                <Sparkles className="h-5 w-5" aria-hidden="true" />
+                <Image src="/images/nt-logo.png" alt="NT" width={36} height={36} className="h-9 w-9 object-contain" />
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase text-[#FFD200]">NT AI</p>
