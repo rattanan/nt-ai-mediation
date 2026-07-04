@@ -11,6 +11,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth/server";
 import { getAppointmentDetail } from "@/lib/appointments";
+import { mediatorSidebar } from "@/lib/mediator-portal";
 
 export const dynamic = "force-dynamic";
 
@@ -32,9 +33,9 @@ export default async function MediatorAppointmentDetailPage({
       title="รายละเอียดนัดหมาย"
       subtitle="ยืนยันนัดหมาย เพิ่มลิงก์ประชุม และบันทึกผลการไกล่เกลี่ย"
       userName={profile.full_name}
-      sidebarItems={[]}
+      sidebarItems={mediatorSidebar("/mediator/appointments")}
       metrics={[]}
-      table={{ title: "Appointments", description: "Appointment detail", columns: [], actionLabel: "Back" }}
+      table={{ title: "", description: "", columns: [], actionLabel: "" }}
     >
       {success ? <Alert variant="success" className="mb-5">{success}</Alert> : null}
       {error ? <Alert variant="destructive" className="mb-5">{error}</Alert> : null}
@@ -88,8 +89,8 @@ export default async function MediatorAppointmentDetailPage({
         }
       />
 
-      <Link href="/mediator" className="mt-6 inline-block text-sm font-semibold text-[#8A6500] hover:text-[#111827]">
-        กลับแดชบอร์ดผู้ไกล่เกลี่ย
+      <Link href="/mediator/appointments" className="mt-6 inline-block text-sm font-semibold text-[#8A6500] hover:text-[#111827]">
+        กลับหน้านัดหมาย
       </Link>
     </PortalShell>
   );

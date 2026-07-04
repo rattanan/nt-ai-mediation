@@ -79,7 +79,7 @@ async function saveProfile(formData: FormData, submit: boolean): Promise<FormSta
     }
   }
 
-  go("/mediator", submit ? "ส่งโปรไฟล์ให้ผู้ดูแลตรวจสอบแล้ว" : "บันทึกแบบร่างโปรไฟล์แล้ว");
+  go("/mediator/profile", submit ? "ส่งโปรไฟล์ให้ผู้ดูแลตรวจสอบแล้ว" : "บันทึกแบบร่างโปรไฟล์แล้ว");
 }
 
 export async function saveMediatorDraft(_state: FormState, formData: FormData): Promise<FormState> {
@@ -94,7 +94,7 @@ async function requireApprovedMediator() {
   const profile = await requireRole("mediator");
   const mediatorProfile = await getMediatorProfileByUser(profile.id);
   if (!mediatorProfile || mediatorProfile.status !== "approved") {
-    go("/mediator", "โปรไฟล์ต้องได้รับอนุมัติก่อนจัดการนัดหมาย", "error");
+    go("/mediator/profile", "โปรไฟล์ต้องได้รับอนุมัติก่อนจัดการนัดหมาย", "error");
   }
   return { profile, mediatorProfile };
 }
@@ -114,7 +114,7 @@ export async function createAvailabilitySlot(formData: FormData) {
   const meetingType = String(formData.get("meeting_type") ?? "online") as MeetingType;
 
   if ((!isRecurring && !slotDate) || (isRecurring && dayOfWeek === "") || !startTime || !endTime) {
-    go("/mediator", "กรุณากรอกวันและเวลาให้ครบถ้วน", "error");
+    go("/mediator/availability", "กรุณากรอกวันและเวลาให้ครบถ้วน", "error");
   }
 
   const supabase = await createClient();
@@ -133,14 +133,14 @@ export async function createAvailabilitySlot(formData: FormData) {
     note: String(formData.get("note") ?? "").trim() || null,
   });
 
-  if (error) go("/mediator", "บันทึกเวลาว่างไม่สำเร็จ", "error");
-  go("/mediator", "เพิ่มเวลาว่างแล้ว");
+  if (error) go("/mediator/availability", "บันทึกเวลาว่างไม่สำเร็จ", "error");
+  go("/mediator/availability", "เพิ่มเวลาว่างแล้ว");
 }
 
 export async function updateAvailabilitySlot(formData: FormData) {
   const { mediatorProfile } = await requireApprovedMediator();
   const slotId = String(formData.get("slot_id") ?? "");
-  if (!slotId) go("/mediator", "ไม่พบเวลาว่างที่ต้องการแก้ไข", "error");
+  if (!slotId) go("/mediator/availability", "ไม่พบเวลาว่างที่ต้องการแก้ไข", "error");
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -157,8 +157,8 @@ export async function updateAvailabilitySlot(formData: FormData) {
     .eq("id", slotId)
     .eq("mediator_profile_id", mediatorProfile.id);
 
-  if (error) go("/mediator", "แก้ไขเวลาว่างไม่สำเร็จ", "error");
-  go("/mediator", "แก้ไขเวลาว่างแล้ว");
+  if (error) go("/mediator/availability", "แก้ไขเวลาว่างไม่สำเร็จ", "error");
+  go("/mediator/availability", "แก้ไขเวลาว่างแล้ว");
 }
 
 export async function disableAvailabilitySlot(formData: FormData) {
@@ -171,8 +171,8 @@ export async function disableAvailabilitySlot(formData: FormData) {
     .eq("id", slotId)
     .eq("mediator_profile_id", mediatorProfile.id);
 
-  if (error) go("/mediator", "ปิดเวลาว่างไม่สำเร็จ", "error");
-  go("/mediator", "ปิดเวลาว่างแล้ว");
+  if (error) go("/mediator/availability", "ปิดเวลาว่างไม่สำเร็จ", "error");
+  go("/mediator/availability", "ปิดเวลาว่างแล้ว");
 }
 
 async function getMediatorAppointment(formData: FormData) {
@@ -188,7 +188,7 @@ async function getMediatorAppointment(formData: FormData) {
     .maybeSingle();
 
   if (!appointment) {
-    go("/mediator", "ไม่พบนัดหมายของคุณ", "error");
+    go("/mediator/appointments", "ไม่พบนัดหมายของคุณ", "error");
   }
 
   return { profile, supabase, appointment, caseId };
@@ -207,7 +207,7 @@ export async function confirmMediatorAppointment(formData: FormData) {
     })
     .eq("id", appointment.id);
 
-  if (error) go("/mediator", "ยืนยันนัดหมายไม่สำเร็จ", "error");
+  if (error) go("/mediator/appointments", "ยืนยันนัดหมายไม่สำเร็จ", "error");
 
   await supabase
     .from("appointment_participants")
@@ -221,7 +221,7 @@ export async function confirmMediatorAppointment(formData: FormData) {
     await notifyAppointmentConfirmed({ appointmentId: appointment.id, caseId: appointment.case_id, status: "confirmed" });
   }
 
-  go(caseId ? `/mediator/appointments/${appointment.id}` : "/mediator", "ยืนยันนัดหมายแล้ว");
+  go(caseId ? `/mediator/appointments/${appointment.id}` : "/mediator/appointments", "ยืนยันนัดหมายแล้ว");
 }
 
 export async function requestMediatorReschedule(formData: FormData) {
@@ -232,7 +232,7 @@ export async function requestMediatorReschedule(formData: FormData) {
     .update({ status: "reschedule_requested", cancellation_reason: note })
     .eq("id", appointment.id);
 
-  if (error) go("/mediator", "ขอเลื่อนนัดหมายไม่สำเร็จ", "error");
+  if (error) go("/mediator/appointments", "ขอเลื่อนนัดหมายไม่สำเร็จ", "error");
   await supabase.from("appointment_participants").update({ status: "reschedule_requested", note }).eq("appointment_id", appointment.id).eq("role", "mediator");
   await recordAppointmentHistory(appointment.id, appointment.status, "reschedule_requested", profile.id, note);
   await notifyRescheduleRequested({ appointmentId: appointment.id, caseId: appointment.case_id, status: "reschedule_requested" });

@@ -23,6 +23,7 @@ type MetricCard = {
 type SidebarItem = {
   label: string;
   icon: LucideIcon;
+  href?: string;
   active?: boolean;
 };
 
@@ -69,10 +70,10 @@ export function PortalShell({
           </div>
 
           <nav className="flex-1 space-y-1 px-4 py-5">
-            {sidebarItems.map(({ label, icon: Icon, active }) => (
-              <a
+            {sidebarItems.map(({ label, icon: Icon, href, active }) => (
+              <Link
                 key={label}
-                href="#"
+                href={href ?? "#"}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                   active
                     ? "bg-[#FFD200] text-[#1F2937] shadow-sm"
@@ -81,7 +82,7 @@ export function PortalShell({
               >
                 <Icon className="h-4 w-4" />
                 {label}
-              </a>
+              </Link>
             ))}
           </nav>
 
@@ -130,17 +131,17 @@ export function PortalShell({
 
           <main className="flex-1 px-5 py-6 lg:px-8">
             <div className="mb-5 grid grid-cols-2 gap-2 lg:hidden">
-              {sidebarItems.slice(0, 4).map(({ label, icon: Icon, active }) => (
-                <a
+              {sidebarItems.slice(0, 4).map(({ label, icon: Icon, href, active }) => (
+                <Link
                   key={label}
-                  href="#"
+                  href={href ?? "#"}
                   className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${
                     active ? "bg-[#FFD200]" : "bg-white text-[#4B5563]"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
                   {label}
-                </a>
+                </Link>
               ))}
             </div>
 

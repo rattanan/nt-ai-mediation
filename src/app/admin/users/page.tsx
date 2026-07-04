@@ -146,7 +146,7 @@ export default async function AdminUsersPage({
             </div>
 
             {selectedUser ? (
-              <form action={updateUserProfile} className="mt-5 space-y-4">
+              <form key={`profile-${selectedUser.id}`} action={updateUserProfile} className="mt-5 space-y-4">
                 <input type="hidden" name="user_id" value={selectedUser.id} />
                 <label className="block">
                   <span className="text-sm font-medium">ชื่อ-นามสกุล</span>
@@ -212,7 +212,7 @@ export default async function AdminUsersPage({
                   <p className="text-sm text-[#6B7280]">ใช้ Supabase Admin Auth API ฝั่ง server เท่านั้น</p>
                 </div>
               </div>
-              <form action={updateUserPassword} className="mt-5 space-y-4">
+              <form key={`password-${selectedUser.id}`} action={updateUserPassword} className="mt-5 space-y-4">
                 <input type="hidden" name="user_id" value={selectedUser.id} />
                 <label className="block">
                   <span className="text-sm font-medium">รหัสผ่านใหม่</span>

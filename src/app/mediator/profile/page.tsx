@@ -3,8 +3,8 @@ import { Alert } from "@/components/ui/alert";
 import { MediatorProfileForm } from "@/components/mediator/mediator-profile-form";
 import { requireRole } from "@/lib/auth/server";
 import { getMediatorAvailability, getMediatorDocuments, getMediatorProfileByUser } from "@/lib/mediators";
+import { mediatorSidebar } from "@/lib/mediator-portal";
 import { PortalShell } from "@/components/portal-shell";
-import { UserCheck } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,7 @@ export default async function MediatorProfilePage({
       title="โปรไฟล์ผู้ไกล่เกลี่ย"
       subtitle="กรอกประวัติและคุณสมบัติตามแบบฟอร์มสำหรับการตรวจสอบ"
       userName={authProfile.full_name}
-      sidebarItems={[{ label: "โปรไฟล์", icon: UserCheck, active: true }]}
+      sidebarItems={mediatorSidebar("/mediator/profile")}
       metrics={[]}
       table={{ title: "", description: "", columns: [], actionLabel: "" }}
     >
