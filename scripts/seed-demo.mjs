@@ -125,6 +125,34 @@ async function ensureUser(email, fullName, role) {
   return user;
 }
 
+async function upsertCreditorOrganization(payload) {
+  const { data: existing, error: findError } = await supabase
+    .from("creditor_organizations")
+    .select("*")
+    .eq("organization_name", payload.organization_name)
+    .maybeSingle();
+  if (findError) throw findError;
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from("creditor_organizations")
+      .update(payload)
+      .eq("id", existing.id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  const { data, error } = await supabase
+    .from("creditor_organizations")
+    .insert(payload)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 async function cleanupDemoData() {
   const { data: demoCases } = await supabase.from("cases").select("id").like("case_number", "NT-DEMO-%");
   const caseIds = (demoCases ?? []).map((item) => item.id);
@@ -171,7 +199,7 @@ async function seed() {
     const [name, type] = creditorOrgs[i];
     const officer = await ensureUser(`creditor${String(i + 1).padStart(2, "0")}@nt-ai-mediation.demo`, `เจ้าหน้าที่ ${name}`, "creditor");
     creditorUsers.push(officer);
-    const { data: org, error } = await supabase.from("creditor_organizations").upsert({
+    const org = await upsertCreditorOrganization({
       organization_name: name,
       organization_type: type,
       short_name: name.split(" ")[0],
@@ -181,8 +209,7 @@ async function seed() {
       status: "approved",
       is_public: true,
       display_order: i + 1,
-    }, { onConflict: "organization_name" }).select("*").single();
-    if (error) throw error;
+    });
     organizations.push(org);
     await supabase.from("creditor_officers").upsert({
       user_id: officer.id,
