@@ -48,17 +48,18 @@ export async function recalculateMediatorTrustScore(mediatorId: string) {
   const { data: profile } = await supabase.from("mediator_profiles").select("*").eq("id", mediatorId).maybeSingle();
   if (!profile) return null;
 
-  const [{ data: certifications }, { data: documents }, { data: appointments }] = await Promise.all([
+  const [{ data: certifications }, { data: documents }, { data: appointments }, { data: reviews }] = await Promise.all([
     supabase.from("mediator_certifications").select("*").eq("mediator_profile_id", mediatorId),
     supabase.from("mediator_documents").select("*").eq("mediator_profile_id", mediatorId),
     supabase.from("mediation_appointments").select("status, created_at, confirmed_by_mediator_at").eq("mediator_id", mediatorId),
+    supabase.from("mediator_reviews").select("rating").eq("mediator_id", mediatorId).eq("status", "approved"),
   ]);
 
   const completedCases = profile.total_cases_handled;
   const successfulCases = profile.successful_cases;
-  const ratingScore = 0;
-  const reviewCount = 0;
-  const averageRating = 0;
+  const reviewCount = reviews?.length ?? 0;
+  const averageRating = reviewCount > 0 ? (reviews ?? []).reduce((sum, review) => sum + review.rating, 0) / reviewCount : 0;
+  const ratingScore = averageRating / 5 * 100;
   const successRateScore = completedCases > 0 ? successfulCases / completedCases * 100 : 0;
   const yearsScore = Math.min(profile.mediation_experience_years / 10, 1) * 50;
   const casesScore = Math.min(completedCases / 100, 1) * 50;

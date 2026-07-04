@@ -10,6 +10,7 @@ import { requireRole } from "@/lib/auth/server";
 import { getActiveAppointmentForCase } from "@/lib/appointments";
 import { caseStatusLabels, getCaseForDebtor, getCaseHistory, isEditableCase } from "@/lib/cases";
 import { getClosingForCase, resultStatusLabels } from "@/lib/closing";
+import { getMediatorReviewForCase } from "@/lib/mediator-reviews";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,7 @@ export default async function CaseDetailPage({
   const history = await getCaseHistory(id);
   const appointment = await getActiveAppointmentForCase(id);
   const closing = await getClosingForCase(id);
+  const review = await getMediatorReviewForCase(id);
 
   return (
     <DebtorShell
@@ -53,7 +55,7 @@ export default async function CaseDetailPage({
       ) : null}
 
       <div className="mb-6">
-        <CaseProgressTracker caseItem={item} history={history} appointment={appointment} closing={closing} />
+        <CaseProgressTracker caseItem={item} history={history} appointment={appointment} closing={closing} review={review} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_24rem]">

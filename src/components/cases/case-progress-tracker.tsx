@@ -21,6 +21,7 @@ import { caseStatusLabels, type MediationCase } from "@/lib/cases";
 import { money, type ClosingRecord, type PaymentPlan, type SettlementDocument } from "@/lib/closing";
 import { cn } from "@/lib/utils";
 import type { Appointment } from "@/lib/appointments";
+import type { MediatorReview } from "@/lib/mediator-reviews";
 import type { CaseStatus, Database } from "@/types/database";
 
 type CaseHistory = Database["public"]["Tables"]["case_status_history"]["Row"];
@@ -157,7 +158,7 @@ function nextStepText(currentIndex: number, caseItem: MediationCase) {
   return `หลังจากขั้นตอนนี้เสร็จ ระบบจะเข้าสู่ขั้นตอน${next.title}`;
 }
 
-function RepaymentProgress({ plan }: { plan: PaymentPlan }) {
+function RepaymentProgress({ caseItem, plan, review }: { caseItem: MediationCase; plan: PaymentPlan; review?: MediatorReview | null }) {
   const completedInstallments = 0;
   const totalInstallments = Math.max(1, plan.number_of_installments);
   const percent = Math.round((completedInstallments / totalInstallments) * 100);
@@ -170,9 +171,19 @@ function RepaymentProgress({ plan }: { plan: PaymentPlan }) {
           <h2 className="mt-1 text-2xl font-semibold text-[#111827]">ติดตามแผนชำระหนี้</h2>
           <p className="mt-1 text-sm text-[#6B7280]">{completedInstallments} / {totalInstallments} งวด</p>
         </div>
-        <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          <p className="font-semibold">ชำระงวดถัดไป</p>
-          <p>{formatDate(plan.first_payment_due_date)} · {money(plan.installment_amount)}</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            <p className="font-semibold">ชำระงวดถัดไป</p>
+            <p>{formatDate(plan.first_payment_due_date)} · {money(plan.installment_amount)}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button href={`/documents/certificates/${caseItem.id}`} variant="outline" className="rounded-lg">Completion Certificate</Button>
+            {review ? (
+              <Button type="button" disabled className="rounded-lg">Review Submitted</Button>
+            ) : (
+              <Button href={`/debtor/cases/${caseItem.id}/review`} className="rounded-lg">Rate Mediator</Button>
+            )}
+          </div>
         </div>
       </div>
       <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#E5E7EB]">
@@ -189,7 +200,7 @@ function RepaymentProgress({ plan }: { plan: PaymentPlan }) {
   );
 }
 
-function ClosedBanner({ caseItem, closing }: { caseItem: MediationCase; closing: ClosingWithDetails }) {
+function ClosedBanner({ caseItem, closing, review }: { caseItem: MediationCase; closing: ClosingWithDetails; review?: MediatorReview | null }) {
   if (!closing || closing.result_status !== "settled") return null;
   const discount = closing.settled_amount ? Math.max(0, caseItem.debt_amount - closing.settled_amount) : 0;
   const plan = closing.settlement_payment_plans?.[0];
@@ -206,10 +217,15 @@ function ClosedBanner({ caseItem, closing }: { caseItem: MediationCase; closing:
           <p className="mt-1 text-sm text-[#6B7280]">วันที่สรุปผล {formatDateTime(closing.closed_at)}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button href={`/documents/certificates/${caseItem.id}`} variant="outline" className="rounded-lg">Completion Certificate</Button>
           {closing.settlement_documents?.map((document) => (
             <Button key={document.id} href={`/documents/settlements/${document.id}`} variant="outline" className="rounded-lg">Download Agreement PDF</Button>
           ))}
-          <Button type="button" disabled className="rounded-lg">Rate Mediator</Button>
+          {review ? (
+            <Button type="button" disabled className="rounded-lg">Review Submitted</Button>
+          ) : (
+            <Button href={`/debtor/cases/${caseItem.id}/review`} className="rounded-lg">Rate Mediator</Button>
+          )}
         </div>
       </div>
       <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -244,15 +260,17 @@ export function CaseProgressTracker({
   history,
   appointment,
   closing,
+  review,
 }: {
   caseItem: MediationCase;
   history: CaseHistory[];
   appointment: Appointment | null;
   closing: ClosingWithDetails;
+  review?: MediatorReview | null;
 }) {
   const plan = closing?.result_status === "settled" ? closing.settlement_payment_plans?.[0] : null;
-  if (caseItem.status === "closed") return <ClosedBanner caseItem={caseItem} closing={closing} />;
-  if (caseItem.status === "settled" && plan) return <RepaymentProgress plan={plan} />;
+  if (caseItem.status === "settled" && plan) return <RepaymentProgress caseItem={caseItem} plan={plan} review={review} />;
+  if (caseItem.status === "closed" || caseItem.status === "settled") return <ClosedBanner caseItem={caseItem} closing={closing} review={review} />;
   if (failedStatuses.includes(caseItem.status)) return <FailedBanner caseItem={caseItem} closing={closing} />;
 
   const currentIndex = getCurrentStepIndex(caseItem.status);

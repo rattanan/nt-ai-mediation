@@ -1,9 +1,10 @@
-import { approveMediator, recalculateAllTrustScores, rejectMediator, requestMediatorRevision, suspendMediator } from "@/app/admin/mediators/actions";
+import { approveMediator, approveMediatorReview, recalculateAllTrustScores, rejectMediator, rejectMediatorReview, requestMediatorRevision, suspendMediator } from "@/app/admin/mediators/actions";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireAdmin } from "@/lib/admin/auth";
+import { listPendingMediatorReviews } from "@/lib/mediator-reviews";
 import { getMediatorAvailability, getMediatorDocuments, getMediatorReviewLogs, getSubmittedMediatorProfiles, jsonList, mediatorStatusLabels } from "@/lib/mediators";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,7 @@ export default async function AdminMediatorReviewPage({
   const availability = selected ? await getMediatorAvailability(selected.id) : null;
   const docs = selected ? await getMediatorDocuments(selected.id) : [];
   const logs = selected ? await getMediatorReviewLogs(selected.id) : [];
+  const pendingReviews = await listPendingMediatorReviews();
 
   return (
     <AdminShell profile={admin} activePath="/admin/mediators" title="Mediator Review" subtitle="ตรวจสอบ อนุมัติ และจัดการโปรไฟล์ผู้ไกล่เกลี่ย">
@@ -28,6 +30,36 @@ export default async function AdminMediatorReviewPage({
       <form action={recalculateAllTrustScores} className="mb-5">
         <Button type="submit" variant="outline" className="rounded-lg font-semibold">คำนวณ NT Trust Score ใหม่ทั้งหมด</Button>
       </form>
+      <section className="mb-6 rounded-lg border border-black/5 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-2 border-b border-black/5 pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-semibold">คิวอนุมัติรีวิวผู้ไกล่เกลี่ย</h2>
+            <p className="mt-1 text-sm text-[#6B7280]">รีวิวที่อนุมัติแล้วเท่านั้นจะถูกนำไปคำนวณ NT Trust Score</p>
+          </div>
+          <Badge>{pendingReviews.length.toLocaleString("th-TH")} รายการ</Badge>
+        </div>
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {pendingReviews.length === 0 ? (
+            <p className="text-sm text-[#6B7280]">ไม่มีรีวิวรออนุมัติ</p>
+          ) : pendingReviews.map((review) => (
+            <article key={review.id} className="rounded-lg bg-[#F8FAFC] p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="font-semibold">{review.mediator_profiles?.title ?? ""} {review.mediator_profiles?.first_name} {review.mediator_profiles?.last_name}</p>
+                  <p className="mt-1 text-sm text-[#6B7280]">เคส {review.cases?.case_number ?? "-"} · {review.cases?.creditor_name ?? "-"}</p>
+                </div>
+                <Badge>{review.rating} / 5</Badge>
+              </div>
+              {review.comment ? <p className="mt-3 whitespace-pre-line rounded-lg bg-white p-3 text-sm text-[#374151]">{review.comment}</p> : null}
+              <p className="mt-2 text-xs text-[#6B7280]">โดย {review.debtor_profile?.full_name ?? "ลูกหนี้"} · {new Date(review.submitted_at).toLocaleString("th-TH")}</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <ReviewRatingButton action={approveMediatorReview} id={review.id} label="อนุมัติรีวิว" />
+                <ReviewRatingButton action={rejectMediatorReview} id={review.id} label="ไม่อนุมัติ" variant="outline" />
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
       <div className="grid gap-6 xl:grid-cols-[24rem_1fr]">
         <section className="rounded-lg border border-black/5 bg-white shadow-sm">
           <div className="border-b border-black/5 px-5 py-4">
@@ -99,6 +131,10 @@ export default async function AdminMediatorReviewPage({
 
 function ReviewButton({ action, id, label, variant = "default" }: { action: (formData: FormData) => Promise<void>; id: string; label: string; variant?: "default" | "outline" }) {
   return <form action={action}><input type="hidden" name="profile_id" value={id} /><Button type="submit" variant={variant} className="rounded-lg font-semibold">{label}</Button></form>;
+}
+
+function ReviewRatingButton({ action, id, label, variant = "default" }: { action: (formData: FormData) => Promise<void>; id: string; label: string; variant?: "default" | "outline" }) {
+  return <form action={action}><input type="hidden" name="review_id" value={id} /><Button type="submit" variant={variant} className="w-full rounded-lg font-semibold">{label}</Button></form>;
 }
 
 function Info({ label, value }: { label: string; value: string }) {

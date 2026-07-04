@@ -34,6 +34,7 @@ export type MediationResultStatus = "settled" | "not_settled";
 export type PaymentFrequency = "monthly" | "biweekly" | "weekly" | "custom";
 export type SettlementDocumentType = "settlement_agreement" | "unsuccessful_closing_report";
 export type BillingInvoiceStatus = "draft" | "issued" | "sent" | "paid" | "overdue" | "cancelled";
+export type MediatorReviewStatus = "pending" | "approved" | "rejected";
 export type CaseStatus =
   | "draft"
   | "submitted"
@@ -585,6 +586,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      case_completion_certificates: {
+        Row: {
+          id: string;
+          case_id: string;
+          closing_record_id: string;
+          certificate_number: string;
+          issued_to_user_id: string;
+          mediator_id: string;
+          issued_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          case_id: string;
+          closing_record_id: string;
+          certificate_number: string;
+          issued_to_user_id: string;
+          mediator_id: string;
+          issued_at?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["case_completion_certificates"]["Insert"]>;
+        Relationships: [];
+      };
       case_comments: {
         Row: {
           id: string;
@@ -860,6 +885,40 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["mediator_review_logs"]["Insert"]>;
+        Relationships: [];
+      };
+      mediator_reviews: {
+        Row: {
+          id: string;
+          case_id: string;
+          mediator_id: string;
+          debtor_user_id: string;
+          rating: number;
+          comment: string | null;
+          status: MediatorReviewStatus;
+          submitted_at: string;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          admin_note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          case_id: string;
+          mediator_id: string;
+          debtor_user_id: string;
+          rating: number;
+          comment?: string | null;
+          status?: MediatorReviewStatus;
+          submitted_at?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          admin_note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mediator_reviews"]["Insert"]>;
         Relationships: [];
       };
       mediator_trust_scores: {

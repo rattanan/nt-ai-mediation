@@ -53,6 +53,44 @@ export async function recalculateAllTrustScores() {
   redirect(`/admin/mediators?success=${encodeURIComponent("คำนวณ NT Trust Score ใหม่แล้ว")}`);
 }
 
+async function reviewMediatorRating(formData: FormData, status: "approved" | "rejected") {
+  const admin = await requireAdmin();
+  const reviewId = String(formData.get("review_id") ?? "");
+  const note = String(formData.get("admin_note") ?? "").trim() || null;
+  if (!reviewId) {
+    redirect(`/admin/mediators?error=${encodeURIComponent("ไม่พบรีวิวที่ต้องการตรวจสอบ")}`);
+  }
+
+  const supabase = await createClient();
+  const { data: review, error } = await supabase
+    .from("mediator_reviews")
+    .update({
+      status,
+      reviewed_by: admin.id,
+      reviewed_at: new Date().toISOString(),
+      admin_note: note,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", reviewId)
+    .select("mediator_id")
+    .single();
+
+  if (error || !review) {
+    redirect(`/admin/mediators?error=${encodeURIComponent("บันทึกผลรีวิวไม่สำเร็จ")}`);
+  }
+
+  await recalculateMediatorTrustScore(review.mediator_id);
+  redirect(`/admin/mediators?success=${encodeURIComponent(status === "approved" ? "อนุมัติรีวิวและคำนวณ Trust Score แล้ว" : "ไม่อนุมัติรีวิวและคำนวณ Trust Score แล้ว")}`);
+}
+
+export async function approveMediatorReview(formData: FormData) {
+  await reviewMediatorRating(formData, "approved");
+}
+
+export async function rejectMediatorReview(formData: FormData) {
+  await reviewMediatorRating(formData, "rejected");
+}
+
 export async function approveMediator(formData: FormData) {
   await review(formData, "approved", "อนุมัติโปรไฟล์ผู้ไกล่เกลี่ย");
 }
