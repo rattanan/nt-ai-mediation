@@ -13,6 +13,7 @@ import {
   isEmailVerified,
   writeAuditLog,
 } from "@/lib/auth/verification";
+import { getActiveConsentVersion, getPendingConsent, recordUserConsent, userHasLatestConsent } from "@/lib/consent";
 
 function authRedirect(path: string, message: string): never {
   redirect(`${path}?message=${encodeURIComponent(message)}`);
@@ -122,7 +123,17 @@ export async function login(_state: FormState, formData: FormData): Promise<Form
       return formError(formData, "เข้าสู่ระบบแล้ว แต่ยังสร้างโปรไฟล์ไม่ได้ กรุณาติดต่อผู้ดูแลระบบ");
     }
 
+    const activeConsent = await getActiveConsentVersion();
+    if (!(await userHasLatestConsent(user.id, activeConsent.version))) {
+      redirect(`/auth/consent?next=${encodeURIComponent(returnUrl.startsWith("/") ? returnUrl : getRoleHome(role))}`);
+    }
+
     redirect(returnUrl.startsWith("/") ? returnUrl : getRoleHome(role));
+  }
+
+  const activeConsent = await getActiveConsentVersion();
+  if (!(await userHasLatestConsent(user.id, activeConsent.version))) {
+    redirect(`/auth/consent?next=${encodeURIComponent(returnUrl.startsWith("/") ? returnUrl : getRoleHome(profile.role))}`);
   }
 
   redirect(returnUrl.startsWith("/") ? returnUrl : getRoleHome(profile.role));
@@ -141,6 +152,13 @@ export async function register(_state: FormState, formData: FormData): Promise<F
 
   if (!isAppRole(roleValue)) {
     return formError(formData, "บทบาทผู้ใช้งานไม่ถูกต้อง");
+  }
+
+  const activeConsent = await getActiveConsentVersion();
+  const pendingConsent = await getPendingConsent(activeConsent.version);
+
+  if (!pendingConsent) {
+    return formError(formData, "กรุณาอ่านและยอมรับเงื่อนไขการใช้งานก่อนลงทะเบียน");
   }
 
   const role: AppRole = roleValue;
@@ -185,6 +203,8 @@ export async function register(_state: FormState, formData: FormData): Promise<F
       authRedirect("/login", "สร้างบัญชีสำเร็จแล้ว แต่ยังสร้างโปรไฟล์ไม่ได้ กรุณาเข้าสู่ระบบอีกครั้ง");
     }
 
+    await recordUserConsent(data.user.id, activeConsent.version, pendingConsent.language);
+
     redirect(getRoleHome(role));
   }
 
@@ -200,6 +220,7 @@ export async function register(_state: FormState, formData: FormData): Promise<F
     console.error("Profile creation failed after register", profileError);
   }
 
+  await recordUserConsent(data.user.id, activeConsent.version, pendingConsent.language);
   await writeAuditLog(supabase, "EMAIL_VERIFICATION_SENT", { email }, data.user.id);
 
   redirect(`/verify-email?email=${encodeURIComponent(email)}&status=registered`);

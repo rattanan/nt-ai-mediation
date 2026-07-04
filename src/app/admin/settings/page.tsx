@@ -1,15 +1,16 @@
-import { saveFeeSettings } from "@/app/admin/settings/actions";
+import { saveConsentVersion, saveFeeSettings } from "@/app/admin/settings/actions";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth/server";
+import { getActiveConsentVersion } from "@/lib/consent";
 import { getFeeSettings } from "@/lib/closing";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSettingsPage({ searchParams }: { searchParams: Promise<{ success?: string; error?: string }> }) {
   const profile = await requireRole("admin");
-  const settings = await getFeeSettings();
+  const [settings, consent] = await Promise.all([getFeeSettings(), getActiveConsentVersion()]);
   const { success, error } = await searchParams;
   return (
     <AdminShell profile={profile} activePath="/admin/settings" title="Platform Fee Settings" subtitle="ตั้งค่าค่าธรรมเนียมแพลตฟอร์มและข้อมูลชำระเงิน">
@@ -32,6 +33,30 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           </label>
         </div>
         <Button type="submit" className="mt-5 h-11 rounded-lg font-semibold">บันทึกการตั้งค่า</Button>
+      </form>
+
+      <form action={saveConsentVersion} className="mt-6 rounded-lg border border-black/5 bg-white p-5 shadow-sm">
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold">Consent & Terms Version</h2>
+          <p className="mt-1 text-sm text-[#6B7280]">แก้ไขข้อตกลงก่อนสมัครสมาชิก เวอร์ชันที่ active จะถูกใช้กับผู้ใช้ใหม่และผู้ใช้เดิมเมื่อเข้าสู่ระบบครั้งถัดไป</p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field name="version" label="Consent Version" value={consent.version} />
+          <Field name="title_en" label="English Title" value={consent.title_en} />
+          <label className="block md:col-span-2">
+            <span className="text-sm font-medium">หัวข้อภาษาไทย</span>
+            <input name="title_th" defaultValue={consent.title_th} className="mt-2 h-11 w-full rounded-lg border border-[#D1D5DB] px-3 text-sm" />
+          </label>
+          <label className="block md:col-span-2">
+            <span className="text-sm font-medium">เนื้อหาภาษาไทย</span>
+            <textarea name="content_th" defaultValue={consent.content_th} className="mt-2 min-h-72 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm leading-6" />
+          </label>
+          <label className="block md:col-span-2">
+            <span className="text-sm font-medium">English Content</span>
+            <textarea name="content_en" defaultValue={consent.content_en} className="mt-2 min-h-40 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm leading-6" />
+          </label>
+        </div>
+        <Button type="submit" className="mt-5 h-11 rounded-lg font-semibold">บันทึก Consent Version</Button>
       </form>
     </AdminShell>
   );

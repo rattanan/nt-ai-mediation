@@ -33,3 +33,43 @@ export async function saveFeeSettings(formData: FormData) {
   if (error) redirect(`/admin/settings?error=${encodeURIComponent("บันทึก Fee Settings ไม่สำเร็จ")}`);
   redirect(`/admin/settings?success=${encodeURIComponent("บันทึก Fee Settings แล้ว")}`);
 }
+
+export async function saveConsentVersion(formData: FormData) {
+  const profile = await requireRole("admin");
+  const supabase = await createClient();
+  const version = String(formData.get("version") ?? "").trim();
+  const titleTh = String(formData.get("title_th") ?? "").trim();
+  const titleEn = String(formData.get("title_en") ?? "").trim();
+  const contentTh = String(formData.get("content_th") ?? "").trim();
+  const contentEn = String(formData.get("content_en") ?? "").trim();
+
+  if (!version || !titleTh || !titleEn || !contentTh || !contentEn) {
+    redirect(`/admin/settings?error=${encodeURIComponent("กรุณากรอกข้อมูล Consent ให้ครบถ้วน")}`);
+  }
+
+  const { error: disableError } = await supabase
+    .from("consent_versions")
+    .update({ is_active: false })
+    .eq("is_active", true);
+
+  if (disableError) {
+    redirect(`/admin/settings?error=${encodeURIComponent("ปิดใช้งาน Consent เดิมไม่สำเร็จ")}`);
+  }
+
+  const { error } = await supabase.from("consent_versions").upsert(
+    {
+      version,
+      title_th: titleTh,
+      title_en: titleEn,
+      content_th: contentTh,
+      content_en: contentEn,
+      is_active: true,
+      created_by: profile.id,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "version" },
+  );
+
+  if (error) redirect(`/admin/settings?error=${encodeURIComponent("บันทึก Consent Version ไม่สำเร็จ")}`);
+  redirect(`/admin/settings?success=${encodeURIComponent("บันทึก Consent Version แล้ว")}`);
+}

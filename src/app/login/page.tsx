@@ -78,7 +78,7 @@ export default async function LoginPage({
 
             <p className="mt-6 text-center text-sm text-[#6B7280]">
               ยังไม่มีบัญชี?{" "}
-              <Link href={`/register${safeReturnUrl ? `?returnUrl=${encodeURIComponent(safeReturnUrl)}` : ""}`} className="font-semibold text-[#8A6500] hover:text-[#111827]">
+              <Link href={`/auth/consent${safeReturnUrl ? `?next=${encodeURIComponent(safeReturnUrl)}` : ""}`} className="font-semibold text-[#8A6500] hover:text-[#111827]">
                 สร้างบัญชีใหม่
               </Link>
             </p>

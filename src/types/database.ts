@@ -97,6 +97,78 @@ export type Database = {
         };
         Relationships: [];
       };
+      consent_versions: {
+        Row: {
+          id: string;
+          version: string;
+          title_th: string;
+          title_en: string;
+          content_th: string;
+          content_en: string;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          version: string;
+          title_th?: string;
+          title_en?: string;
+          content_th: string;
+          content_en?: string;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          version?: string;
+          title_th?: string;
+          title_en?: string;
+          content_th?: string;
+          content_en?: string;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_consents: {
+        Row: {
+          id: string;
+          user_id: string;
+          consent_version: string;
+          accepted_at: string;
+          ip_address: string | null;
+          user_agent: string | null;
+          language: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          consent_version: string;
+          accepted_at?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          language?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          consent_version?: string;
+          accepted_at?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          language?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       creditors: {
         Row: {
           id: string;

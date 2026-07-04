@@ -5,21 +5,27 @@ import { RegisterForm } from "@/components/auth/register-form";
 import { getCurrentProfile } from "@/lib/auth/server";
 import { getRoleHome } from "@/lib/auth/routes";
 import { redirect } from "next/navigation";
+import { getActiveConsentVersion, hasPendingConsent } from "@/lib/consent";
 
 export const dynamic = "force-dynamic";
 
 export default async function RegisterPage({
   searchParams,
 }: {
-  searchParams: Promise<{ message?: string }>;
+  searchParams: Promise<{ message?: string; consent?: string }>;
 }) {
-  const profile = await getCurrentProfile();
+  const [profile, consentVersion] = await Promise.all([getCurrentProfile(), getActiveConsentVersion()]);
 
   if (profile) {
     redirect(getRoleHome(profile.role));
   }
 
-  const { message } = await searchParams;
+  const { message, consent } = await searchParams;
+  const hasConsent = await hasPendingConsent(consentVersion.version);
+
+  if (!hasConsent) {
+    redirect("/auth/consent");
+  }
 
   return (
     <main className="min-h-screen bg-[#F7F7F7] text-[#1F2937]">
@@ -51,6 +57,11 @@ export default async function RegisterPage({
             {message ? (
               <div className="mt-5 rounded-lg border border-[#F5B800]/30 bg-[#FFF8D9] px-4 py-3 text-sm text-[#6B4F00]">
                 {message}
+              </div>
+            ) : null}
+            {consent === "accepted" ? (
+              <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                บันทึกความยินยอมชั่วคราวแล้ว กรุณาสมัครสมาชิกต่อเพื่อผูกความยินยอมกับบัญชีของคุณ
               </div>
             ) : null}
 

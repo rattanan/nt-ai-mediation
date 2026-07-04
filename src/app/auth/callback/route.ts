@@ -10,6 +10,7 @@ import {
   isEmailVerified,
   writeAuditLog,
 } from "@/lib/auth/verification";
+import { getActiveConsentVersion, getPendingConsent, recordUserConsent, userHasLatestConsent } from "@/lib/consent";
 
 function redirectWithMessage(_request: NextRequest, path: string, message: string) {
   const url = appUrl(path);
@@ -106,7 +107,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(confirmedUrl);
   }
 
-  const redirectUrl = appUrl(returnUrl?.startsWith("/") ? returnUrl : getRoleHome(role));
+  const nextPath = returnUrl?.startsWith("/") ? returnUrl : getRoleHome(role);
+  const activeConsent = await getActiveConsentVersion();
+  if (!(await userHasLatestConsent(user.id, activeConsent.version))) {
+    const pendingConsent = await getPendingConsent(activeConsent.version);
+    if (pendingConsent) {
+      await recordUserConsent(user.id, activeConsent.version, pendingConsent.language);
+      return NextResponse.redirect(appUrl(nextPath));
+    }
+
+    const consentUrl = appUrl("/auth/consent");
+    consentUrl.searchParams.set("next", nextPath);
+    return NextResponse.redirect(consentUrl);
+  }
+
+  const redirectUrl = appUrl(nextPath);
 
   return NextResponse.redirect(redirectUrl);
 }
