@@ -14,6 +14,7 @@ import {
   getCreditorOrganization,
 } from "@/lib/creditor";
 import { caseStatusLabels } from "@/lib/cases";
+import { listCreditorInvoices, money } from "@/lib/closing";
 
 export const dynamic = "force-dynamic";
 
@@ -42,12 +43,17 @@ export default async function CreditorDashboardPage({
   const organization = await getCreditorOrganization(officer?.organization_id);
   const cases = await getCreditorCases(organization?.id);
   const appointments = await getAppointmentsForCreditorOrganization(organization?.id);
+  const invoices = await listCreditorInvoices(organization?.id);
   const pendingAppointments = appointments.filter((item) => item.status === "pending_confirmation" && !item.confirmed_by_creditor_at);
   const upcomingAppointments = appointments.filter(isUpcomingAppointment).slice(0, 3);
   const pending = cases.filter((item) => item.status === "creditor_review").length;
   const active = cases.filter((item) => ["creditor_accepted", "mediator_matching", "matched", "scheduled", "in_mediation"].includes(item.status)).length;
   const approvalQueue = cases.filter((item) => item.status === "settled").length;
   const closed = cases.filter((item) => item.status === "closed" || item.status === "not_settled").length;
+  const totalDebt = cases.reduce((sum, item) => sum + Number(item.debt_amount), 0);
+  const settledDebt = invoices.reduce((sum, item) => sum + Number(item.settled_amount ?? 0), 0);
+  const invoiceFees = invoices.reduce((sum, item) => sum + Number(item.total_amount ?? 0), 0);
+  const recoveryRate = totalDebt > 0 ? Math.round((settledDebt / totalDebt) * 100) : 0;
 
   return (
     <CreditorShell
@@ -75,6 +81,11 @@ export default async function CreditorDashboardPage({
             <Summary label="เคสกำลังดำเนินการ" value={active} icon={FolderOpen} />
             <Summary label="รออนุมัติ settlement" value={approvalQueue} icon={BadgeCheck} />
             <Summary label="เคสปิดแล้ว" value={closed} icon={FileCheck} />
+            <Summary label="มูลหนี้รวม" value={money(totalDebt)} icon={ClipboardList} />
+            <Summary label="มูลหนี้ที่ตกลงได้" value={money(settledDebt)} icon={BadgeCheck} />
+            <Summary label="Recovery Rate" value={`${recoveryRate}%`} icon={BadgeCheck} />
+            <Summary label="ค่าธรรมเนียมที่ต้องชำระ" value={money(invoiceFees)} icon={FileCheck} />
+            <Summary label="ใบแจ้งหนี้" value={invoices.length} icon={FileCheck} />
           </section>
 
           {pendingAppointments.length > 0 || upcomingAppointments.length > 0 ? (

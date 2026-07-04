@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getAppointmentsForMediator, getMediatorAvailabilitySlots, isUpcomingAppointment, meetingTypeLabels } from "@/lib/appointments";
 import { getMediatorAvailability, getMediatorProfileByUser, mediatorStatusLabels } from "@/lib/mediators";
+import { getMediatorTrustScore, trustBadgeLabels } from "@/lib/trust-score";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,8 @@ export default async function MediatorPortalPage({
   const assignedCases = mediatorProfile ? await getAssignedCases(mediatorProfile.id) : [];
   const appointments = mediatorProfile ? await getAppointmentsForMediator(mediatorProfile.id) : [];
   const availabilitySlots = mediatorProfile ? await getMediatorAvailabilitySlots(mediatorProfile.id) : [];
+  const trustScore = mediatorProfile ? await getMediatorTrustScore(mediatorProfile.id) : null;
+  const feedback = mediatorProfile ? await getMediatorFeedback(mediatorProfile.id) : [];
 
   if (!mediatorProfile || mediatorProfile.status !== "approved") {
     return (
@@ -78,6 +81,8 @@ export default async function MediatorPortalPage({
         { label: "นัดวันนี้", value: String(todayAppointments.length), caption: "นัดไกล่เกลี่ยวันนี้", icon: CalendarCheck2 },
         { label: "รอยืนยัน", value: String(pendingAppointments.length), caption: "นัดหมายที่รอคุณยืนยัน", icon: ClipboardCheck },
         { label: "อัตราสำเร็จ", value: `${successRate}%`, caption: "จากประวัติที่แจ้ง", icon: TrendingUp },
+        { label: "NT Trust Score", value: String(trustScore?.overall_score ?? 0), caption: trustScore ? trustBadgeLabels[trustScore.badge_code].th : "รอคำนวณคะแนน", icon: TrendingUp },
+        { label: "Rating เฉลี่ย", value: (trustScore?.average_rating ?? 0).toFixed(1), caption: `${trustScore?.review_count ?? 0} รีวิวที่อนุมัติ`, icon: ClipboardCheck },
       ]}
       table={{ title: "เคสที่ได้รับมอบหมาย", description: "รายการเคสที่ลูกหนี้เลือกคุณเป็นผู้ไกล่เกลี่ย", columns: ["เลขเคส", "เจ้าหนี้", "ยอดหนี้", "สถานะ"], actionLabel: "ดูคิวงาน" }}
     >
@@ -94,6 +99,20 @@ export default async function MediatorPortalPage({
 
       <section className="mt-6 grid gap-5 xl:grid-cols-2">
         <div className="space-y-4">
+          <div className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold">Feedback ล่าสุดจากลูกหนี้</h2>
+            <div className="mt-4 space-y-3">
+              {feedback.length === 0 ? <p className="text-sm text-[#6B7280]">ยังไม่มี feedback ที่อนุมัติ</p> : feedback.map((item) => (
+                <div key={item.id} className="rounded-lg bg-[#F8FAFC] p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold">{item.rating} / 5</p>
+                    <span className="text-xs text-[#6B7280]">{new Date(item.submitted_at).toLocaleDateString("th-TH")}</span>
+                  </div>
+                  {item.comment ? <p className="mt-2 text-sm text-[#374151]">{item.comment}</p> : null}
+                </div>
+              ))}
+            </div>
+          </div>
           <div className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold">นัดหมายรอยืนยัน</h2>
             <div className="mt-4 space-y-3">
@@ -196,5 +215,17 @@ export default async function MediatorPortalPage({
 async function getAssignedCases(mediatorProfileId: string) {
   const supabase = await createClient();
   const { data } = await supabase.from("cases").select("*").eq("selected_mediator_profile_id", mediatorProfileId).order("updated_at", { ascending: false });
+  return data ?? [];
+}
+
+async function getMediatorFeedback(mediatorProfileId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("mediator_reviews")
+    .select("*")
+    .eq("mediator_id", mediatorProfileId)
+    .eq("status", "approved")
+    .order("submitted_at", { ascending: false })
+    .limit(5);
   return data ?? [];
 }
