@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { AppRole } from "@/types/database";
 import { getRoleHome, isAppRole } from "@/lib/auth/routes";
+import { formError, type FormState } from "@/lib/form-state";
 import {
   emailVerificationRedirectUrl,
   getFullNameFromUser,
@@ -58,13 +59,13 @@ async function upsertProfile(seed: ProfileSeed) {
   });
 }
 
-export async function login(formData: FormData) {
+export async function login(_state: FormState, formData: FormData): Promise<FormState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const returnUrl = String(formData.get("return_url") ?? "").trim();
 
   if (!email || !password) {
-    authRedirect("/login", "กรุณากรอกอีเมลและรหัสผ่าน");
+    return formError(formData, "กรุณากรอกอีเมลและรหัสผ่าน");
   }
 
   const supabase = await createClient();
@@ -74,7 +75,7 @@ export async function login(formData: FormData) {
   });
 
   if (error) {
-    authRedirect("/login", "เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบอีเมลและรหัสผ่าน");
+    return formError(formData, "เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบอีเมลและรหัสผ่าน");
   }
 
   const {
@@ -82,7 +83,7 @@ export async function login(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    authRedirect("/login", "ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบอีกครั้ง");
+    return formError(formData, "ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบอีกครั้ง");
   }
 
   if (!isEmailVerified(user)) {
@@ -101,7 +102,7 @@ export async function login(formData: FormData) {
 
   if (profileError) {
     console.error("Profile lookup failed after login", profileError);
-    authRedirect("/login", "เข้าสู่ระบบแล้ว แต่โหลดโปรไฟล์ไม่สำเร็จ กรุณาลองอีกครั้ง");
+    return formError(formData, "เข้าสู่ระบบแล้ว แต่โหลดโปรไฟล์ไม่สำเร็จ กรุณาลองอีกครั้ง");
   }
 
   if (!profile) {
@@ -118,7 +119,7 @@ export async function login(formData: FormData) {
 
     if (createProfileError) {
       console.error("Profile creation failed after login", createProfileError);
-      authRedirect("/login", "เข้าสู่ระบบแล้ว แต่ยังสร้างโปรไฟล์ไม่ได้ กรุณาติดต่อผู้ดูแลระบบ");
+      return formError(formData, "เข้าสู่ระบบแล้ว แต่ยังสร้างโปรไฟล์ไม่ได้ กรุณาติดต่อผู้ดูแลระบบ");
     }
 
     redirect(returnUrl.startsWith("/") ? returnUrl : getRoleHome(role));
@@ -127,7 +128,7 @@ export async function login(formData: FormData) {
   redirect(returnUrl.startsWith("/") ? returnUrl : getRoleHome(profile.role));
 }
 
-export async function register(formData: FormData) {
+export async function register(_state: FormState, formData: FormData): Promise<FormState> {
   const fullName = String(formData.get("full_name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
@@ -135,11 +136,11 @@ export async function register(formData: FormData) {
   const organizationName = String(formData.get("organization_name") ?? "").trim();
 
   if (!fullName || !email || !password) {
-    authRedirect("/register", "กรุณากรอกชื่อ อีเมล และรหัสผ่าน");
+    return formError(formData, "กรุณากรอกชื่อ อีเมล และรหัสผ่าน");
   }
 
   if (!isAppRole(roleValue)) {
-    authRedirect("/register", "บทบาทผู้ใช้งานไม่ถูกต้อง");
+    return formError(formData, "บทบาทผู้ใช้งานไม่ถูกต้อง");
   }
 
   const role: AppRole = roleValue;
@@ -159,7 +160,7 @@ export async function register(formData: FormData) {
 
   if (error || !data.user) {
     console.error("Supabase signUp failed", error);
-    authRedirect("/register", "ลงทะเบียนไม่สำเร็จ กรุณาตรวจสอบข้อมูลอีกครั้ง");
+    return formError(formData, error?.message ?? "ลงทะเบียนไม่สำเร็จ กรุณาตรวจสอบข้อมูลอีกครั้ง");
   }
 
   const isExistingEmail = data.user.identities?.length === 0;

@@ -1,8 +1,9 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
-import { ArrowLeft, LockKeyhole, Mail, Sparkles } from "lucide-react";
-import { login } from "@/app/auth/actions";
+import { ArrowLeft, LockKeyhole } from "lucide-react";
 import { GoogleOAuthButton } from "@/components/auth/google-oauth-button";
+import { LoginForm } from "@/components/auth/login-form";
 import { getRoleHome } from "@/lib/auth/routes";
 import { getCurrentProfile } from "@/lib/auth/server";
 
@@ -28,8 +29,8 @@ export default async function LoginPage({
         <section className="grid w-full overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm lg:grid-cols-[1fr_30rem]">
           <div className="hidden bg-[#111827] p-10 text-white lg:block">
             <Link href="/" className="inline-flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#FFD200] text-[#111827]">
-                <Sparkles className="h-5 w-5" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-white p-1.5">
+                <Image src="/images/nt-logo.png" alt="NT" width={36} height={36} className="h-full w-full object-contain" priority />
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase text-[#FFD200]">NT AI</p>
@@ -73,47 +74,7 @@ export default async function LoginPage({
               <div className="h-px flex-1 bg-[#E5E7EB]" />
             </div>
 
-            <form action={login} className="space-y-4">
-              <input type="hidden" name="return_url" value={safeReturnUrl} />
-              <label className="block">
-                <span className="text-sm font-medium">อีเมล</span>
-                <div className="relative mt-2">
-                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]" />
-                  <input
-                    name="email"
-                    type="email"
-                    required
-                    className="h-11 w-full rounded-lg border border-[#D1D5DB] pl-10 pr-3 text-sm outline-none focus:border-[#F5B800] focus:ring-2 focus:ring-[#FFD200]/30"
-                    placeholder="name@example.com"
-                  />
-                </div>
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium">รหัสผ่าน</span>
-                <input
-                  name="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  className="mt-2 h-11 w-full rounded-lg border border-[#D1D5DB] px-3 text-sm outline-none focus:border-[#F5B800] focus:ring-2 focus:ring-[#FFD200]/30"
-                  placeholder="รหัสผ่านของคุณ"
-                />
-              </label>
-              <div className="flex justify-end">
-                <Link
-                  href="/forgot-password"
-                  className="text-sm font-semibold text-[#8A6500] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#FFD200]/50"
-                >
-                  ลืมรหัสผ่าน?
-                </Link>
-              </div>
-              <button
-                type="submit"
-                className="h-11 w-full rounded-lg bg-[#FFD200] px-4 text-sm font-semibold text-[#111827] hover:bg-[#F5B800]"
-              >
-                เข้าสู่ระบบ
-              </button>
-            </form>
+            <LoginForm returnUrl={safeReturnUrl} />
 
             <p className="mt-6 text-center text-sm text-[#6B7280]">
               ยังไม่มีบัญชี?{" "}

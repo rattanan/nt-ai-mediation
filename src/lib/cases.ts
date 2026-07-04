@@ -3,10 +3,21 @@ import "server-only";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { CaseStatus, Database } from "@/types/database";
+import type { FormValues } from "@/lib/form-state";
 
 export type MediationCase = Database["public"]["Tables"]["cases"]["Row"];
 export type CaseFormState = {
   error?: string;
+  success?: string;
+  values?: FormValues;
+};
+
+type UploadedDocument = {
+  name: string;
+  path?: string;
+  url?: string;
+  size?: number;
+  type?: string;
 };
 
 export const caseStatusLabels: Record<CaseStatus, string> = {
@@ -57,10 +68,23 @@ export function parseCaseForm(formData: FormData) {
   const monthlyIncome = Number(String(formData.get("monthly_income") ?? "").replaceAll(",", ""));
   const monthlyExpense = Number(String(formData.get("monthly_expense") ?? "").replaceAll(",", ""));
   const affordableMonthlyPayment = Number(String(formData.get("affordable_monthly_payment") ?? "").replaceAll(",", ""));
-  const uploadedDocuments = String(formData.get("uploaded_documents") ?? "")
+  const typedDocuments = String(formData.get("uploaded_documents") ?? "")
     .split(/\r?\n/)
     .map((line) => line.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((urlOrName) => ({ name: urlOrName, url: urlOrName }));
+  const existingDocuments = formData
+    .getAll("existing_uploaded_documents")
+    .map((value) => {
+      try {
+        const parsed = JSON.parse(String(value)) as UploadedDocument;
+        return typeof parsed.name === "string" ? parsed : null;
+      } catch {
+        return null;
+      }
+    })
+    .filter((value): value is UploadedDocument => Boolean(value));
+  const uploadedDocuments = [...existingDocuments, ...typedDocuments];
 
   const payload = {
     creditor_organization_id: String(formData.get("creditor_organization_id") ?? "").trim() || null,
@@ -75,6 +99,7 @@ export function parseCaseForm(formData: FormData) {
     monthly_income: Number.isFinite(monthlyIncome) ? monthlyIncome : null,
     monthly_expense: Number.isFinite(monthlyExpense) ? monthlyExpense : null,
     affordable_monthly_payment: Number.isFinite(affordableMonthlyPayment) ? affordableMonthlyPayment : null,
+    address: String(formData.get("address") ?? "").trim() || null,
     province: String(formData.get("province") ?? "").trim(),
     district: String(formData.get("district") ?? "").trim(),
     contact_phone: String(formData.get("contact_phone") ?? "").trim(),

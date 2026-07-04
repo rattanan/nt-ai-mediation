@@ -2,7 +2,10 @@ import "server-only";
 
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Database, Json, MediatorProfileStatus } from "@/types/database";
+import type { Database, MediatorProfileStatus } from "@/types/database";
+import { jsonList } from "@/lib/json-list";
+
+export { jsonList } from "@/lib/json-list";
 
 export type MediatorProfile = Database["public"]["Tables"]["mediator_profiles"]["Row"];
 export type MediatorAvailability = Database["public"]["Tables"]["mediator_availability"]["Row"];
@@ -16,10 +19,6 @@ export const mediatorStatusLabels: Record<MediatorProfileStatus, string> = {
   rejected: "ไม่อนุมัติ",
   suspended: "ระงับการแสดงผล",
 };
-
-export function jsonList(value: Json | null | undefined): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
-}
 
 export function linesToList(value: FormDataEntryValue | null) {
   return String(value ?? "")

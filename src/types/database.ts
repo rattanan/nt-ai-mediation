@@ -224,6 +224,7 @@ export type Database = {
           monthly_income: number | null;
           monthly_expense: number | null;
           affordable_monthly_payment: number | null;
+          address: string | null;
           province: string;
           district: string;
           contact_phone: string;
@@ -256,6 +257,7 @@ export type Database = {
           monthly_income?: number | null;
           monthly_expense?: number | null;
           affordable_monthly_payment?: number | null;
+          address?: string | null;
           province: string;
           district: string;
           contact_phone: string;
@@ -288,6 +290,7 @@ export type Database = {
           monthly_income?: number | null;
           monthly_expense?: number | null;
           affordable_monthly_payment?: number | null;
+          address?: string | null;
           province?: string;
           district?: string;
           contact_phone?: string;
