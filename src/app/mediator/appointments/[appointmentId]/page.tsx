@@ -1,0 +1,91 @@
+import Link from "next/link";
+import {
+  confirmMediatorAppointment,
+  markAppointmentOutcome,
+  requestMediatorReschedule,
+  updateAppointmentMeetingUrl,
+} from "@/app/mediator/actions";
+import { AppointmentDetail } from "@/components/appointments/appointment-detail";
+import { PortalShell } from "@/components/portal-shell";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { requireRole } from "@/lib/auth/server";
+import { getAppointmentDetail } from "@/lib/appointments";
+
+export const dynamic = "force-dynamic";
+
+export default async function MediatorAppointmentDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ appointmentId: string }>;
+  searchParams: Promise<{ success?: string; error?: string }>;
+}) {
+  const profile = await requireRole("mediator");
+  const { appointmentId } = await params;
+  const { success, error } = await searchParams;
+  const appointment = await getAppointmentDetail(appointmentId);
+
+  return (
+    <PortalShell
+      roleLabel="Mediator Portal"
+      title="รายละเอียดนัดหมาย"
+      subtitle="ยืนยันนัดหมาย เพิ่มลิงก์ประชุม และบันทึกผลการไกล่เกลี่ย"
+      userName={profile.full_name}
+      sidebarItems={[]}
+      metrics={[]}
+      table={{ title: "Appointments", description: "Appointment detail", columns: [], actionLabel: "Back" }}
+    >
+      {success ? <Alert variant="success" className="mb-5">{success}</Alert> : null}
+      {error ? <Alert variant="destructive" className="mb-5">{error}</Alert> : null}
+
+      <AppointmentDetail
+        appointment={appointment}
+        actions={
+          <div className="grid gap-4 lg:grid-cols-2">
+            {!appointment.confirmed_by_mediator_at && appointment.status !== "cancelled" ? (
+              <form action={confirmMediatorAppointment} className="space-y-3">
+                <input type="hidden" name="appointment_id" value={appointment.id} />
+                <input type="hidden" name="case_id" value={appointment.case_id} />
+                <textarea name="note" className="min-h-20 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" placeholder="หมายเหตุการยืนยัน" />
+                <Button type="submit" className="h-11 w-full rounded-lg font-semibold">ยืนยันนัดหมาย</Button>
+              </form>
+            ) : null}
+
+            <form action={updateAppointmentMeetingUrl} className="space-y-3">
+              <input type="hidden" name="appointment_id" value={appointment.id} />
+              <input type="hidden" name="case_id" value={appointment.case_id} />
+              <input name="meeting_url" type="url" defaultValue={appointment.meeting_url ?? ""} className="h-11 w-full rounded-lg border border-[#D1D5DB] px-3 text-sm" placeholder="https://meet.google.com/..." />
+              <Button type="submit" variant="outline" className="h-11 w-full rounded-lg font-semibold">บันทึก Meeting URL</Button>
+            </form>
+
+            {appointment.status !== "completed" && appointment.status !== "cancelled" ? (
+              <form action={requestMediatorReschedule} className="space-y-3">
+                <input type="hidden" name="appointment_id" value={appointment.id} />
+                <input type="hidden" name="case_id" value={appointment.case_id} />
+                <textarea name="note" className="min-h-20 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" placeholder="เหตุผลที่ต้องการขอเลื่อนนัด" />
+                <Button type="submit" variant="outline" className="h-11 w-full rounded-lg font-semibold">ขอเลื่อนนัด</Button>
+              </form>
+            ) : null}
+
+            {appointment.status === "confirmed" ? (
+              <form action={markAppointmentOutcome} className="space-y-3">
+                <input type="hidden" name="appointment_id" value={appointment.id} />
+                <input type="hidden" name="case_id" value={appointment.case_id} />
+                <textarea name="note" className="min-h-20 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" placeholder="หมายเหตุผลการนัดหมาย" />
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button type="submit" name="status" value="completed" className="h-11 rounded-lg font-semibold">เสร็จสิ้น</Button>
+                  <Button type="submit" name="status" value="no_show" variant="outline" className="h-11 rounded-lg font-semibold">ไม่มาตามนัด</Button>
+                </div>
+              </form>
+            ) : null}
+          </div>
+        }
+      />
+
+      <Link href="/mediator" className="mt-6 inline-block text-sm font-semibold text-[#8A6500] hover:text-[#111827]">
+        กลับแดชบอร์ดผู้ไกล่เกลี่ย
+      </Link>
+    </PortalShell>
+  );
+}

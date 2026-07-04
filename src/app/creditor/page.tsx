@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { BadgeCheck, ClipboardList, FileCheck, FolderOpen, Landmark } from "lucide-react";
+import { AppointmentSummaryCard } from "@/components/appointments/appointment-summary-card";
 import { CreditorShell } from "@/components/creditor/creditor-shell";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth/server";
+import { getAppointmentsForCreditorOrganization, isUpcomingAppointment } from "@/lib/appointments";
 import {
   creditorOrganizationStatusLabels,
   getCreditorCases,
@@ -39,6 +41,9 @@ export default async function CreditorDashboardPage({
   const officer = await getCreditorOfficer(profile.id);
   const organization = await getCreditorOrganization(officer?.organization_id);
   const cases = await getCreditorCases(organization?.id);
+  const appointments = await getAppointmentsForCreditorOrganization(organization?.id);
+  const pendingAppointments = appointments.filter((item) => item.status === "pending_confirmation" && !item.confirmed_by_creditor_at);
+  const upcomingAppointments = appointments.filter(isUpcomingAppointment).slice(0, 3);
   const pending = cases.filter((item) => item.status === "creditor_review").length;
   const active = cases.filter((item) => ["creditor_accepted", "mediator_matching", "matched", "scheduled", "in_mediation"].includes(item.status)).length;
   const approvalQueue = cases.filter((item) => item.status === "settled").length;
@@ -71,6 +76,27 @@ export default async function CreditorDashboardPage({
             <Summary label="รออนุมัติ settlement" value={approvalQueue} icon={BadgeCheck} />
             <Summary label="เคสปิดแล้ว" value={closed} icon={FileCheck} />
           </section>
+
+          {pendingAppointments.length > 0 || upcomingAppointments.length > 0 ? (
+            <section className="mt-6 grid gap-4 xl:grid-cols-2">
+              <div className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
+                <h2 className="text-lg font-semibold">คิวรอยืนยันนัดหมาย</h2>
+                <div className="mt-4 space-y-3">
+                  {pendingAppointments.length === 0 ? <p className="text-sm text-[#6B7280]">ไม่มีนัดหมายรอยืนยัน</p> : pendingAppointments.map((appointment) => (
+                    <Link key={appointment.id} href={`/creditor/cases/${appointment.case_id}`} className="block rounded-lg bg-[#F8FAFC] p-3 hover:bg-[#FFF8D9]">
+                      <p className="font-medium">เคส {appointment.cases?.case_number ?? "-"}</p>
+                      <p className="mt-1 text-sm text-[#6B7280]">{appointment.appointment_date} {appointment.start_time.slice(0, 5)}</p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-4">
+                {upcomingAppointments.map((appointment) => (
+                  <AppointmentSummaryCard key={appointment.id} appointment={appointment} detailHref={`/creditor/cases/${appointment.case_id}`} />
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           <section className="mt-6 rounded-lg border border-black/5 bg-white shadow-sm">
             <div className="border-b border-black/5 px-5 py-4">

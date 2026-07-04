@@ -1,10 +1,12 @@
-import { acceptCreditorCase, rejectCreditorCase, requestCreditorMoreInfo, submitCreditorResponse } from "@/app/creditor/actions";
+import { acceptCreditorCase, confirmCreditorAppointment, rejectCreditorCase, requestCreditorAppointmentReschedule, requestCreditorMoreInfo, submitCreditorResponse } from "@/app/creditor/actions";
+import { AppointmentSummaryCard } from "@/components/appointments/appointment-summary-card";
 import { CreditorShell } from "@/components/creditor/creditor-shell";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { requireRole } from "@/lib/auth/server";
+import { getActiveAppointmentForCase } from "@/lib/appointments";
 import { caseStatusLabels } from "@/lib/cases";
 import { getCreditorCase, getCreditorOfficer, getCreditorOrganization, getCreditorResponses } from "@/lib/creditor";
 
@@ -33,6 +35,7 @@ export default async function CreditorCaseDetailPage({
 
   const item = await getCreditorCase(id, organization.id);
   const responses = await getCreditorResponses(id, organization.id);
+  const appointment = await getActiveAppointmentForCase(id);
 
   return (
     <CreditorShell profile={profile} activePath="/creditor" title={`เคส ${item.case_number}`} subtitle="ตรวจสอบคำขอไกล่เกลี่ยและส่งคำตอบกลับ">
@@ -101,6 +104,32 @@ export default async function CreditorCaseDetailPage({
               </form>
             </div>
           </section>
+
+          {appointment ? (
+            <AppointmentSummaryCard
+              appointment={appointment}
+              actions={
+                <div className="space-y-3">
+                  {!appointment.confirmed_by_creditor_at && appointment.status !== "cancelled" ? (
+                    <form action={confirmCreditorAppointment} className="space-y-3">
+                      <input type="hidden" name="appointment_id" value={appointment.id} />
+                      <input type="hidden" name="case_id" value={item.id} />
+                      <textarea name="note" className="min-h-20 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" placeholder="หมายเหตุการยืนยันนัดหมาย" />
+                      <Button type="submit" className="h-11 w-full rounded-lg font-semibold">ยืนยันนัดหมาย</Button>
+                    </form>
+                  ) : null}
+                  {appointment.status !== "completed" && appointment.status !== "cancelled" ? (
+                    <form action={requestCreditorAppointmentReschedule} className="space-y-3">
+                      <input type="hidden" name="appointment_id" value={appointment.id} />
+                      <input type="hidden" name="case_id" value={item.id} />
+                      <textarea name="note" className="min-h-20 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" placeholder="เหตุผลที่ต้องการขอเลื่อนนัด" />
+                      <Button type="submit" variant="outline" className="h-11 w-full rounded-lg font-semibold">ขอเลื่อนนัด</Button>
+                    </form>
+                  ) : null}
+                </div>
+              }
+            />
+          ) : null}
 
           <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
             <h2 className="font-semibold">เสนอเงื่อนไข settlement</h2>
