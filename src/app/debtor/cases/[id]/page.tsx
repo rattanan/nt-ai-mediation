@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth/server";
 import { getActiveAppointmentForCase } from "@/lib/appointments";
 import { caseStatusLabels, getCaseForDebtor, getCaseHistory, isEditableCase } from "@/lib/cases";
+import { getClosingForCase, resultStatusLabels } from "@/lib/closing";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ export default async function CaseDetailPage({
   const item = await getCaseForDebtor(id, profile.id);
   const history = await getCaseHistory(id);
   const appointment = await getActiveAppointmentForCase(id);
+  const closing = await getClosingForCase(id);
 
   return (
     <DebtorShell
@@ -101,6 +103,17 @@ export default async function CaseDetailPage({
                 detailHref={`/debtor/cases/${item.id}/appointments/${appointment.id}`}
               />
             </div>
+          ) : null}
+          {closing ? (
+            <section className="mt-6 rounded-lg border border-black/5 bg-[#F8FAFC] p-5">
+              <h2 className="font-semibold">เอกสารปิดเคส</h2>
+              <p className="mt-1 text-sm text-[#6B7280]">{resultStatusLabels[closing.result_status]}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {closing.settlement_documents?.map((doc) => (
+                  <Button key={doc.id} href={`/documents/settlements/${doc.id}`} variant="outline" className="rounded-lg">ดาวน์โหลดเอกสาร</Button>
+                ))}
+              </div>
+            </section>
           ) : null}
         </section>
 

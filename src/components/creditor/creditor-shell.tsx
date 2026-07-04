@@ -9,6 +9,7 @@ const navItems = [
   { href: "/creditor/organization", label: "องค์กรเจ้าหนี้", icon: BadgeCheck },
   { href: "#", label: "เคส", icon: FileText },
   { href: "#", label: "นัดหมาย", icon: CalendarClock },
+  { href: "/creditor/billing", label: "Billing", icon: FileText },
   { href: "#", label: "ตั้งค่า", icon: Settings },
 ];
 

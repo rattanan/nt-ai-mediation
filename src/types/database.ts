@@ -30,6 +30,10 @@ export type MeetingType = "online" | "onsite" | "hybrid";
 export type MeetingProvider = "manual_link" | "google_meet" | "zoom" | "other";
 export type AppointmentParticipantRole = "debtor" | "creditor_officer" | "mediator" | "admin";
 export type AppointmentParticipantStatus = "pending" | "confirmed" | "reschedule_requested" | "declined" | "no_show";
+export type MediationResultStatus = "settled" | "not_settled";
+export type PaymentFrequency = "monthly" | "biweekly" | "weekly" | "custom";
+export type SettlementDocumentType = "settlement_agreement" | "unsuccessful_closing_report";
+export type BillingInvoiceStatus = "draft" | "issued" | "sent" | "paid" | "overdue" | "cancelled";
 export type CaseStatus =
   | "draft"
   | "submitted"
@@ -956,6 +960,82 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["appointment_status_history"]["Insert"]>;
+        Relationships: [];
+      };
+      fee_settings: {
+        Row: {
+          id: string; platform_fee_percent: number; success_fee_percent: number; currency: string; vat_percent: number; invoice_prefix: string; payment_due_days: number;
+          bank_account_name: string | null; bank_account_number: string | null; bank_name: string | null; fee_policy_description: string | null; created_at: string; updated_at: string;
+        };
+        Insert: {
+          id?: string; platform_fee_percent?: number; success_fee_percent?: number; currency?: string; vat_percent?: number; invoice_prefix?: string; payment_due_days?: number;
+          bank_account_name?: string | null; bank_account_number?: string | null; bank_name?: string | null; fee_policy_description?: string | null; created_at?: string; updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["fee_settings"]["Insert"]>;
+        Relationships: [];
+      };
+      mediation_closing_records: {
+        Row: {
+          id: string; case_id: string; appointment_id: string | null; mediator_id: string; debtor_user_id: string; creditor_organization_id: string | null; result_status: MediationResultStatus;
+          original_debt_amount: number; settled_amount: number | null; settlement_summary: string | null; unsuccessful_reason: string | null; mediator_note: string | null;
+          closed_at: string; created_at: string; updated_at: string;
+        };
+        Insert: {
+          id?: string; case_id: string; appointment_id?: string | null; mediator_id: string; debtor_user_id: string; creditor_organization_id?: string | null; result_status: MediationResultStatus;
+          original_debt_amount: number; settled_amount?: number | null; settlement_summary?: string | null; unsuccessful_reason?: string | null; mediator_note?: string | null;
+          closed_at?: string; created_at?: string; updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mediation_closing_records"]["Insert"]>;
+        Relationships: [];
+      };
+      settlement_payment_plans: {
+        Row: {
+          id: string; closing_record_id: string; case_id: string; total_settlement_amount: number; down_payment_amount: number; installment_amount: number; number_of_installments: number;
+          first_payment_due_date: string | null; payment_frequency: PaymentFrequency; payment_method: string | null; special_terms: string | null; created_at: string; updated_at: string;
+        };
+        Insert: {
+          id?: string; closing_record_id: string; case_id: string; total_settlement_amount: number; down_payment_amount?: number; installment_amount?: number; number_of_installments?: number;
+          first_payment_due_date?: string | null; payment_frequency?: PaymentFrequency; payment_method?: string | null; special_terms?: string | null; created_at?: string; updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["settlement_payment_plans"]["Insert"]>;
+        Relationships: [];
+      };
+      settlement_documents: {
+        Row: {
+          id: string; closing_record_id: string; case_id: string; document_type: SettlementDocumentType; pdf_url: string | null; generated_at: string;
+          sent_to_debtor_at: string | null; sent_to_creditor_at: string | null; sent_to_mediator_at: string | null; created_at: string;
+        };
+        Insert: {
+          id?: string; closing_record_id: string; case_id: string; document_type: SettlementDocumentType; pdf_url?: string | null; generated_at?: string;
+          sent_to_debtor_at?: string | null; sent_to_creditor_at?: string | null; sent_to_mediator_at?: string | null; created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["settlement_documents"]["Insert"]>;
+        Relationships: [];
+      };
+      billing_invoices: {
+        Row: {
+          id: string; invoice_number: string; case_id: string; closing_record_id: string; creditor_organization_id: string | null; original_debt_amount: number; settled_amount: number | null;
+          platform_fee_percent: number; platform_fee_amount: number; success_fee_percent: number; success_fee_amount: number; vat_percent: number; vat_amount: number; total_amount: number;
+          status: BillingInvoiceStatus; issued_at: string; due_at: string | null; paid_at: string | null; pdf_url: string | null; created_at: string; updated_at: string;
+        };
+        Insert: {
+          id?: string; invoice_number: string; case_id: string; closing_record_id: string; creditor_organization_id?: string | null; original_debt_amount?: number; settled_amount?: number | null;
+          platform_fee_percent?: number; platform_fee_amount?: number; success_fee_percent?: number; success_fee_amount?: number; vat_percent?: number; vat_amount?: number; total_amount?: number;
+          status?: BillingInvoiceStatus; issued_at?: string; due_at?: string | null; paid_at?: string | null; pdf_url?: string | null; created_at?: string; updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["billing_invoices"]["Insert"]>;
+        Relationships: [];
+      };
+      billing_invoice_items: {
+        Row: { id: string; invoice_id: string; item_name: string; description: string | null; calculation_base_amount: number; fee_percent: number; amount: number; created_at: string; };
+        Insert: { id?: string; invoice_id: string; item_name: string; description?: string | null; calculation_base_amount?: number; fee_percent?: number; amount?: number; created_at?: string; };
+        Update: Partial<Database["public"]["Tables"]["billing_invoice_items"]["Insert"]>;
+        Relationships: [];
+      };
+      email_logs: {
+        Row: { id: string; case_id: string | null; recipient_email: string | null; recipient_role: string; subject: string; template_name: string; status: string; error_message: string | null; sent_at: string | null; created_at: string; };
+        Insert: { id?: string; case_id?: string | null; recipient_email?: string | null; recipient_role: string; subject: string; template_name: string; status?: string; error_message?: string | null; sent_at?: string | null; created_at?: string; };
+        Update: Partial<Database["public"]["Tables"]["email_logs"]["Insert"]>;
         Relationships: [];
       };
       mediation_sessions: {

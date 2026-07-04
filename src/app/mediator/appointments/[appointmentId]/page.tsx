@@ -79,6 +79,11 @@ export default async function MediatorAppointmentDetailPage({
                 </div>
               </form>
             ) : null}
+            {appointment.status === "completed" ? (
+              <Button href={`/mediator/closing/${appointment.case_id}?appointment=${appointment.id}`} className="h-11 rounded-lg font-semibold">
+                ปิดเคสและสร้างเอกสาร
+              </Button>
+            ) : null}
           </div>
         }
       />

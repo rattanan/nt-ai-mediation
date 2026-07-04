@@ -21,6 +21,7 @@ const navItems = [
   { href: "/admin/mediators", label: "Mediators", icon: Gavel },
   { href: "/admin/cases", label: "Cases", icon: FileText },
   { href: "/admin/appointments", label: "Appointments", icon: CalendarClock },
+  { href: "/admin/billing", label: "Billing", icon: FileText },
   { href: "/admin/reports", label: "Reports", icon: BarChart3 },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];

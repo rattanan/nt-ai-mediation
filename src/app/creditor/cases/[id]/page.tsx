@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { requireRole } from "@/lib/auth/server";
 import { getActiveAppointmentForCase } from "@/lib/appointments";
 import { caseStatusLabels } from "@/lib/cases";
+import { getClosingForCase, resultStatusLabels } from "@/lib/closing";
 import { getCreditorCase, getCreditorOfficer, getCreditorOrganization, getCreditorResponses } from "@/lib/creditor";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,7 @@ export default async function CreditorCaseDetailPage({
   const item = await getCreditorCase(id, organization.id);
   const responses = await getCreditorResponses(id, organization.id);
   const appointment = await getActiveAppointmentForCase(id);
+  const closing = await getClosingForCase(id);
 
   return (
     <CreditorShell profile={profile} activePath="/creditor" title={`เคส ${item.case_number}`} subtitle="ตรวจสอบคำขอไกล่เกลี่ยและส่งคำตอบกลับ">
@@ -129,6 +131,21 @@ export default async function CreditorCaseDetailPage({
                 </div>
               }
             />
+          ) : null}
+
+          {closing ? (
+            <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
+              <h2 className="font-semibold">เอกสารปิดเคส</h2>
+              <p className="mt-1 text-sm text-[#6B7280]">{resultStatusLabels[closing.result_status]}</p>
+              <div className="mt-4 grid gap-2">
+                {closing.settlement_documents?.map((doc) => (
+                  <Button key={doc.id} href={`/documents/settlements/${doc.id}`} variant="outline" className="h-11 rounded-lg">ดาวน์โหลดเอกสาร</Button>
+                ))}
+                {closing.billing_invoices?.map((invoice) => (
+                  <Button key={invoice.id} href={`/documents/invoices/${invoice.id}`} className="h-11 rounded-lg">ดาวน์โหลดใบแจ้งหนี้</Button>
+                ))}
+              </div>
+            </section>
           ) : null}
 
           <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
