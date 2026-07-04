@@ -34,6 +34,20 @@ export default async function CaseDetailPage({
     >
       {success ? <Alert variant="success" className="mb-5">{success}</Alert> : null}
       {error ? <Alert variant="destructive" className="mb-5">{error}</Alert> : null}
+      {success && isEditableCase(item.status) ? (
+        <section className="mb-5 rounded-lg border border-[#F5B800]/40 bg-[#FFF8D9] p-5 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="font-semibold text-[#111827]">บันทึกใบคำขอสำเร็จ</h2>
+              <p className="mt-1 text-sm text-[#6B4F00]">หากตรวจสอบข้อมูลเรียบร้อยแล้ว สามารถส่งคำขอเข้าสู่การตรวจสอบได้ทันที</p>
+            </div>
+            <form action={submitCase}>
+              <input type="hidden" name="case_id" value={item.id} />
+              <Button type="submit" className="h-11 rounded-lg font-semibold">ส่งคำขอเข้าสู่การตรวจ</Button>
+            </form>
+          </div>
+        </section>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_24rem]">
         <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
@@ -50,7 +64,7 @@ export default async function CaseDetailPage({
               {isEditableCase(item.status) ? (
                 <form action={submitCase}>
                   <input type="hidden" name="case_id" value={item.id} />
-                  <Button type="submit" className="rounded-lg font-semibold">ส่งคำขอตรวจสอบ</Button>
+                  <Button type="submit" className="rounded-lg font-semibold">ส่งคำขอเข้าสู่การตรวจ</Button>
                 </form>
               ) : null}
               {["creditor_accepted", "mediator_matching", "matched"].includes(item.status) ? (
