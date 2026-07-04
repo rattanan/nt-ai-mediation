@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { CheckCircle2, ClipboardList, Clock3, FilePlus2, FolderOpen } from "lucide-react";
+import { AppointmentSummaryCard } from "@/components/appointments/appointment-summary-card";
 import { DebtorShell } from "@/components/debtor/debtor-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth/server";
+import { getAppointmentsForDebtor, isUpcomingAppointment } from "@/lib/appointments";
 import { caseStatusLabels, getDebtorCases, isActiveCase } from "@/lib/cases";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +27,8 @@ function SummaryCard({ label, value, icon: Icon }: { label: string; value: numbe
 export default async function DebtorDashboardPage() {
   const profile = await requireRole("debtor");
   const cases = await getDebtorCases(profile.id);
+  const appointments = await getAppointmentsForDebtor(profile.id);
+  const upcomingAppointment = appointments.find(isUpcomingAppointment);
   const submittedCount = cases.filter((item) => item.status === "submitted" || item.status === "reviewing").length;
   const activeCount = cases.filter((item) => isActiveCase(item.status)).length;
   const closedCount = cases.filter((item) => item.status === "closed" || item.status === "settled" || item.status === "not_settled").length;
@@ -42,6 +46,15 @@ export default async function DebtorDashboardPage() {
         <SummaryCard label="เคสที่กำลังดำเนินการ" value={activeCount} icon={FolderOpen} />
         <SummaryCard label="เคสที่ปิดแล้ว" value={closedCount} icon={CheckCircle2} />
       </section>
+
+      {upcomingAppointment ? (
+        <div className="mt-6">
+          <AppointmentSummaryCard
+            appointment={upcomingAppointment}
+            detailHref={`/debtor/cases/${upcomingAppointment.case_id}/appointments/${upcomingAppointment.id}`}
+          />
+        </div>
+      ) : null}
 
       <section className="mt-6 rounded-lg border border-black/5 bg-white shadow-sm">
         <div className="flex flex-col gap-3 border-b border-black/5 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">

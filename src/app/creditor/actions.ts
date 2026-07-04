@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { notifyAppointmentConfirmed, notifyRescheduleRequested } from "@/lib/appointment-notifications";
+import { confirmAppointmentIfReady, recordAppointmentHistory } from "@/lib/appointments";
 import { requireRole } from "@/lib/auth/server";
 import { getCreditorOfficer } from "@/lib/creditor";
 import { createClient } from "@/lib/supabase/server";
@@ -175,4 +177,100 @@ export async function rejectCreditorCase(formData: FormData) {
 
 export async function requestCreditorMoreInfo(formData: FormData) {
   await updateCreditorCase(formData, "needs_more_info", "needs_more_info", "เจ้าหนี้ขอข้อมูลเพิ่มเติม");
+}
+
+export async function confirmCreditorAppointment(formData: FormData) {
+  const profile = await requireRole("creditor");
+  const officer = await getCreditorOfficer(profile.id);
+  const appointmentId = String(formData.get("appointment_id") ?? "");
+  const caseId = String(formData.get("case_id") ?? "");
+  const note = String(formData.get("note") ?? "").trim();
+
+  if (!officer?.organization_id || !appointmentId || !caseId) {
+    redirectWithError("/creditor", "ไม่พบนัดหมายที่ต้องการยืนยัน");
+  }
+
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+  const { data: appointment } = await supabase
+    .from("mediation_appointments")
+    .select("*")
+    .eq("id", appointmentId)
+    .eq("creditor_organization_id", officer.organization_id)
+    .maybeSingle();
+
+  if (!appointment) {
+    redirectWithError(`/creditor/cases/${caseId}`, "ไม่พบนัดหมายขององค์กรนี้");
+  }
+
+  const { error } = await supabase
+    .from("mediation_appointments")
+    .update({
+      confirmed_by_creditor_at: now,
+      creditor_officer_user_id: profile.id,
+      status: appointment.status === "requested" ? "pending_confirmation" : appointment.status,
+    })
+    .eq("id", appointmentId);
+
+  if (error) {
+    redirectWithError(`/creditor/cases/${caseId}`, "ยืนยันนัดหมายไม่สำเร็จ");
+  }
+
+  await supabase
+    .from("appointment_participants")
+    .update({ status: "confirmed", confirmed_at: now, note: note || null, profile_id: profile.id })
+    .eq("appointment_id", appointmentId)
+    .eq("role", "creditor_officer");
+
+  await recordAppointmentHistory(appointmentId, appointment.status, "pending_confirmation", profile.id, note || "เจ้าหนี้ยืนยันนัดหมาย");
+  const confirmed = await confirmAppointmentIfReady(appointmentId, profile.id);
+
+  if (confirmed?.status === "confirmed") {
+    await notifyAppointmentConfirmed({ appointmentId, caseId, status: "confirmed" });
+  }
+
+  redirect(`/creditor/cases/${caseId}?success=${encodeURIComponent("ยืนยันนัดหมายแล้ว")}`);
+}
+
+export async function requestCreditorAppointmentReschedule(formData: FormData) {
+  const profile = await requireRole("creditor");
+  const officer = await getCreditorOfficer(profile.id);
+  const appointmentId = String(formData.get("appointment_id") ?? "");
+  const caseId = String(formData.get("case_id") ?? "");
+  const note = String(formData.get("note") ?? "").trim() || "เจ้าหนี้ขอเลื่อนนัดหมาย";
+
+  if (!officer?.organization_id || !appointmentId || !caseId) {
+    redirectWithError("/creditor", "ไม่พบนัดหมายที่ต้องการขอเลื่อน");
+  }
+
+  const supabase = await createClient();
+  const { data: appointment } = await supabase
+    .from("mediation_appointments")
+    .select("*")
+    .eq("id", appointmentId)
+    .eq("creditor_organization_id", officer.organization_id)
+    .maybeSingle();
+
+  if (!appointment) {
+    redirectWithError(`/creditor/cases/${caseId}`, "ไม่พบนัดหมายขององค์กรนี้");
+  }
+
+  const { error } = await supabase
+    .from("mediation_appointments")
+    .update({ status: "reschedule_requested", cancellation_reason: note })
+    .eq("id", appointmentId);
+
+  if (error) {
+    redirectWithError(`/creditor/cases/${caseId}`, "ขอเลื่อนนัดหมายไม่สำเร็จ");
+  }
+
+  await supabase
+    .from("appointment_participants")
+    .update({ status: "reschedule_requested", note, profile_id: profile.id })
+    .eq("appointment_id", appointmentId)
+    .eq("role", "creditor_officer");
+
+  await recordAppointmentHistory(appointmentId, appointment.status, "reschedule_requested", profile.id, note);
+  await notifyRescheduleRequested({ appointmentId, caseId, status: "reschedule_requested" });
+  redirect(`/creditor/cases/${caseId}?success=${encodeURIComponent("ส่งคำขอเลื่อนนัดหมายแล้ว")}`);
 }

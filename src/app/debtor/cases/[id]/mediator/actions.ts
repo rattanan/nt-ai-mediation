@@ -44,5 +44,5 @@ export async function selectMediatorForCase(caseId: string, formData: FormData) 
     note: `ลูกหนี้เลือกผู้ไกล่เกลี่ย ${mediator.first_name} ${mediator.last_name}`,
   });
 
-  redirect(`/debtor/cases/${caseId}?success=${encodeURIComponent("เลือกผู้ไกล่เกลี่ยแล้ว")}`);
+  redirect(`/debtor/cases/${caseId}/appointments/new?success=${encodeURIComponent("เลือกผู้ไกล่เกลี่ยแล้ว กรุณาเลือกเวลานัดหมาย")}`);
 }

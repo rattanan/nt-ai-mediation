@@ -18,6 +18,18 @@ export type MediatorProfileStatus =
   | "approved"
   | "rejected"
   | "suspended";
+export type AppointmentStatus =
+  | "requested"
+  | "pending_confirmation"
+  | "confirmed"
+  | "reschedule_requested"
+  | "completed"
+  | "cancelled"
+  | "no_show";
+export type MeetingType = "online" | "onsite" | "hybrid";
+export type MeetingProvider = "manual_link" | "google_meet" | "zoom" | "other";
+export type AppointmentParticipantRole = "debtor" | "creditor_officer" | "mediator" | "admin";
+export type AppointmentParticipantStatus = "pending" | "confirmed" | "reschedule_requested" | "declined" | "no_show";
 export type CaseStatus =
   | "draft"
   | "submitted"
@@ -761,6 +773,44 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["mediator_availability"]["Insert"]>;
         Relationships: [];
       };
+      mediator_availability_slots: {
+        Row: {
+          id: string;
+          mediator_profile_id: string;
+          slot_date: string | null;
+          day_of_week: number | null;
+          start_time: string;
+          end_time: string;
+          timezone: string;
+          meeting_type: MeetingType;
+          is_recurring: boolean;
+          active: boolean;
+          max_cases_per_day: number;
+          max_cases_per_month: number;
+          note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          mediator_profile_id: string;
+          slot_date?: string | null;
+          day_of_week?: number | null;
+          start_time: string;
+          end_time: string;
+          timezone?: string;
+          meeting_type?: MeetingType;
+          is_recurring?: boolean;
+          active?: boolean;
+          max_cases_per_day?: number;
+          max_cases_per_month?: number;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mediator_availability_slots"]["Insert"]>;
+        Relationships: [];
+      };
       mediator_documents: {
         Row: {
           id: string;
@@ -803,6 +853,106 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["mediator_review_logs"]["Insert"]>;
+        Relationships: [];
+      };
+      mediation_appointments: {
+        Row: {
+          id: string;
+          case_id: string;
+          mediator_id: string;
+          debtor_user_id: string;
+          creditor_organization_id: string | null;
+          creditor_officer_user_id: string | null;
+          appointment_date: string;
+          start_time: string;
+          end_time: string;
+          timezone: string;
+          meeting_type: MeetingType;
+          meeting_url: string | null;
+          meeting_provider: MeetingProvider;
+          status: AppointmentStatus;
+          requested_by: string | null;
+          confirmed_by_mediator_at: string | null;
+          confirmed_by_creditor_at: string | null;
+          confirmed_by_debtor_at: string | null;
+          cancellation_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          case_id: string;
+          mediator_id: string;
+          debtor_user_id: string;
+          creditor_organization_id?: string | null;
+          creditor_officer_user_id?: string | null;
+          appointment_date: string;
+          start_time: string;
+          end_time: string;
+          timezone?: string;
+          meeting_type?: MeetingType;
+          meeting_url?: string | null;
+          meeting_provider?: MeetingProvider;
+          status?: AppointmentStatus;
+          requested_by?: string | null;
+          confirmed_by_mediator_at?: string | null;
+          confirmed_by_creditor_at?: string | null;
+          confirmed_by_debtor_at?: string | null;
+          cancellation_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mediation_appointments"]["Insert"]>;
+        Relationships: [];
+      };
+      appointment_participants: {
+        Row: {
+          id: string;
+          appointment_id: string;
+          profile_id: string | null;
+          organization_id: string | null;
+          role: AppointmentParticipantRole;
+          status: AppointmentParticipantStatus;
+          note: string | null;
+          confirmed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          appointment_id: string;
+          profile_id?: string | null;
+          organization_id?: string | null;
+          role: AppointmentParticipantRole;
+          status?: AppointmentParticipantStatus;
+          note?: string | null;
+          confirmed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["appointment_participants"]["Insert"]>;
+        Relationships: [];
+      };
+      appointment_status_history: {
+        Row: {
+          id: string;
+          appointment_id: string;
+          from_status: AppointmentStatus | null;
+          to_status: AppointmentStatus;
+          changed_by: string | null;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          appointment_id: string;
+          from_status?: AppointmentStatus | null;
+          to_status: AppointmentStatus;
+          changed_by?: string | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["appointment_status_history"]["Insert"]>;
         Relationships: [];
       };
       mediation_sessions: {

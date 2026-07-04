@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { submitCase } from "@/app/debtor/cases/actions";
+import { AppointmentSummaryCard } from "@/components/appointments/appointment-summary-card";
 import { DebtorShell } from "@/components/debtor/debtor-shell";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth/server";
+import { getActiveAppointmentForCase } from "@/lib/appointments";
 import { caseStatusLabels, getCaseForDebtor, getCaseHistory, isEditableCase } from "@/lib/cases";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +23,7 @@ export default async function CaseDetailPage({
   const { success, error } = await searchParams;
   const item = await getCaseForDebtor(id, profile.id);
   const history = await getCaseHistory(id);
+  const appointment = await getActiveAppointmentForCase(id);
 
   return (
     <DebtorShell
@@ -53,6 +56,9 @@ export default async function CaseDetailPage({
               {["creditor_accepted", "mediator_matching", "matched"].includes(item.status) ? (
                 <Button href={`/debtor/cases/${item.id}/mediator`} className="rounded-lg font-semibold">เลือกผู้ไกล่เกลี่ย</Button>
               ) : null}
+              {item.status === "mediator_selected" && !appointment ? (
+                <Button href={`/debtor/cases/${item.id}/appointments/new`} className="rounded-lg font-semibold">เลือกเวลานัดหมาย</Button>
+              ) : null}
             </div>
           </div>
 
@@ -73,6 +79,15 @@ export default async function CaseDetailPage({
               <p className="mt-2 whitespace-pre-line rounded-lg bg-[#F8FAFC] p-4 text-sm leading-6 text-[#374151]">{item.desired_solution}</p>
             </div>
           </div>
+
+          {appointment ? (
+            <div className="mt-6">
+              <AppointmentSummaryCard
+                appointment={appointment}
+                detailHref={`/debtor/cases/${item.id}/appointments/${appointment.id}`}
+              />
+            </div>
+          ) : null}
         </section>
 
         <aside className="space-y-4">
