@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { submitCase } from "@/app/debtor/cases/actions";
 import { AppointmentSummaryCard } from "@/components/appointments/appointment-summary-card";
+import { CaseProgressTracker } from "@/components/cases/case-progress-tracker";
 import { DebtorShell } from "@/components/debtor/debtor-shell";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +51,10 @@ export default async function CaseDetailPage({
           </div>
         </section>
       ) : null}
+
+      <div className="mb-6">
+        <CaseProgressTracker caseItem={item} history={history} appointment={appointment} closing={closing} />
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_24rem]">
         <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
@@ -119,19 +124,11 @@ export default async function CaseDetailPage({
 
         <aside className="space-y-4">
           <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
-            <h2 className="font-semibold">ประวัติสถานะ</h2>
-            <div className="mt-4 space-y-3">
-              {history.length === 0 ? (
-                <p className="text-sm text-[#6B7280]">ยังไม่มีประวัติสถานะ</p>
-              ) : (
-                history.map((entry) => (
-                  <div key={entry.id} className="rounded-lg bg-[#F8FAFC] p-3">
-                    <p className="text-sm font-medium">{caseStatusLabels[entry.to_status]}</p>
-                    <p className="mt-1 text-xs text-[#6B7280]">{new Date(entry.created_at).toLocaleString("th-TH")}</p>
-                    {entry.note ? <p className="mt-2 text-sm text-[#4B5563]">{entry.note}</p> : null}
-                  </div>
-                ))
-              )}
+            <h2 className="font-semibold">สถานะปัจจุบัน</h2>
+            <p className="mt-2 text-sm text-[#6B7280]">ติดตามรายละเอียดลำดับงานได้จาก Case Progress ด้านบน</p>
+            <div className="mt-4 rounded-lg bg-[#F8FAFC] p-3">
+              <p className="text-sm text-[#6B7280]">อัปเดตล่าสุด</p>
+              <p className="mt-1 font-semibold">{new Date(item.updated_at).toLocaleString("th-TH")}</p>
             </div>
           </section>
           <Link href="/debtor" className="block text-center text-sm font-semibold text-[#8A6500] hover:text-[#111827]">
