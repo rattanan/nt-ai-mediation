@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import type React from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -12,6 +11,7 @@ import {
   Settings,
 } from "lucide-react";
 import { logout } from "@/app/auth/actions";
+import { NtLogoMark } from "@/components/nt-logo-mark";
 
 type MetricCard = {
   label: string;
@@ -59,9 +59,7 @@ export function PortalShell({
         <aside className="hidden w-72 shrink-0 border-r border-black/5 bg-white lg:flex lg:flex-col">
           <div className="border-b border-black/5 px-6 py-5">
             <Link href="/" className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FFD200]">
-                <Image src="/images/nt-logo.png" alt="NT" width={34} height={34} className="h-8 w-8 object-contain" />
-              </div>
+              <NtLogoMark />
               <div>
                 <p className="text-xs font-semibold uppercase text-[#F5B800]">NT AI</p>
                 <p className="text-sm font-semibold">Mediation Platform</p>

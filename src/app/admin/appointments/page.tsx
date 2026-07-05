@@ -3,6 +3,7 @@ import { AppointmentStatusBadge } from "@/components/appointments/appointment-st
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { getPage, paginateItems, Pagination } from "@/components/ui/pagination";
 import { requireRole } from "@/lib/auth/server";
 import { formatAppointmentDateTime, getAdminAppointments } from "@/lib/appointments";
 import type { AppointmentStatus } from "@/types/database";
@@ -12,16 +13,18 @@ export const dynamic = "force-dynamic";
 export default async function AdminAppointmentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ success?: string; error?: string; status?: AppointmentStatus; date?: string; mediator?: string; creditor?: string }>;
+  searchParams: Promise<{ success?: string; error?: string; status?: AppointmentStatus; date?: string; mediator?: string; creditor?: string; page?: string }>;
 }) {
   const profile = await requireRole("admin");
-  const { success, error, status, date, mediator, creditor } = await searchParams;
+  const { success, error, status, date, mediator, creditor, page: pageParam } = await searchParams;
   const appointments = await getAdminAppointments({
     status,
     date,
     mediatorId: mediator,
     creditorOrganizationId: creditor,
   });
+  const pageSize = 10;
+  const { page, pageItems: pagedAppointments } = paginateItems(appointments, getPage(pageParam), pageSize);
 
   return (
     <AdminShell
@@ -71,7 +74,7 @@ export default async function AdminAppointmentsPage({
             <tbody>
               {appointments.length === 0 ? (
                 <tr><td colSpan={6} className="px-5 py-12 text-center text-[#6B7280]">ยังไม่มีนัดหมาย</td></tr>
-              ) : appointments.map((appointment) => (
+              ) : pagedAppointments.map((appointment) => (
                 <tr key={appointment.id} className="border-t border-black/5 align-top">
                   <td className="px-5 py-4 font-medium">{appointment.cases?.case_number ?? "-"}</td>
                   <td className="px-5 py-4">{formatAppointmentDateTime(appointment)}</td>
@@ -102,6 +105,13 @@ export default async function AdminAppointmentsPage({
             </tbody>
           </table>
         </div>
+        <Pagination
+          basePath="/admin/appointments"
+          params={{ status, date, mediator, creditor, page }}
+          page={page}
+          pageSize={pageSize}
+          total={appointments.length}
+        />
       </section>
     </AdminShell>
   );

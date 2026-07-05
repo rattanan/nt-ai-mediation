@@ -106,7 +106,7 @@ export default async function AdminReportsPage({
           { label: "Trust Score Report", value: data.tables.topMediators.length },
           { label: "Debtor Satisfaction", value: data.tables.topMediators[0]?.rating.toFixed(1) ?? "0.0" },
           { label: "Review Approval Queue", value: data.tables.pendingReviewCount },
-          { label: "Complaint Report", value: "TODO" },
+          { label: "Complaint Report", value: data.tables.reviews.filter((item) => item.rating <= 2).length },
           { label: "Success Rate", value: `${data.kpis.successRate}%` },
         ]} />
       </section>

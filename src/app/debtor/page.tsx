@@ -4,6 +4,7 @@ import { AppointmentSummaryCard } from "@/components/appointments/appointment-su
 import { DebtorShell } from "@/components/debtor/debtor-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Pagination, getPage, paginateItems } from "@/components/ui/pagination";
 import { requireRole } from "@/lib/auth/server";
 import { getAppointmentsForDebtor, isUpcomingAppointment } from "@/lib/appointments";
 import { caseStatusLabels, getDebtorCases, isActiveCase } from "@/lib/cases";
@@ -24,14 +25,21 @@ function SummaryCard({ label, value, icon: Icon }: { label: string; value: numbe
   );
 }
 
-export default async function DebtorDashboardPage() {
+export default async function DebtorDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const profile = await requireRole("debtor");
-  const cases = await getDebtorCases(profile.id);
+  const { page: pageParam } = await searchParams;
+  const pageSize = 5;
+  const allCases = await getDebtorCases(profile.id);
+  const { page, pageItems: pagedCases, total } = paginateItems(allCases, getPage(pageParam), pageSize);
   const appointments = await getAppointmentsForDebtor(profile.id);
   const upcomingAppointment = appointments.find(isUpcomingAppointment);
-  const submittedCount = cases.filter((item) => item.status === "submitted" || item.status === "reviewing").length;
-  const activeCount = cases.filter((item) => isActiveCase(item.status)).length;
-  const closedCount = cases.filter((item) => item.status === "closed" || item.status === "settled" || item.status === "not_settled").length;
+  const submittedCount = allCases.filter((item) => item.status === "submitted" || item.status === "reviewing").length;
+  const activeCount = allCases.filter((item) => isActiveCase(item.status)).length;
+  const closedCount = allCases.filter((item) => item.status === "closed" || item.status === "settled" || item.status === "not_settled").length;
 
   return (
     <DebtorShell
@@ -41,7 +49,7 @@ export default async function DebtorDashboardPage() {
       subtitle="ติดตามคำขอไกล่เกลี่ยและสถานะการดำเนินการของคุณ"
     >
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard label="คำขอทั้งหมด" value={cases.length} icon={ClipboardList} />
+        <SummaryCard label="คำขอทั้งหมด" value={allCases.length} icon={ClipboardList} />
         <SummaryCard label="ส่งตรวจสอบแล้ว" value={submittedCount} icon={Clock3} />
         <SummaryCard label="เคสที่กำลังดำเนินการ" value={activeCount} icon={FolderOpen} />
         <SummaryCard label="เคสที่ปิดแล้ว" value={closedCount} icon={CheckCircle2} />
@@ -81,7 +89,7 @@ export default async function DebtorDashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {cases.length === 0 ? (
+              {pagedCases.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-14 text-center">
                     <p className="font-semibold">ยังไม่มีคำขอไกล่เกลี่ย</p>
@@ -89,7 +97,7 @@ export default async function DebtorDashboardPage() {
                   </td>
                 </tr>
               ) : (
-                cases.map((item) => (
+                pagedCases.map((item) => (
                   <tr key={item.id} className="border-t border-black/5">
                     <td className="px-5 py-4 font-medium">{item.case_number}</td>
                     <td className="px-5 py-4">{item.creditor_name}</td>
@@ -107,6 +115,7 @@ export default async function DebtorDashboardPage() {
             </tbody>
           </table>
         </div>
+        <Pagination basePath="/debtor" params={{}} page={page} pageSize={pageSize} total={total} />
       </section>
     </DebtorShell>
   );

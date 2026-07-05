@@ -5,6 +5,7 @@ import { CreditorShell } from "@/components/creditor/creditor-shell";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Pagination, getPage, paginateItems } from "@/components/ui/pagination";
 import { requireRole } from "@/lib/auth/server";
 import { getAppointmentsForCreditorOrganization, isUpcomingAppointment } from "@/lib/appointments";
 import {
@@ -35,15 +36,17 @@ function Summary({ label, value, icon: Icon }: { label: string; value: number | 
 export default async function CreditorDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ success?: string; error?: string }>;
+  searchParams: Promise<{ success?: string; error?: string; page?: string }>;
 }) {
   const profile = await requireRole("creditor");
-  const { success, error } = await searchParams;
+  const { success, error, page: pageParam } = await searchParams;
   const officer = await getCreditorOfficer(profile.id);
   const organization = await getCreditorOrganization(officer?.organization_id);
   const cases = await getCreditorCases(organization?.id);
   const appointments = await getAppointmentsForCreditorOrganization(organization?.id);
   const invoices = await listCreditorInvoices(organization?.id);
+  const pageSize = 5;
+  const { page, pageItems: pagedCases, total } = paginateItems(cases, getPage(pageParam), pageSize);
   const pendingAppointments = appointments.filter((item) => item.status === "pending_confirmation" && !item.confirmed_by_creditor_at);
   const upcomingAppointments = appointments.filter(isUpcomingAppointment).slice(0, 3);
   const pending = cases.filter((item) => item.status === "creditor_review").length;
@@ -126,9 +129,9 @@ export default async function CreditorDashboardPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {cases.length === 0 ? (
+                  {pagedCases.length === 0 ? (
                     <tr><td colSpan={5} className="px-5 py-12 text-center text-[#6B7280]">ยังไม่มีเคสที่เชื่อมกับองค์กรนี้</td></tr>
-                  ) : cases.map((item) => (
+                  ) : pagedCases.map((item) => (
                     <tr key={item.id} className="border-t border-black/5">
                       <td className="px-5 py-4 font-medium">{item.case_number}</td>
                       <td className="px-5 py-4">{item.creditor_name}</td>
@@ -142,6 +145,7 @@ export default async function CreditorDashboardPage({
                 </tbody>
               </table>
             </div>
+            <Pagination basePath="/creditor" params={{}} page={page} pageSize={pageSize} total={total} />
           </section>
         </>
       )}

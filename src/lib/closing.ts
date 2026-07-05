@@ -178,14 +178,26 @@ export async function getInvoice(invoiceId: string) {
   return data as unknown as InvoiceWithDetails;
 }
 
-export async function listAdminInvoices(filters?: { status?: BillingInvoiceStatus; creditor?: string; date?: string }) {
+export async function listAdminInvoices(filters?: { status?: BillingInvoiceStatus; creditor?: string; date?: string; page?: number; pageSize?: number }) {
   const supabase = await createClient();
-  let query = supabase.from("billing_invoices").select("*, cases(*), creditor_organizations(*), billing_invoice_items(*)").order("issued_at", { ascending: false });
+  const page = Math.max(1, filters?.page ?? 1);
+  const pageSize = Math.max(1, filters?.pageSize ?? 10);
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  let query = supabase
+    .from("billing_invoices")
+    .select("*, cases(*), creditor_organizations(*), billing_invoice_items(*)", { count: "exact" })
+    .order("issued_at", { ascending: false })
+    .range(from, to);
   if (filters?.status) query = query.eq("status", filters.status);
   if (filters?.creditor) query = query.eq("creditor_organization_id", filters.creditor);
   if (filters?.date) query = query.gte("issued_at", `${filters.date}T00:00:00`).lt("issued_at", `${filters.date}T23:59:59`);
-  const { data } = await query;
-  return (data ?? []) as unknown as InvoiceWithDetails[];
+  const { data, count, error } = await query;
+  return {
+    invoices: (data ?? []) as unknown as InvoiceWithDetails[],
+    total: count ?? 0,
+    error: error?.message ?? null,
+  };
 }
 
 export async function listCreditorInvoices(organizationId?: string | null) {

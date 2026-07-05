@@ -10,8 +10,35 @@ import { createClient } from "@/lib/supabase/server";
 import { recalculateMediatorTrustScore } from "@/lib/trust-score";
 import type { AppointmentStatus, MeetingType } from "@/types/database";
 
+const MEDIATOR_PROFILE_IMAGES_BUCKET = "mediator-profile-images";
+
 function go(path: string, message: string, kind: "success" | "error" = "success"): never {
   redirect(`${path}?${kind}=${encodeURIComponent(message)}`);
+}
+
+async function uploadMediatorProfileImage(file: FormDataEntryValue | null, userId: string) {
+  if (!(file instanceof File) || file.size === 0) return null;
+
+  if (!file.type.startsWith("image/")) {
+    throw new Error("กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น");
+  }
+
+  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${userId}/profile-${Date.now()}.${extension}`;
+  const supabase = await createClient();
+  const { error } = await supabase.storage.from(MEDIATOR_PROFILE_IMAGES_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    upsert: true,
+    contentType: file.type,
+  });
+
+  if (error) {
+    console.error("Mediator profile image upload failed", error);
+    throw new Error("อัปโหลดรูปโปรไฟล์ไม่สำเร็จ");
+  }
+
+  const { data } = supabase.storage.from(MEDIATOR_PROFILE_IMAGES_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
 }
 
 async function saveProfile(formData: FormData, submit: boolean): Promise<FormState> {
@@ -30,11 +57,19 @@ async function saveProfile(formData: FormData, submit: boolean): Promise<FormSta
   const supabase = await createClient();
   const current = await getMediatorProfileByUser(profile.id);
   const nextStatus = submit ? "submitted" : current?.status === "approved" ? "submitted" : "draft";
+  let uploadedProfilePhotoUrl: string | null = null;
+
+  try {
+    uploadedProfilePhotoUrl = await uploadMediatorProfileImage(formData.get("profile_photo_file"), profile.id);
+  } catch (error) {
+    return formError(formData, error instanceof Error ? error.message : "อัปโหลดรูปโปรไฟล์ไม่สำเร็จ");
+  }
 
   const { data, error } = await supabase
     .from("mediator_profiles")
     .upsert({
       ...payload,
+      profile_photo_url: uploadedProfilePhotoUrl ?? payload.profile_photo_url ?? current?.profile_photo_url ?? null,
       status: nextStatus,
       admin_review_note: submit ? null : current?.admin_review_note ?? null,
     })

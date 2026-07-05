@@ -6,6 +6,7 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getPage, Pagination } from "@/components/ui/pagination";
 import { requireAdmin } from "@/lib/admin/auth";
 import {
   accountStatusOptions,
@@ -26,14 +27,18 @@ export default async function AdminUsersPage({
     q?: string;
     role?: string;
     userId?: string;
+    page?: string;
     success?: string;
     error?: string;
   }>;
 }) {
   const profile = await requireAdmin();
   const params = await searchParams;
-  const { users, error } = await listAdminUsers({ query: params.q, role: params.role });
+  const page = getPage(params.page);
+  const pageSize = 10;
+  const { users, total, error } = await listAdminUsers({ query: params.q, role: params.role, page, pageSize });
   const selectedUser = await getAdminUser(params.userId ?? users[0]?.id);
+  const tableParams = { q: params.q, role: params.role, page };
 
   return (
     <AdminShell
@@ -118,7 +123,11 @@ export default async function AdminUsersPage({
                         </td>
                         <td className="px-3 py-4 text-right">
                           <Link
-                            href={`/admin/users?userId=${user.id}`}
+                            href={`/admin/users?${new URLSearchParams(
+                              Object.entries({ ...tableParams, userId: user.id })
+                                .filter(([, value]) => value !== undefined && value !== null && value !== "")
+                                .map(([key, value]) => [key, String(value)]),
+                            ).toString()}`}
                             className="font-semibold text-[#8A6500] hover:text-[#111827]"
                           >
                             รายละเอียด
@@ -130,6 +139,7 @@ export default async function AdminUsersPage({
                 </tbody>
               </table>
             </div>
+            <Pagination basePath="/admin/users" params={tableParams} page={page} pageSize={pageSize} total={total} />
           </div>
         </section>
 

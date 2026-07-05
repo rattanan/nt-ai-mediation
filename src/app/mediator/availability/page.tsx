@@ -2,6 +2,7 @@ import { Clock } from "lucide-react";
 import { createAvailabilitySlot, disableAvailabilitySlot, updateAvailabilitySlot } from "@/app/mediator/actions";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Pagination, getPage, paginateItems } from "@/components/ui/pagination";
 import { PortalShell } from "@/components/portal-shell";
 import { getMediatorAvailabilitySlots, meetingTypeLabels } from "@/lib/appointments";
 import { requireRole } from "@/lib/auth/server";
@@ -13,14 +14,16 @@ export const dynamic = "force-dynamic";
 export default async function MediatorAvailabilityPage({
   searchParams,
 }: {
-  searchParams: Promise<{ success?: string; error?: string }>;
+  searchParams: Promise<{ success?: string; error?: string; page?: string }>;
 }) {
   const authProfile = await requireRole("mediator");
-  const { success, error } = await searchParams;
+  const { success, error, page: pageParam } = await searchParams;
   const mediatorProfile = await getMediatorProfileByUser(authProfile.id);
   const availabilitySlots = mediatorProfile ? await getMediatorAvailabilitySlots(mediatorProfile.id) : [];
   const activeSlots = availabilitySlots.filter((slot) => slot.active).length;
   const recurringSlots = availabilitySlots.filter((slot) => slot.is_recurring).length;
+  const pageSize = 6;
+  const { page, pageItems: pagedSlots, total } = paginateItems(availabilitySlots, getPage(pageParam), pageSize);
 
   return (
     <PortalShell
@@ -90,7 +93,7 @@ export default async function MediatorAvailabilityPage({
       <section className="mt-6 rounded-lg border border-black/5 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold">รายการเวลาว่าง</h2>
         <div className="mt-5 grid gap-3 lg:grid-cols-2">
-          {availabilitySlots.length === 0 ? <p className="text-sm text-[#6B7280]">ยังไม่มีเวลาว่าง</p> : availabilitySlots.map((slot) => (
+          {pagedSlots.length === 0 ? <p className="text-sm text-[#6B7280]">ยังไม่มีเวลาว่าง</p> : pagedSlots.map((slot) => (
             <form key={slot.id} action={updateAvailabilitySlot} className="rounded-lg bg-[#F8FAFC] p-3">
               <input type="hidden" name="slot_id" value={slot.id} />
               <div className="grid gap-2 sm:grid-cols-2">
@@ -114,6 +117,7 @@ export default async function MediatorAvailabilityPage({
             </form>
           ))}
         </div>
+        <Pagination basePath="/mediator/availability" params={{}} page={page} pageSize={pageSize} total={total} />
       </section>
     </PortalShell>
   );

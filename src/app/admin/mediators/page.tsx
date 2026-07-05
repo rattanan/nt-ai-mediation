@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { approveMediator, approveMediatorReview, recalculateAllTrustScores, rejectMediator, rejectMediatorReview, requestMediatorRevision, suspendMediator } from "@/app/admin/mediators/actions";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getPage, paginateItems, Pagination } from "@/components/ui/pagination";
 import { requireAdmin } from "@/lib/admin/auth";
 import { listPendingMediatorReviews } from "@/lib/mediator-reviews";
 import { getMediatorAvailability, getMediatorDocuments, getMediatorReviewLogs, getSubmittedMediatorProfiles, jsonList, mediatorStatusLabels } from "@/lib/mediators";
@@ -12,11 +14,13 @@ export const dynamic = "force-dynamic";
 export default async function AdminMediatorReviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ profileId?: string; success?: string; error?: string }>;
+  searchParams: Promise<{ profileId?: string; page?: string; success?: string; error?: string }>;
 }) {
   const admin = await requireAdmin();
-  const { profileId, success, error } = await searchParams;
+  const { profileId, page: pageParam, success, error } = await searchParams;
   const profiles = await getSubmittedMediatorProfiles();
+  const pageSize = 10;
+  const { page, pageItems: pagedProfiles } = paginateItems(profiles, getPage(pageParam), pageSize);
   const selected = profiles.find((profile) => profile.id === profileId) ?? profiles[0] ?? null;
   const availability = selected ? await getMediatorAvailability(selected.id) : null;
   const docs = selected ? await getMediatorDocuments(selected.id) : [];
@@ -67,14 +71,15 @@ export default async function AdminMediatorReviewPage({
             <p className="mt-1 text-sm text-[#6B7280]">{profiles.length.toLocaleString("th-TH")} รายการ</p>
           </div>
           <div className="divide-y divide-black/5">
-            {profiles.length === 0 ? <p className="px-5 py-10 text-center text-sm text-[#6B7280]">ยังไม่มีโปรไฟล์รอตรวจสอบ</p> : profiles.map((profile) => (
-              <a key={profile.id} href={`/admin/mediators?profileId=${profile.id}`} className={`block px-5 py-4 hover:bg-[#FFFBEA] ${selected?.id === profile.id ? "bg-[#FFF8D9]" : ""}`}>
+            {profiles.length === 0 ? <p className="px-5 py-10 text-center text-sm text-[#6B7280]">ยังไม่มีโปรไฟล์รอตรวจสอบ</p> : pagedProfiles.map((profile) => (
+              <Link key={profile.id} href={`/admin/mediators?${new URLSearchParams({ profileId: profile.id, ...(page > 1 ? { page: String(page) } : {}) }).toString()}`} className={`block px-5 py-4 hover:bg-[#FFFBEA] ${selected?.id === profile.id ? "bg-[#FFF8D9]" : ""}`}>
                 <p className="font-semibold">{profile.title ?? ""} {profile.first_name} {profile.last_name}</p>
                 <p className="mt-1 text-sm text-[#6B7280]">{profile.province || "ไม่ระบุจังหวัด"} · {profile.mediation_experience_years} ปี</p>
                 <Badge className="mt-2">{mediatorStatusLabels[profile.status]}</Badge>
-              </a>
+              </Link>
             ))}
           </div>
+          <Pagination basePath="/admin/mediators" params={{ profileId, page }} page={page} pageSize={pageSize} total={profiles.length} />
         </section>
 
         {selected ? (

@@ -91,8 +91,26 @@ export function MediatorProfileForm({
       </Section>
 
       <Section step="7" title="รูปโปรไฟล์และเอกสาร">
-        <Field name="profile_photo_url" label="URL รูปโปรไฟล์" value={value("profile_photo_url", profile?.profile_photo_url)} />
-        <p className="text-sm text-[#6B7280]">เอกสารสำคัญ เช่น สำเนาบัตรประชาชน ใบรับรอง และเอกสารการศึกษา ให้ใส่เป็นลิงก์ในขั้นตอนที่ 3 ก่อน ระบบจะรองรับ Supabase Storage ในรอบถัดไป</p>
+        <div className="grid gap-4 md:grid-cols-[8rem_1fr] md:items-center">
+          <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-lg bg-[#F3F4F6] text-sm font-semibold text-[#6B7280]">
+            {profile?.profile_photo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.profile_photo_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span>ไม่มีรูป</span>
+            )}
+          </div>
+          <div className="space-y-4">
+            <label className="block">
+              <span className="text-sm font-medium">อัปโหลดรูปโปรไฟล์</span>
+              <input name="profile_photo_file" type="file" accept="image/*" className="mt-2 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" />
+            </label>
+            <p className="text-xs leading-5 text-[#6B7280]">
+              หากอัปโหลดรูปใหม่ ระบบจะบันทึกเป็นรูปโปรไฟล์หลักให้ทันที ไม่ต้องกรอก URL เพิ่ม
+            </p>
+          </div>
+        </div>
+        <p className="text-sm text-[#6B7280]">เอกสารสำคัญ เช่น สำเนาบัตรประชาชน ใบรับรอง และเอกสารการศึกษา ให้ใส่เป็นลิงก์ในขั้นตอนที่ 3</p>
       </Section>
 
       <section className="rounded-lg border border-black/5 bg-[#111827] p-5 text-white shadow-sm">

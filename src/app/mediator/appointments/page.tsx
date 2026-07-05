@@ -4,6 +4,7 @@ import { AppointmentSummaryCard } from "@/components/appointments/appointment-su
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Pagination, getPage, paginateItems } from "@/components/ui/pagination";
 import { PortalShell } from "@/components/portal-shell";
 import { getAppointmentsForMediator, isUpcomingAppointment } from "@/lib/appointments";
 import { requireRole } from "@/lib/auth/server";
@@ -15,10 +16,10 @@ export const dynamic = "force-dynamic";
 export default async function MediatorAppointmentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ success?: string; error?: string }>;
+  searchParams: Promise<{ success?: string; error?: string; page?: string }>;
 }) {
   const authProfile = await requireRole("mediator");
-  const { success, error } = await searchParams;
+  const { success, error, page: pageParam } = await searchParams;
   const mediatorProfile = await getMediatorProfileByUser(authProfile.id);
 
   if (!mediatorProfile || mediatorProfile.status !== "approved") {
@@ -42,6 +43,8 @@ export default async function MediatorAppointmentsPage({
   const assignedCases = await getAssignedMediatorCases(mediatorProfile.id);
   const pendingAppointments = appointments.filter((appointment) => appointment.status === "pending_confirmation" && !appointment.confirmed_by_mediator_at);
   const upcomingAppointments = appointments.filter(isUpcomingAppointment);
+  const pageSize = 8;
+  const { page, pageItems: pagedAssignedCases, total } = paginateItems(assignedCases, getPage(pageParam), pageSize);
 
   return (
     <PortalShell
@@ -97,11 +100,11 @@ export default async function MediatorAppointmentsPage({
                 </tr>
               </thead>
               <tbody>
-                {assignedCases.length === 0 ? (
+                {pagedAssignedCases.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-3 py-10 text-center text-[#6B7280]">ยังไม่มีเคสที่ได้รับมอบหมาย</td>
                   </tr>
-                ) : assignedCases.map((caseItem) => (
+                ) : pagedAssignedCases.map((caseItem) => (
                   <tr key={caseItem.id} className="border-b border-black/5 last:border-0">
                     <td className="px-3 py-3 font-medium">{caseItem.case_number}</td>
                     <td className="px-3 py-3 text-[#6B7280]">{caseItem.creditor_name}</td>
@@ -112,6 +115,7 @@ export default async function MediatorAppointmentsPage({
               </tbody>
             </table>
           </div>
+          <Pagination basePath="/mediator/appointments" params={{}} page={page} pageSize={pageSize} total={total} />
         </section>
       </section>
     </PortalShell>

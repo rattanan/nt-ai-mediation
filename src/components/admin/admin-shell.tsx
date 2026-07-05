@@ -1,8 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import type { ReactNode } from "react";
 import {
-  BarChart3,
   Building2,
   CalendarClock,
   FileText,
@@ -13,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { logout } from "@/app/auth/actions";
+import { NtLogoMark } from "@/components/nt-logo-mark";
 import type { AuthProfile } from "@/lib/auth/server";
 
 const navItems = [
@@ -23,7 +22,6 @@ const navItems = [
   { href: "/admin/cases", label: "Cases", icon: FileText },
   { href: "/admin/appointments", label: "Appointments", icon: CalendarClock },
   { href: "/admin/billing", label: "Billing", icon: FileText },
-  { href: "/admin/reports", label: "Reports", icon: BarChart3 },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
@@ -46,9 +44,7 @@ export function AdminShell({
         <aside className="hidden w-72 shrink-0 border-r border-black/5 bg-white lg:flex lg:flex-col">
           <div className="border-b border-black/5 px-6 py-5">
             <Link href="/admin/dashboard" className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FFD200] font-bold">
-                <Image src="/images/nt-logo.png" alt="NT" width={34} height={34} className="h-8 w-8 object-contain" />
-              </div>
+              <NtLogoMark />
               <div>
                 <p className="text-xs font-semibold uppercase text-[#A87900]">Admin Console</p>
                 <p className="text-sm font-semibold">AI Mediation Platform</p>

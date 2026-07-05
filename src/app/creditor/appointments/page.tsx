@@ -3,17 +3,25 @@ import { AppointmentSummaryCard } from "@/components/appointments/appointment-su
 import { CreditorShell } from "@/components/creditor/creditor-shell";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Pagination, getPage, paginateItems } from "@/components/ui/pagination";
 import { requireRole } from "@/lib/auth/server";
 import { appointmentStatusLabels, getAppointmentsForCreditorOrganization, isUpcomingAppointment } from "@/lib/appointments";
 import { getCreditorOfficer, getCreditorOrganization } from "@/lib/creditor";
 
 export const dynamic = "force-dynamic";
 
-export default async function CreditorAppointmentsPage() {
+export default async function CreditorAppointmentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const profile = await requireRole("creditor");
+  const { page: pageParam } = await searchParams;
   const officer = await getCreditorOfficer(profile.id);
   const organization = await getCreditorOrganization(officer?.organization_id);
   const appointments = await getAppointmentsForCreditorOrganization(organization?.id);
+  const pageSize = 8;
+  const { page, pageItems: pagedAppointments, total } = paginateItems(appointments, getPage(pageParam), pageSize);
   const pending = appointments.filter((item) => item.status === "pending_confirmation" && !item.confirmed_by_creditor_at);
   const upcoming = appointments.filter(isUpcomingAppointment);
 
@@ -50,9 +58,9 @@ export default async function CreditorAppointmentsPage() {
               <tr><th className="px-5 py-3">เลขเคส</th><th className="px-5 py-3">วันเวลา</th><th className="px-5 py-3">ผู้ไกล่เกลี่ย</th><th className="px-5 py-3">สถานะ</th><th className="px-5 py-3">ลิงก์ประชุม</th></tr>
             </thead>
             <tbody>
-              {appointments.length === 0 ? (
+              {pagedAppointments.length === 0 ? (
                 <tr><td colSpan={5} className="px-5 py-12 text-center text-[#6B7280]">ยังไม่มีข้อมูลนัดหมาย</td></tr>
-              ) : appointments.map((appointment) => (
+              ) : pagedAppointments.map((appointment) => (
                 <tr key={appointment.id} className="border-t border-black/5">
                   <td className="px-5 py-4 font-medium">{appointment.cases?.case_number ?? "-"}</td>
                   <td className="px-5 py-4">{appointment.appointment_date} {appointment.start_time.slice(0, 5)}-{appointment.end_time.slice(0, 5)}</td>
@@ -64,6 +72,7 @@ export default async function CreditorAppointmentsPage() {
             </tbody>
           </table>
         </div>
+        <Pagination basePath="/creditor/appointments" params={{}} page={page} pageSize={pageSize} total={total} />
       </section>
     </CreditorShell>
   );

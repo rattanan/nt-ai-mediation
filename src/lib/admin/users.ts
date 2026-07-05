@@ -23,18 +23,22 @@ export const accountStatusOptions: Array<{ value: AccountStatus; label: string }
 export async function listAdminUsers({
   query,
   role,
-  limit = 50,
+  page = 1,
+  pageSize = 10,
 }: {
   query?: string;
   role?: string;
-  limit?: number;
+  page?: number;
+  pageSize?: number;
 }) {
   const supabase = await createClient();
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
   let request = supabase
     .from("profiles")
-    .select("*")
+    .select("*", { count: "exact" })
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .range(from, to);
 
   if (role && adminRoleOptions.some((option) => option.value === role)) {
     request = request.eq("role", role as AppRole);
@@ -47,13 +51,13 @@ export async function listAdminUsers({
     );
   }
 
-  const { data, error } = await request;
+  const { data, error, count } = await request;
 
   if (error) {
-    return { users: [] as AdminUserProfile[], error: error.message };
+    return { users: [] as AdminUserProfile[], total: 0, error: error.message };
   }
 
-  return { users: data ?? [], error: null };
+  return { users: data ?? [], total: count ?? 0, error: null };
 }
 
 export async function getAdminUser(userId?: string) {

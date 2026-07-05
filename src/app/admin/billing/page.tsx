@@ -3,20 +3,24 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getPage, Pagination } from "@/components/ui/pagination";
 import { requireRole } from "@/lib/auth/server";
 import { invoiceStatusLabels, listAdminInvoices, money } from "@/lib/closing";
 import type { BillingInvoiceStatus } from "@/types/database";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminBillingPage({ searchParams }: { searchParams: Promise<{ success?: string; error?: string; status?: BillingInvoiceStatus; creditor?: string; date?: string }> }) {
+export default async function AdminBillingPage({ searchParams }: { searchParams: Promise<{ success?: string; error?: string; status?: BillingInvoiceStatus; creditor?: string; date?: string; page?: string }> }) {
   const profile = await requireRole("admin");
-  const { success, error, status, creditor, date } = await searchParams;
-  const invoices = await listAdminInvoices({ status, creditor, date });
+  const { success, error, status, creditor, date, page: pageParam } = await searchParams;
+  const page = getPage(pageParam);
+  const pageSize = 10;
+  const { invoices, total, error: invoiceError } = await listAdminInvoices({ status, creditor, date, page, pageSize });
   return (
     <AdminShell profile={profile} activePath="/admin/billing" title="Billing" subtitle="จัดการใบแจ้งหนี้ค่าบริการแพลตฟอร์ม">
       {success ? <Alert variant="success" className="mb-5">{success}</Alert> : null}
       {error ? <Alert variant="destructive" className="mb-5">{error}</Alert> : null}
+      {invoiceError ? <Alert variant="destructive" className="mb-5">โหลดใบแจ้งหนี้ไม่สำเร็จ: {invoiceError}</Alert> : null}
       <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
         <form className="grid gap-3 md:grid-cols-4">
           <select name="status" defaultValue={status ?? ""} className="h-11 rounded-lg border border-[#D1D5DB] px-3 text-sm">
@@ -57,6 +61,7 @@ export default async function AdminBillingPage({ searchParams }: { searchParams:
             </tbody>
           </table>
         </div>
+        <Pagination basePath="/admin/billing" params={{ status, creditor, date, page }} page={page} pageSize={pageSize} total={total} />
       </section>
     </AdminShell>
   );

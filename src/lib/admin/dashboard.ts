@@ -195,6 +195,7 @@ export async function getAdminDashboardData(filters: DashboardFilters = {}) {
     },
     tables: {
       recentCases: cases.slice(0, 10),
+      allCases: cases,
       slaCases: cases.filter((item) => statusGroups.active.includes(item.status) && daysOpen(item) >= 14).sort((a, b) => daysOpen(b) - daysOpen(a)).slice(0, 10),
       highRiskCases: cases.filter((item) => item.debt_amount >= 500000 || item.overdue_months >= 12).slice(0, 10),
       topMediators,
@@ -202,8 +203,149 @@ export async function getAdminDashboardData(filters: DashboardFilters = {}) {
       pendingReviewCount: reviews.filter((item) => item.status === "pending").length,
       appointments,
       invoices,
+      closings,
+      mediators,
+      creditors,
+      profiles,
+      reviews,
+      trustScores,
     },
     roleCounts,
+  };
+}
+
+export async function getOverviewDashboardData(filters: DashboardFilters = {}) {
+  return getAdminDashboardData(filters);
+}
+
+export async function getCaseDashboardData(filters: DashboardFilters = {}) {
+  const data = await getAdminDashboardData(filters);
+  const cases = data.tables.allCases;
+  return {
+    ...data,
+    cases,
+    waitingForMediator: cases.filter((item) => ["mediator_matching", "matched"].includes(item.status)),
+    waitingForAppointment: cases.filter((item) => item.status === "appointment_scheduling"),
+    waitingForSettlement: cases.filter((item) => item.status === "settlement_draft"),
+  };
+}
+
+export async function getFinancialDashboardData(filters: DashboardFilters = {}) {
+  const data = await getAdminDashboardData(filters);
+  const invoices = data.tables.invoices;
+  return {
+    ...data,
+    unpaidInvoices: invoices.filter((item) => item.status !== "paid" && item.status !== "cancelled"),
+    outstandingInvoiceAmount: moneySum(invoices.filter((item) => item.status !== "paid" && item.status !== "cancelled"), (item) => item.total_amount),
+  };
+}
+
+export async function getMediatorDashboardData(filters: DashboardFilters = {}) {
+  const data = await getAdminDashboardData(filters);
+  const mediators = data.tables.mediators;
+  const trustScores = data.tables.trustScores;
+  const approved = mediators.filter((item) => item.status === "approved");
+  const scoreByMediator = new Map(trustScores.map((item) => [item.mediator_id, item]));
+  const mediatorRows = mediators.map((mediator) => {
+    const score = scoreByMediator.get(mediator.id);
+    const cases = data.tables.allCases.filter((item) => item.selected_mediator_profile_id === mediator.id);
+    return {
+      id: mediator.id,
+      name: `${mediator.title ?? ""} ${mediator.first_name} ${mediator.last_name}`.trim(),
+      province: mediator.province ?? "-",
+      status: mediator.status,
+      cases: cases.length,
+      activeCases: cases.filter((item) => statusGroups.active.includes(item.status)).length,
+      successRate: cases.length ? Math.round((cases.filter((item) => statusGroups.successful.includes(item.status)).length / cases.length) * 100) : 0,
+      score: score?.overall_score ?? 0,
+      rating: score?.average_rating ?? 0,
+      completedCases: score?.completed_cases ?? 0,
+    };
+  });
+
+  return {
+    ...data,
+    approvedMediators: approved,
+    availableMediators: approved.filter((item) => item.online_mediation_available || item.onsite_mediation_available),
+    activeMediators: mediatorRows.filter((item) => item.activeCases > 0),
+    averageTrustScore: trustScores.length ? Math.round(moneySum(trustScores, (item) => item.overall_score) / trustScores.length) : 0,
+    averageRating: trustScores.length ? moneySum(trustScores, (item) => item.average_rating) / trustScores.length : 0,
+    mediatorRows,
+  };
+}
+
+export async function getCreditorDashboardData(filters: DashboardFilters = {}) {
+  const data = await getAdminDashboardData(filters);
+  const creditorRows = data.tables.creditors.map((creditor) => {
+    const cases = data.tables.allCases.filter((item) => item.creditor_organization_id === creditor.id);
+    const settled = data.tables.closings.filter((item) => item.creditor_organization_id === creditor.id);
+    const revenue = data.tables.invoices.filter((item) => item.creditor_organization_id === creditor.id);
+    const totalDebt = moneySum(cases, (item) => item.debt_amount);
+    const settledAmount = moneySum(settled, (item) => item.settled_amount);
+    return {
+      id: creditor.id,
+      name: creditor.organization_name,
+      status: creditor.status,
+      type: creditor.organization_type,
+      cases: cases.length,
+      failedCases: cases.filter((item) => statusGroups.failed.includes(item.status)).length,
+      debt: totalDebt,
+      settled: settledAmount,
+      recoveryRate: totalDebt ? Math.round((settledAmount / totalDebt) * 100) : 0,
+      revenue: moneySum(revenue, (item) => item.total_amount),
+    };
+  });
+  return { ...data, creditorRows };
+}
+
+export async function getDebtorDashboardData(filters: DashboardFilters = {}) {
+  const data = await getAdminDashboardData(filters);
+  const debtors = data.tables.profiles.filter((item) => item.role === "debtor");
+  const month = new Date().toISOString().slice(0, 7);
+  const debtorIdsWithCases = new Set(data.tables.allCases.map((item) => item.debtor_user_id));
+  const settlementDebtorIds = new Set(data.tables.allCases.filter((item) => statusGroups.successful.includes(item.status)).map((item) => item.debtor_user_id));
+  return {
+    ...data,
+    debtors,
+    newDebtorsThisMonth: debtors.filter((item) => item.created_at.slice(0, 7) === month),
+    debtorsWithActiveCases: debtors.filter((item) => debtorIdsWithCases.has(item.id)),
+    debtorsWithSettlementPlans: debtors.filter((item) => settlementDebtorIds.has(item.id)),
+  };
+}
+
+export async function getSlaRiskDashboardData(filters: DashboardFilters = {}) {
+  const data = await getAdminDashboardData(filters);
+  const activeCases = data.tables.allCases.filter((item) => statusGroups.active.includes(item.status));
+  const overdueCases = activeCases.filter((item) => daysOpen(item) >= 30);
+  const nearBreachCases = activeCases.filter((item) => daysOpen(item) >= 14 && daysOpen(item) < 30);
+  const highRiskCases = data.tables.highRiskCases;
+  return {
+    ...data,
+    nearBreachCases,
+    overdueCases,
+    highRiskCases,
+    averageCaseAge: activeCases.length ? Math.round(activeCases.reduce((sum, item) => sum + daysOpen(item), 0) / activeCases.length) : 0,
+    priorityDistribution: [
+      { label: "Critical", value: highRiskCases.filter((item) => item.debt_amount >= 1000000 || item.overdue_months >= 18).length },
+      { label: "High", value: highRiskCases.length },
+      { label: "Normal", value: Math.max(0, activeCases.length - highRiskCases.length) },
+    ],
+  };
+}
+
+export async function getReviewsTrustScoreDashboardData(filters: DashboardFilters = {}) {
+  const data = await getAdminDashboardData(filters);
+  const reviews = data.tables.reviews;
+  const approvedReviews = reviews.filter((item) => item.status === "approved");
+  const pendingReviews = reviews.filter((item) => item.status === "pending");
+  const complaintReviews = reviews.filter((item) => item.rating <= 2);
+  return {
+    ...data,
+    approvedReviews,
+    pendingReviews,
+    complaintReviews,
+    averageRating: reviews.length ? moneySum(reviews, (item) => item.rating) / reviews.length : 0,
+    averageTrustScore: data.tables.trustScores.length ? Math.round(moneySum(data.tables.trustScores, (item) => item.overall_score) / data.tables.trustScores.length) : 0,
   };
 }
 

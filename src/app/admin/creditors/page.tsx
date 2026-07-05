@@ -6,6 +6,7 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getPage, paginateItems, Pagination } from "@/components/ui/pagination";
 import { requireAdmin } from "@/lib/admin/auth";
 import { creditorOrganizationStatusLabels, listCreditorOfficers, listCreditorOrganizations } from "@/lib/creditor";
 import type { CreditorOrganizationStatus } from "@/types/database";
@@ -22,11 +23,13 @@ const statusActions: Array<{ status: CreditorOrganizationStatus; label: string }
 export default async function AdminCreditorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ orgId?: string; success?: string; error?: string }>;
+  searchParams: Promise<{ orgId?: string; page?: string; success?: string; error?: string }>;
 }) {
   const profile = await requireAdmin();
-  const { orgId, success, error } = await searchParams;
+  const { orgId, page: pageParam, success, error } = await searchParams;
   const organizations = await listCreditorOrganizations();
+  const pageSize = 10;
+  const { page, pageItems: pagedOrganizations } = paginateItems(organizations, getPage(pageParam), pageSize);
   const selectedOrganization = organizations.find((org) => org.id === orgId) ?? organizations[0] ?? null;
   const officers = selectedOrganization ? await listCreditorOfficers(selectedOrganization.id) : [];
 
@@ -66,11 +69,11 @@ export default async function AdminCreditorsPage({
             {organizations.length === 0 ? (
               <div className="px-5 py-10 text-center text-sm text-[#6B7280]">ยังไม่มีองค์กรเจ้าหนี้</div>
             ) : (
-              organizations.map((organization) => (
+              pagedOrganizations.map((organization) => (
                 <article key={organization.id} className="grid gap-4 px-5 py-4 lg:grid-cols-[1fr_auto] lg:items-center">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Link href={`/admin/creditors?orgId=${organization.id}`} className="font-semibold hover:underline">
+                      <Link href={`/admin/creditors?${new URLSearchParams({ orgId: organization.id, ...(page > 1 ? { page: String(page) } : {}) }).toString()}`} className="font-semibold hover:underline">
                         {organization.organization_name}
                       </Link>
                       <Badge>{creditorOrganizationStatusLabels[organization.status]}</Badge>
@@ -103,6 +106,7 @@ export default async function AdminCreditorsPage({
               ))
             )}
           </div>
+          <Pagination basePath="/admin/creditors" params={{ orgId, page }} page={page} pageSize={pageSize} total={organizations.length} />
         </section>
 
         <aside className="space-y-5">

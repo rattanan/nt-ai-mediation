@@ -1,17 +1,25 @@
 import { CreditorShell } from "@/components/creditor/creditor-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Pagination, getPage, paginateItems } from "@/components/ui/pagination";
 import { requireRole } from "@/lib/auth/server";
 import { invoiceStatusLabels, listCreditorInvoices, money } from "@/lib/closing";
 import { getCreditorOfficer, getCreditorOrganization } from "@/lib/creditor";
 
 export const dynamic = "force-dynamic";
 
-export default async function CreditorBillingPage() {
+export default async function CreditorBillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const profile = await requireRole("creditor");
+  const { page: pageParam } = await searchParams;
   const officer = await getCreditorOfficer(profile.id);
   const organization = await getCreditorOrganization(officer?.organization_id);
   const invoices = await listCreditorInvoices(organization?.id);
+  const pageSize = 8;
+  const { page, pageItems: pagedInvoices, total } = paginateItems(invoices, getPage(pageParam), pageSize);
 
   return (
     <CreditorShell profile={profile} activePath="/creditor/billing" title="Billing" subtitle="ดูใบแจ้งหนี้ค่าบริการแพลตฟอร์มขององค์กร">
@@ -23,7 +31,7 @@ export default async function CreditorBillingPage() {
           <table className="min-w-full text-left text-sm">
             <thead className="bg-[#F8FAFC] text-xs font-semibold uppercase text-[#6B7280]"><tr><th className="px-5 py-3">เลขที่</th><th className="px-5 py-3">เคส</th><th className="px-5 py-3">ยอดรวม</th><th className="px-5 py-3">ครบกำหนด</th><th className="px-5 py-3">สถานะ</th><th className="px-5 py-3" /></tr></thead>
             <tbody>
-              {invoices.length === 0 ? <tr><td colSpan={6} className="px-5 py-12 text-center text-[#6B7280]">ยังไม่มีใบแจ้งหนี้</td></tr> : invoices.map((invoice) => (
+              {pagedInvoices.length === 0 ? <tr><td colSpan={6} className="px-5 py-12 text-center text-[#6B7280]">ยังไม่มีใบแจ้งหนี้</td></tr> : pagedInvoices.map((invoice) => (
                 <tr key={invoice.id} className="border-t border-black/5">
                   <td className="px-5 py-4 font-medium">{invoice.invoice_number}</td>
                   <td className="px-5 py-4">{invoice.cases?.case_number ?? "-"}</td>
@@ -36,6 +44,7 @@ export default async function CreditorBillingPage() {
             </tbody>
           </table>
         </div>
+        <Pagination basePath="/creditor/billing" params={{}} page={page} pageSize={pageSize} total={total} />
       </section>
     </CreditorShell>
   );

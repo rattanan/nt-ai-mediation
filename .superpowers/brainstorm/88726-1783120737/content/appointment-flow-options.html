@@ -1,0 +1,88 @@
+<h2>Appointment Scheduling Flow Options</h2>
+<p class="subtitle">เลือกแนวทางแรกสำหรับ NT AI Mediation: เน้นทำให้ใช้งานได้ครบ end-to-end โดยยัง future-ready สำหรับ Zoom/Google Meet API</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">A: Case-Centric Booking</div>
+        <div class="mockup-body">
+          <div class="mock-nav">เคส → เลือกผู้ไกล่เกลี่ย → เลือกเวลานัดหมาย → รายละเอียดนัด</div>
+          <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:12px;margin-top:12px">
+            <div class="mock-content">
+              <div class="label">Slot Picker</div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px">
+                <button class="mock-button">จ. 09:00</button>
+                <button class="mock-button">จ. 13:00</button>
+                <button class="mock-button">อ. 10:00</button>
+                <button class="mock-button">พ. 14:00</button>
+                <button class="mock-button">พฤ. 11:00</button>
+                <button class="mock-button">ศ. 15:00</button>
+              </div>
+            </div>
+            <div class="mock-sidebar">
+              <div class="label">Appointment</div>
+              <p>สถานะ: รอยืนยัน</p>
+              <p>ผู้ไกล่เกลี่ย: สมชาย</p>
+              <p>เจ้าหนี้: ธนาคาร</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Case-Centric Booking</h3>
+      <p>ให้ debtor จองเวลาจากหน้าเคสหลังเลือก mediator แล้วทุก actor ไปดู/ยืนยันจาก appointment detail เดียวกัน</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">B: Mediator Calendar First</div>
+        <div class="mockup-body">
+          <div class="mock-nav">Mediator Calendar เป็นศูนย์กลาง</div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px">
+            <div class="placeholder">Mon<br>3 slots</div>
+            <div class="placeholder">Tue<br>2 slots</div>
+            <div class="placeholder">Wed<br>4 slots</div>
+            <div class="placeholder">Thu<br>0</div>
+            <div class="placeholder">Fri<br>3 slots</div>
+            <div class="placeholder">Sat<br>1</div>
+            <div class="placeholder">Sun<br>0</div>
+          </div>
+          <div class="mock-content" style="margin-top:12px">Debtor enters from mediator public availability calendar</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Mediator Calendar First</h3>
+      <p>สร้างระบบ calendar เต็มก่อน แล้ว case booking เป็น consumer ของ calendar</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">C: Admin-Orchestrated Scheduling</div>
+        <div class="mockup-body">
+          <div class="mock-nav">Admin Queue</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+            <div class="mock-content">คำขอนัดหมาย 12 รายการ</div>
+            <div class="mock-sidebar">Admin เลือก mediator + เวลา + ส่งยืนยัน</div>
+          </div>
+          <button class="mock-button" style="margin-top:12px">Force Schedule</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Admin-Orchestrated</h3>
+      <p>ให้ admin เป็นผู้จัดนัดหมายหลัก แล้ว actor อื่นแค่ confirm/reschedule</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Recommendation</h3>
+  <p>ผมแนะนำ A: Case-Centric Booking เพราะเข้ากับ flow เดิมที่สุด: debtor เลือก mediator อยู่แล้ว จากนั้นเลือก slot และทุกคนเห็น appointment detail เดียวกัน ส่วน mediator calendar/recurring availability ยังทำครบได้โดยเป็น backend ของ slot picker</p>
+</div>

@@ -2,17 +2,25 @@ import Link from "next/link";
 import { CreditorShell } from "@/components/creditor/creditor-shell";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Pagination, getPage, paginateItems } from "@/components/ui/pagination";
 import { requireRole } from "@/lib/auth/server";
 import { caseStatusLabels } from "@/lib/cases";
 import { getCreditorCases, getCreditorOfficer, getCreditorOrganization } from "@/lib/creditor";
 
 export const dynamic = "force-dynamic";
 
-export default async function CreditorCasesPage() {
+export default async function CreditorCasesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const profile = await requireRole("creditor");
+  const { page: pageParam } = await searchParams;
   const officer = await getCreditorOfficer(profile.id);
   const organization = await getCreditorOrganization(officer?.organization_id);
   const cases = await getCreditorCases(organization?.id);
+  const pageSize = 8;
+  const { page, pageItems: pagedCases, total } = paginateItems(cases, getPage(pageParam), pageSize);
 
   return (
     <CreditorShell profile={profile} activePath="/creditor/cases" title="เคสขององค์กร" subtitle="ดูรายการคำขอไกล่เกลี่ยที่เชื่อมกับองค์กรเจ้าหนี้ของคุณ">
@@ -28,9 +36,9 @@ export default async function CreditorCasesPage() {
               <tr><th className="px-5 py-3">เลขเคส</th><th className="px-5 py-3">เจ้าหนี้</th><th className="px-5 py-3">ยอดหนี้</th><th className="px-5 py-3">สถานะ</th><th className="px-5 py-3">อัปเดตล่าสุด</th><th className="px-5 py-3" /></tr>
             </thead>
             <tbody>
-              {cases.length === 0 ? (
+              {pagedCases.length === 0 ? (
                 <tr><td colSpan={6} className="px-5 py-12 text-center text-[#6B7280]">ยังไม่มีเคสที่เชื่อมกับองค์กรนี้</td></tr>
-              ) : cases.map((item) => (
+              ) : pagedCases.map((item) => (
                 <tr key={item.id} className="border-t border-black/5">
                   <td className="px-5 py-4 font-medium">{item.case_number}</td>
                   <td className="px-5 py-4">{item.creditor_name}</td>
@@ -43,6 +51,7 @@ export default async function CreditorCasesPage() {
             </tbody>
           </table>
         </div>
+        <Pagination basePath="/creditor/cases" params={{}} page={page} pageSize={pageSize} total={total} />
       </section>
     </CreditorShell>
   );

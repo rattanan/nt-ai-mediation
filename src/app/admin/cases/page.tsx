@@ -3,6 +3,7 @@ import { Alert } from "@/components/ui/alert";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getPage, paginateItems, Pagination } from "@/components/ui/pagination";
 import { requireAdmin } from "@/lib/admin/auth";
 import { caseStatusLabels, getAdminCaseQueue, getCaseComments, getCaseHistory } from "@/lib/cases";
 import { createClient } from "@/lib/supabase/server";
@@ -13,11 +14,13 @@ export const dynamic = "force-dynamic";
 export default async function AdminCasesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ caseId?: string; success?: string; error?: string }>;
+  searchParams: Promise<{ caseId?: string; page?: string; success?: string; error?: string }>;
 }) {
   const profile = await requireAdmin();
-  const { caseId, success, error } = await searchParams;
+  const { caseId, page: pageParam, success, error } = await searchParams;
   const cases = await getAdminCaseQueue();
+  const pageSize = 10;
+  const { page, pageItems: pagedCases } = paginateItems(cases, getPage(pageParam), pageSize);
   const selectedId = caseId ?? cases[0]?.id;
   const selectedCase = selectedId ? cases.find((item) => item.id === selectedId) ?? await getAnyCase(selectedId) : null;
   const history = selectedCase ? await getCaseHistory(selectedCase.id) : [];
@@ -37,14 +40,15 @@ export default async function AdminCasesPage({
           <div className="divide-y divide-black/5">
             {cases.length === 0 ? (
               <p className="px-5 py-10 text-center text-sm text-[#6B7280]">ไม่มีเคสรอตรวจสอบ</p>
-            ) : cases.map((item) => (
-              <Link key={item.id} href={`/admin/cases?caseId=${item.id}`} className={`block px-5 py-4 hover:bg-[#FFFBEA] ${item.id === selectedCase?.id ? "bg-[#FFF8D9]" : ""}`}>
+            ) : pagedCases.map((item) => (
+              <Link key={item.id} href={`/admin/cases?${new URLSearchParams({ caseId: item.id, ...(page > 1 ? { page: String(page) } : {}) }).toString()}`} className={`block px-5 py-4 hover:bg-[#FFFBEA] ${item.id === selectedCase?.id ? "bg-[#FFF8D9]" : ""}`}>
                 <p className="font-semibold">{item.case_number}</p>
                 <p className="mt-1 text-sm text-[#6B7280]">{item.creditor_name} · {Number(item.debt_amount).toLocaleString("th-TH")} บาท</p>
                 <Badge className="mt-2">{caseStatusLabels[item.status]}</Badge>
               </Link>
             ))}
           </div>
+          <Pagination basePath="/admin/cases" params={{ caseId, page }} page={page} pageSize={pageSize} total={cases.length} />
         </section>
 
         {selectedCase ? (

@@ -2,13 +2,19 @@ import Link from "next/link";
 import { DebtorShell } from "@/components/debtor/debtor-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Pagination, getPage, paginateItems } from "@/components/ui/pagination";
 import { requireRole } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function DebtorAgreementsPage() {
+export default async function DebtorAgreementsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const profile = await requireRole("debtor");
+  const { page: pageParam } = await searchParams;
   const supabase = await createClient();
   const { data: closings } = await supabase
     .from("mediation_closing_records")
@@ -27,6 +33,8 @@ export default async function DebtorAgreementsPage() {
   const caseById = new Map((cases ?? []).map((item) => [item.id, item]));
   const planByClosingId = new Map((plans ?? []).map((item) => [item.closing_record_id, item]));
   const documentByClosingId = new Map((documents ?? []).map((item) => [item.closing_record_id, item]));
+  const pageSize = 6;
+  const { page, pageItems: pagedAgreements, total } = paginateItems(agreements, getPage(pageParam), pageSize);
 
   return (
     <DebtorShell profile={profile} activePath="/debtor/agreements" title="ข้อตกลง" subtitle="ดูผลการไกล่เกลี่ย เอกสารข้อตกลง และแผนการชำระเงิน">
@@ -36,9 +44,9 @@ export default async function DebtorAgreementsPage() {
           <p className="mt-1 text-sm text-[#6B7280]">แสดงรายการหลังผู้ไกล่เกลี่ยบันทึกผลการไกล่เกลี่ย</p>
         </div>
         <div className="divide-y divide-black/5">
-          {agreements.length === 0 ? (
+          {pagedAgreements.length === 0 ? (
             <div className="px-5 py-12 text-center text-[#6B7280]">ยังไม่มีข้อตกลงในระบบ</div>
-          ) : agreements.map((closing) => {
+          ) : pagedAgreements.map((closing) => {
             const caseItem = caseById.get(closing.case_id);
             const plan = planByClosingId.get(closing.id);
             const document = documentByClosingId.get(closing.id);
@@ -68,6 +76,7 @@ export default async function DebtorAgreementsPage() {
             );
           })}
         </div>
+        <Pagination basePath="/debtor/agreements" params={{}} page={page} pageSize={pageSize} total={total} />
       </section>
     </DebtorShell>
   );
