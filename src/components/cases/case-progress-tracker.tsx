@@ -42,13 +42,13 @@ type WorkflowStep = {
 type StepState = "completed" | "current" | "pending" | "failed";
 
 const workflowSteps: WorkflowStep[] = [
-  { key: "registration", title: "ลงทะเบียน", statuses: ["draft"], estimate: "เสร็จทันที", owner: "debtor", icon: UserCheck },
+  { key: "registration", title: "ลงทะเบียน", statuses: ["draft"], estimate: "รอกรอกข้อมูลให้ครบ", owner: "debtor", icon: UserCheck },
   { key: "identity", title: "ยืนยันตัวตน", statuses: ["reviewing", "admin_review", "needs_more_info"], estimate: "ภายใน 1 วันทำการ", owner: "admin", icon: ShieldCheck },
-  { key: "submitted", title: "ส่งคำขอ", statuses: ["submitted"], estimate: "เสร็จทันที", owner: "debtor", icon: FileCheck2 },
+  { key: "submitted", title: "ส่งคำขอ", statuses: ["submitted"], estimate: "รอเจ้าหน้าที่ตรวจสอบ", owner: "debtor", icon: FileCheck2 },
   { key: "analysis", title: "AI วิเคราะห์เคส", statuses: ["admin_review"], estimate: "ไม่เกิน 1 วันทำการ", owner: "system", icon: Sparkles },
-  { key: "creditor", title: "รอเจ้าหนี้", statuses: ["creditor_review", "creditor_accepted", "creditor_rejected"], estimate: "2-5 วันทำการ", owner: "creditor", icon: Hourglass },
-  { key: "matching", title: "จับคู่ผู้ไกล่เกลี่ย", statuses: ["mediator_matching", "matched", "mediator_selected"], estimate: "1-2 วันทำการ", owner: "system", icon: Handshake },
-  { key: "appointment", title: "นัดหมาย", statuses: ["appointment_scheduling", "scheduled"], estimate: "ตามเวลาที่คู่กรณียืนยัน", owner: "mediator", icon: CalendarClock },
+  { key: "creditor", title: "รอเจ้าหนี้", statuses: ["creditor_review"], estimate: "2-5 วันทำการ", owner: "creditor", icon: Hourglass },
+  { key: "matching", title: "จับคู่ผู้ไกล่เกลี่ย", statuses: ["creditor_accepted", "mediator_matching", "matched", "mediator_selected"], estimate: "กำลังรอนัดหมาย", owner: "system", icon: Handshake },
+  { key: "appointment", title: "นัดหมาย", statuses: ["appointment_scheduling", "scheduled"], estimate: "กำลังรอนัดหมาย", owner: "mediator", icon: CalendarClock },
   { key: "session", title: "ประชุมไกล่เกลี่ย", statuses: ["in_mediation"], estimate: "ตามรอบประชุม", owner: "mediator", icon: Route },
   { key: "settlement", title: "ข้อตกลง", statuses: ["settlement_draft", "settled", "not_settled"], estimate: "1-3 วันทำการ", owner: "mediator", icon: FileText },
   { key: "signature", title: "ลงนามดิจิทัล", statuses: ["settled"], estimate: "หลังออกเอกสาร", owner: "debtor", icon: PenLine },
@@ -105,6 +105,16 @@ function addDays(start: string, days: number) {
   const value = new Date(start);
   value.setDate(value.getDate() + days);
   return value.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function estimatedRemainingTime(caseItem: MediationCase, currentStep: WorkflowStep) {
+  if (currentStep.key === "matching" || currentStep.key === "appointment") {
+    const totalDays = 12;
+    const remainingDays = Math.max(0, totalDays - daysBetween(caseItem.created_at));
+    return `เหลือ ${remainingDays} วัน จากทั้งหมด ${totalDays} วัน`;
+  }
+
+  return currentStep.estimate;
 }
 
 function statusDescription(caseItem: MediationCase, currentStep: WorkflowStep) {
@@ -279,6 +289,7 @@ export function CaseProgressTracker({
   const percent = Math.round((completedCount / (workflowSteps.length - 1)) * 100);
   const statusInfo = statusDescription(caseItem, currentStep);
   const daysOpen = daysBetween(caseItem.created_at);
+  const remainingTime = estimatedRemainingTime(caseItem, currentStep);
 
   return (
     <section className="sticky top-4 z-10 rounded-xl border border-black/5 bg-white p-5 shadow-sm">
@@ -291,7 +302,7 @@ export function CaseProgressTracker({
             </div>
             <div className="rounded-xl bg-[#FFF8D9] px-4 py-3 text-sm text-[#6B4F00]">
               <p className="font-semibold">Estimated Remaining Time</p>
-              <p>{currentStep.estimate}</p>
+              <p>{remainingTime}</p>
             </div>
           </div>
           <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#E5E7EB]">
@@ -337,7 +348,7 @@ export function CaseProgressTracker({
               </div>
               <div className="min-w-0 pb-2">
                 <p className="text-sm font-semibold">{step.title}</p>
-                <p className="text-xs text-[#6B7280]">{ownerLabels[step.owner]} · {step.estimate}</p>
+                <p className="text-xs text-[#6B7280]">{ownerLabels[step.owner]} · {estimatedRemainingTime(caseItem, step)}</p>
               </div>
             </div>
           );
@@ -351,7 +362,7 @@ export function CaseProgressTracker({
           <p className="mt-1 text-sm leading-6 text-[#4B5563]">{statusInfo.description}</p>
           <dl className="mt-4 grid gap-3 sm:grid-cols-2">
             <div><dt className="text-xs text-[#6B7280]">Responsible</dt><dd className="font-semibold">{currentStep.owner === "creditor" ? caseItem.creditor_name : ownerLabels[currentStep.owner]}</dd></div>
-            <div><dt className="text-xs text-[#6B7280]">Estimated</dt><dd className="font-semibold">{currentStep.estimate}</dd></div>
+            <div><dt className="text-xs text-[#6B7280]">Estimated</dt><dd className="font-semibold">{remainingTime}</dd></div>
           </dl>
           <p className="mt-4 rounded-lg bg-white p-3 text-sm font-medium text-[#374151]">{statusInfo.action}</p>
         </article>

@@ -26,6 +26,7 @@ export default async function AdminMediatorReviewPage({
   const docs = selected ? await getMediatorDocuments(selected.id) : [];
   const logs = selected ? await getMediatorReviewLogs(selected.id) : [];
   const pendingReviews = await listPendingMediatorReviews();
+  const listParams = { profileId, ...(page > 1 ? { page: String(page) } : {}) };
 
   return (
     <AdminShell profile={admin} activePath="/admin/mediators" title="Mediator Review" subtitle="ตรวจสอบ อนุมัติ และจัดการโปรไฟล์ผู้ไกล่เกลี่ย">
@@ -72,14 +73,21 @@ export default async function AdminMediatorReviewPage({
           </div>
           <div className="divide-y divide-black/5">
             {profiles.length === 0 ? <p className="px-5 py-10 text-center text-sm text-[#6B7280]">ยังไม่มีโปรไฟล์รอตรวจสอบ</p> : pagedProfiles.map((profile) => (
-              <Link key={profile.id} href={`/admin/mediators?${new URLSearchParams({ profileId: profile.id, ...(page > 1 ? { page: String(page) } : {}) }).toString()}`} className={`block px-5 py-4 hover:bg-[#FFFBEA] ${selected?.id === profile.id ? "bg-[#FFF8D9]" : ""}`}>
+              <Link
+                key={profile.id}
+                href={`/admin/mediators?${new URLSearchParams({
+                  ...listParams,
+                  profileId: profile.id,
+                }).toString()}`}
+                className={`block px-5 py-4 hover:bg-[#FFFBEA] ${selected?.id === profile.id ? "bg-[#FFF8D9]" : ""}`}
+              >
                 <p className="font-semibold">{profile.title ?? ""} {profile.first_name} {profile.last_name}</p>
                 <p className="mt-1 text-sm text-[#6B7280]">{profile.province || "ไม่ระบุจังหวัด"} · {profile.mediation_experience_years} ปี</p>
                 <Badge className="mt-2">{mediatorStatusLabels[profile.status]}</Badge>
               </Link>
             ))}
           </div>
-          <Pagination basePath="/admin/mediators" params={{ profileId, page }} page={page} pageSize={pageSize} total={profiles.length} />
+          <Pagination basePath="/admin/mediators" params={listParams} page={page} pageSize={pageSize} total={profiles.length} />
         </section>
 
         {selected ? (

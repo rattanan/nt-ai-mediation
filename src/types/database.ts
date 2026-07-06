@@ -33,6 +33,7 @@ export type AppointmentParticipantStatus = "pending" | "confirmed" | "reschedule
 export type MediationResultStatus = "settled" | "not_settled";
 export type PaymentFrequency = "monthly" | "biweekly" | "weekly" | "custom";
 export type SettlementDocumentType = "settlement_agreement" | "unsuccessful_closing_report";
+export type SettlementDocumentSignatureRole = "debtor" | "creditor" | "mediator";
 export type BillingInvoiceStatus = "draft" | "issued" | "sent" | "paid" | "overdue" | "cancelled";
 export type MediatorReviewStatus = "pending" | "approved" | "rejected";
 export type CaseStatus =
@@ -877,6 +878,40 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["mediator_availability"]["Insert"]>;
         Relationships: [];
       };
+      mediator_working_hours: {
+        Row: {
+          id: string;
+          mediator_id: string;
+          weekday: number;
+          is_enabled: boolean;
+          start_time: string | null;
+          end_time: string | null;
+          break_start: string | null;
+          break_end: string | null;
+          slot_duration_minutes: number;
+          buffer_before_minutes: number;
+          buffer_after_minutes: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          mediator_id: string;
+          weekday: number;
+          is_enabled?: boolean;
+          start_time?: string | null;
+          end_time?: string | null;
+          break_start?: string | null;
+          break_end?: string | null;
+          slot_duration_minutes?: number;
+          buffer_before_minutes?: number;
+          buffer_after_minutes?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mediator_working_hours"]["Insert"]>;
+        Relationships: [];
+      };
       mediator_availability_slots: {
         Row: {
           id: string;
@@ -1181,6 +1216,16 @@ export type Database = {
           sent_to_debtor_at?: string | null; sent_to_creditor_at?: string | null; sent_to_mediator_at?: string | null; created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["settlement_documents"]["Insert"]>;
+        Relationships: [];
+      };
+      settlement_document_signatures: {
+        Row: {
+          id: string; document_id: string; case_id: string; signer_role: SettlementDocumentSignatureRole; signer_user_id: string; signer_name: string; signed_at: string; created_at: string;
+        };
+        Insert: {
+          id?: string; document_id: string; case_id: string; signer_role: SettlementDocumentSignatureRole; signer_user_id: string; signer_name: string; signed_at?: string; created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["settlement_document_signatures"]["Insert"]>;
         Relationships: [];
       };
       billing_invoices: {

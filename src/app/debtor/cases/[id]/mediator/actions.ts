@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/server";
 import { getCaseForDebtor } from "@/lib/cases";
 import { getMediatorProfile } from "@/lib/mediators";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export async function selectMediatorForCase(caseId: string, formData: FormData) {
@@ -22,18 +23,41 @@ export async function selectMediatorForCase(caseId: string, formData: FormData) 
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const updatePayload = {
+    selected_mediator_profile_id: mediator.id,
+    assigned_mediator_id: mediator.user_id,
+    status: "mediator_selected" as const,
+  };
+
+  const { data: updatedCase, error } = await supabase
     .from("cases")
-    .update({
-      selected_mediator_profile_id: mediator.id,
-      assigned_mediator_id: mediator.user_id,
-      status: "mediator_selected",
-    })
+    .update(updatePayload)
     .eq("id", caseId)
-    .eq("debtor_user_id", debtor.id);
+    .eq("debtor_user_id", debtor.id)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     redirect(`/debtor/cases/${caseId}/mediator?error=${encodeURIComponent("เลือกผู้ไกล่เกลี่ยไม่สำเร็จ")}`);
+  }
+
+  if (!updatedCase) {
+    try {
+      const admin = createAdminClient();
+      const { data: adminUpdatedCase, error: adminError } = await admin
+        .from("cases")
+        .update(updatePayload)
+        .eq("id", caseId)
+        .eq("debtor_user_id", debtor.id)
+        .select("id")
+        .maybeSingle();
+
+      if (adminError || !adminUpdatedCase) {
+        redirect(`/debtor/cases/${caseId}/mediator?error=${encodeURIComponent("เลือกผู้ไกล่เกลี่ยไม่สำเร็จ")}`);
+      }
+    } catch {
+      redirect(`/debtor/cases/${caseId}/mediator?error=${encodeURIComponent("เลือกผู้ไกล่เกลี่ยไม่สำเร็จ")}`);
+    }
   }
 
   await supabase.from("case_status_history").insert({

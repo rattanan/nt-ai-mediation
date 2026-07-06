@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { LandingContent } from "@/data/landing";
+import { APP_VERSION } from "@/lib/app-version";
 
 export function SiteFooter({ content }: { content: LandingContent["footer"] }) {
   return (
@@ -45,9 +46,12 @@ export function SiteFooter({ content }: { content: LandingContent["footer"] }) {
 
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 sm:flex-row">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} {content.rights}
+            {content.rights}
           </p>
-          <p className="text-sm text-muted-foreground">{content.tagline}</p>
+          <div className="text-sm text-muted-foreground sm:text-right">
+            <p>{content.tagline}</p>
+            <p className="mt-1">Version {APP_VERSION}</p>
+          </div>
         </div>
       </div>
     </footer>

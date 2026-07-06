@@ -624,7 +624,7 @@ export const landingContent: Record<Language, LandingContent> = {
       description:
         "AI-powered digital mediation, helping resolve debt disputes quickly, fairly, and securely - without going to court.",
       columns: footerColumns,
-      rights: "NT AI Digital Mediation Platform. All rights reserved.",
+      rights: "NT AI Digital Mediation Platform. All rights reserved @ 2026",
       tagline: "Made for a fairer resolution.",
     },
   },
@@ -697,7 +697,7 @@ export const landingContent: Record<Language, LandingContent> = {
       description:
         "แพลตฟอร์มไกล่เกลี่ยดิจิทัลด้วย AI ช่วยยุติข้อพิพาทด้านหนี้อย่างรวดเร็ว เป็นธรรม และปลอดภัยโดยไม่ต้องขึ้นศาล",
       columns: thaiFooterColumns,
-      rights: "NT AI Digital Mediation Platform สงวนลิขสิทธิ์",
+      rights: "NT AI Digital Mediation Platform สงวนลิขสิทธิ์ @ 2026",
       tagline: "เพื่อการยุติข้อพิพาทที่เป็นธรรมกว่าเดิม",
     },
   },

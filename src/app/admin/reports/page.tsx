@@ -2,12 +2,23 @@ import { Download, Filter } from "lucide-react";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Button } from "@/components/ui/button";
 import { caseStatusLabels } from "@/lib/cases";
-import { money } from "@/lib/closing";
 import { requireAdmin } from "@/lib/admin/auth";
 import { getAdminDashboardData, type DashboardFilters } from "@/lib/admin/dashboard";
 import type { CaseStatus } from "@/types/database";
 
 export const dynamic = "force-dynamic";
+
+function formatReportNumber(value: number | null | undefined) {
+  const number = Number(value ?? 0);
+  return number.toLocaleString("th-TH", {
+    minimumFractionDigits: Math.abs(number) >= 1000 ? 0 : 0,
+    maximumFractionDigits: Math.abs(number) >= 1000 ? 0 : 2,
+  });
+}
+
+function formatReportMoney(value: number | null | undefined) {
+  return `${formatReportNumber(value)} บาท`;
+}
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return <div className="rounded-lg bg-[#F8FAFC] p-4"><p className="text-sm text-[#6B7280]">{label}</p><p className="mt-1 text-xl font-semibold">{value}</p></div>;
@@ -94,20 +105,20 @@ export default async function AdminReportsPage({
           { label: "Appointments", value: data.tables.appointments.length },
         ]} />
         <ReportCard title="Financial Reports" items={[
-          { label: "Debt Amount", value: money(data.kpis.totalDebt) },
-          { label: "Settlement Amount", value: money(data.kpis.settledDebt) },
-          { label: "Platform Fee", value: money(data.kpis.platformFee) },
-          { label: "Success Fee", value: money(data.kpis.successFee) },
-          { label: "Revenue Summary", value: money(data.kpis.totalRevenue) },
+          { label: "Debt Amount", value: formatReportMoney(data.kpis.totalDebt) },
+          { label: "Settlement Amount", value: formatReportMoney(data.kpis.settledDebt) },
+          { label: "Platform Fee", value: formatReportMoney(data.kpis.platformFee) },
+          { label: "Success Fee", value: formatReportMoney(data.kpis.successFee) },
+          { label: "Revenue Summary", value: formatReportMoney(data.kpis.totalRevenue) },
           { label: "Creditor Invoices", value: data.tables.invoices.length },
         ]} />
         <ReportCard title="Quality Reports" items={[
-          { label: "Mediator Performance", value: `${data.tables.topMediators[0]?.score ?? 0} top score` },
+          { label: "Mediator Performance", value: `${formatReportNumber(data.tables.topMediators[0]?.score ?? 0)} top score` },
           { label: "Trust Score Report", value: data.tables.topMediators.length },
-          { label: "Debtor Satisfaction", value: data.tables.topMediators[0]?.rating.toFixed(1) ?? "0.0" },
+          { label: "Debtor Satisfaction", value: formatReportNumber(data.tables.topMediators[0]?.rating ?? 0) },
           { label: "Review Approval Queue", value: data.tables.pendingReviewCount },
           { label: "Complaint Report", value: data.tables.reviews.filter((item) => item.rating <= 2).length },
-          { label: "Success Rate", value: `${data.kpis.successRate}%` },
+          { label: "Success Rate", value: `${formatReportNumber(data.kpis.successRate)}%` },
         ]} />
       </section>
 

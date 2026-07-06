@@ -11,6 +11,35 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+## End-to-End Testing
+
+Playwright tests live in `tests/e2e` and cover auth, role redirects, portal access, and RBAC smoke checks for Debtor, Creditor, Mediator, and Admin.
+
+```bash
+npx playwright install chromium
+npm run test:e2e:list
+npm run test:e2e
+```
+
+For full role login coverage, set these variables before running tests:
+
+```bash
+export E2E_DEBTOR_EMAIL=debtor01@nt-ai-mediation.demo
+export E2E_DEBTOR_PASSWORD=Demo@123456
+export E2E_CREDITOR_EMAIL=creditor01@nt-ai-mediation.demo
+export E2E_CREDITOR_PASSWORD=Demo@123456
+export E2E_MEDIATOR_EMAIL=mediator01@nt-ai-mediation.demo
+export E2E_MEDIATOR_PASSWORD=Demo@123456
+export E2E_ADMIN_EMAIL=admin@nt-ai-mediation.demo
+export E2E_ADMIN_PASSWORD=Demo@123456
+```
+
+To run against an existing deployment instead of the local dev server:
+
+```bash
+PLAYWRIGHT_BASE_URL=https://YOUR_DEPLOYMENT_URL npm run test:e2e
+```
+
 ## Production Build
 
 ```bash
@@ -35,11 +64,21 @@ Use the same variables in Google Cloud Run:
 ```bash
 gcloud run services update nt-ai-mediation \
   --region asia-southeast1 \
-  --project YOUR_PROJECT_ID \
+  --project nt-debt-mediation \
   --update-env-vars NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
 ```
 
 Do not expose the Supabase service role key in browser code or `NEXT_PUBLIC_*` variables.
+
+### Seed demo data
+
+The demo seed creates admin, debtor, creditor, mediator, case, appointment, invoice, settlement, review, and trust score records for QA.
+
+```bash
+SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY npm run seed:demo
+```
+
+The default demo password is `Demo@123456`. Override it with `DEMO_PASSWORD`.
 
 ### Run the database schema
 
@@ -70,21 +109,22 @@ The schema creates the initial platform tables, role enum, indexes, update trigg
 ### Build the image
 
 ```bash
-docker build -t gcr.io/YOUR_PROJECT_ID/nt-ai-mediation:latest .
+docker build -t gcr.io/nt-debt-mediation/nt-ai-mediation:latest .
 ```
 
 ### Push the image
 
 ```bash
-docker push gcr.io/YOUR_PROJECT_ID/nt-ai-mediation:latest
+docker push gcr.io/nt-debt-mediation/nt-ai-mediation:latest
 ```
 
 ### Deploy to Cloud Run
 
 ```bash
 gcloud run deploy nt-ai-mediation \
-  --image gcr.io/YOUR_PROJECT_ID/nt-ai-mediation:latest \
+  --image gcr.io/nt-debt-mediation/nt-ai-mediation:latest \
   --region asia-southeast1 \
+  --project nt-debt-mediation \
   --platform managed \
   --allow-unauthenticated \
   --port 3000 \

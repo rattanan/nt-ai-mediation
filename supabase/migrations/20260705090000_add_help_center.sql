@@ -1,0 +1,3 @@
+-- This migration version is already present in the remote Supabase history.
+-- The local repository was missing the file, so this placeholder restores
+-- migration history alignment for Supabase CLI operations.

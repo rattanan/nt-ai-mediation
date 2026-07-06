@@ -30,15 +30,26 @@ export default async function AdminUsersPage({
     page?: string;
     success?: string;
     error?: string;
+    sort?: "full_name" | "role" | "account_status" | "created_at";
+    dir?: "asc" | "desc";
   }>;
 }) {
   const profile = await requireAdmin();
   const params = await searchParams;
   const page = getPage(params.page);
+  const sort = params.sort === "created_at" || params.sort === "full_name" || params.sort === "role" || params.sort === "account_status" ? params.sort : "created_at";
+  const dir = params.dir === "asc" ? "asc" : "desc";
   const pageSize = 10;
-  const { users, total, error } = await listAdminUsers({ query: params.q, role: params.role, page, pageSize });
+  const { users: rawUsers, total, error } = await listAdminUsers({ query: params.q, role: params.role, page: 1, pageSize: 1000 });
+  const users = [...rawUsers].sort((a, b) => {
+    const factor = dir === "asc" ? 1 : -1;
+    const left = String(a[sort] ?? "");
+    const right = String(b[sort] ?? "");
+    return left.localeCompare(right, "th") * factor;
+  });
+  const pagedUsers = users.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize);
   const selectedUser = await getAdminUser(params.userId ?? users[0]?.id);
-  const tableParams = { q: params.q, role: params.role, page };
+  const tableParams = { q: params.q, role: params.role, sort, dir, page };
 
   return (
     <AdminShell
@@ -89,22 +100,22 @@ export default async function AdminUsersPage({
               <table className="min-w-full text-left text-sm">
                 <thead className="border-b border-black/5 text-xs uppercase text-[#6B7280]">
                   <tr>
-                    <th className="px-3 py-3">ผู้ใช้</th>
-                    <th className="px-3 py-3">บทบาท</th>
-                    <th className="px-3 py-3">สถานะ</th>
-                    <th className="px-3 py-3">สร้างเมื่อ</th>
+                    <SortableTh label="ผู้ใช้" keyName="full_name" currentSort={sort} dir={dir} params={tableParams} />
+                    <SortableTh label="บทบาท" keyName="role" currentSort={sort} dir={dir} params={tableParams} />
+                    <SortableTh label="สถานะ" keyName="account_status" currentSort={sort} dir={dir} params={tableParams} />
+                    <SortableTh label="สร้างเมื่อ" keyName="created_at" currentSort={sort} dir={dir} params={tableParams} />
                     <th className="px-3 py-3" aria-label="ดูรายละเอียด" />
                   </tr>
                 </thead>
                 <tbody>
-                  {users.length === 0 ? (
+                  {pagedUsers.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-3 py-12 text-center text-[#6B7280]">
                         ไม่พบผู้ใช้งานตามเงื่อนไขที่ค้นหา
                       </td>
                     </tr>
                   ) : (
-                    users.map((user) => (
+                    pagedUsers.map((user) => (
                       <tr key={user.id} className="border-b border-black/5 last:border-0">
                         <td className="px-3 py-4">
                           <p className="font-medium">{user.full_name}</p>
@@ -238,5 +249,36 @@ export default async function AdminUsersPage({
         </aside>
       </div>
     </AdminShell>
+  );
+}
+
+function SortableTh({
+  label,
+  keyName,
+  currentSort,
+  dir,
+  params,
+}: {
+  label: string;
+  keyName: "full_name" | "role" | "account_status" | "created_at";
+  currentSort: string;
+  dir: "asc" | "desc";
+  params: Record<string, string | number | null | undefined>;
+}) {
+  const nextDir = currentSort === keyName && dir === "asc" ? "desc" : "asc";
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") search.set(key, String(value));
+  });
+  search.set("sort", keyName);
+  search.set("dir", nextDir);
+  search.delete("page");
+  return (
+    <th className="px-3 py-3">
+      <Link href={`/admin/users?${search.toString()}`} className="inline-flex items-center gap-1 hover:text-[#111827]">
+        {label}
+        {currentSort === keyName ? <span>{dir === "asc" ? "↑" : "↓"}</span> : null}
+      </Link>
+    </th>
   );
 }

@@ -2,7 +2,10 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { AppRole, Database, Json } from "@/types/database";
 import { isAppRole } from "@/lib/auth/routes";
 
-export const appBaseUrl = "https://ai-mediation.rattanan.dev";
+export const appBaseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.NEXTAUTH_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://127.0.0.1:3000");
 export const emailVerificationRedirectUrl = `${appBaseUrl}/auth/callback`;
 
 export type AccountStatus = "pending_verification" | "active" | "suspended" | "disabled";

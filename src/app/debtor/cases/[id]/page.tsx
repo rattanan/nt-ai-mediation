@@ -79,7 +79,7 @@ export default async function CaseDetailPage({
               {["creditor_accepted", "mediator_matching", "matched"].includes(item.status) ? (
                 <Button href={`/debtor/cases/${item.id}/mediator`} className="rounded-lg font-semibold">เลือกผู้ไกล่เกลี่ย</Button>
               ) : null}
-              {item.status === "mediator_selected" && !appointment ? (
+              {(item.status === "mediator_selected" && !appointment) || appointment?.status === "reschedule_requested" ? (
                 <Button href={`/debtor/cases/${item.id}/appointments/new`} className="rounded-lg font-semibold">เลือกเวลานัดหมาย</Button>
               ) : null}
             </div>
@@ -101,6 +101,15 @@ export default async function CaseDetailPage({
               <h3 className="font-semibold">แนวทางที่ต้องการ</h3>
               <p className="mt-2 whitespace-pre-line rounded-lg bg-[#F8FAFC] p-4 text-sm leading-6 text-[#374151]">{item.desired_solution}</p>
             </div>
+            {item.creditor_response_note || item.rejection_reason ? (
+              <div>
+                <h3 className="font-semibold">ข้อความจากเจ้าหนี้</h3>
+                <div className="mt-2 rounded-lg bg-[#F8FAFC] p-4 text-sm leading-6 text-[#374151]">
+                  {item.creditor_response_note ? <p className="whitespace-pre-line">{item.creditor_response_note}</p> : null}
+                  {item.rejection_reason ? <p className="mt-3 whitespace-pre-line text-[#B91C1C]">เหตุผลเพิ่มเติม: {item.rejection_reason}</p> : null}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {appointment ? (

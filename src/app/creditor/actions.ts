@@ -115,6 +115,49 @@ export async function updateCreditorOrganizationLogo(formData: FormData) {
   redirect(`/creditor/organization?success=${encodeURIComponent("อัปเดตโลโก้องค์กรแล้ว")}`);
 }
 
+export async function updateCreditorOrganizationInfo(formData: FormData) {
+  const profile = await requireRole("creditor");
+  const officer = await getCreditorOfficer(profile.id);
+  if (!officer?.organization_id) {
+    redirectWithError("/creditor/organization", "ไม่พบองค์กรเจ้าหนี้");
+  }
+
+  const organizationName = String(formData.get("organization_name") ?? "").trim();
+  const organizationType = String(formData.get("organization_type") ?? "").trim();
+  const taxId = String(formData.get("tax_id") ?? "").trim();
+  const contactEmail = String(formData.get("contact_email") ?? "").trim();
+  const contactPhone = String(formData.get("contact_phone") ?? "").trim();
+  const address = String(formData.get("address") ?? "").trim();
+  const website = String(formData.get("website") ?? "").trim();
+  const shortName = String(formData.get("short_name") ?? "").trim();
+
+  if (!organizationName || !organizationType) {
+    redirectWithError("/creditor/organization", "กรุณากรอกชื่อองค์กรและประเภทองค์กร");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("creditor_organizations")
+    .update({
+      organization_name: organizationName,
+      organization_type: organizationType,
+      tax_id: taxId || null,
+      contact_email: contactEmail || null,
+      contact_phone: contactPhone || null,
+      address: address || null,
+      website: website || null,
+      short_name: shortName || null,
+    })
+    .eq("id", officer.organization_id)
+    .eq("status", "pending");
+
+  if (error) {
+    redirectWithError("/creditor/organization", "บันทึกข้อมูลองค์กรไม่สำเร็จ");
+  }
+
+  redirect(`/creditor/organization?success=${encodeURIComponent("บันทึกข้อมูลองค์กรแล้ว")}`);
+}
+
 export async function submitCreditorResponse(formData: FormData) {
   const profile = await requireRole("creditor");
   const officer = await getCreditorOfficer(profile.id);
@@ -149,7 +192,13 @@ export async function submitCreditorResponse(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("case_creditor_responses").insert({
+  const { data: currentCase } = await supabase
+    .from("cases")
+    .select("status")
+    .eq("id", caseId)
+    .eq("creditor_organization_id", officer.organization_id)
+    .maybeSingle();
+  const responsePayload = {
     case_id: caseId,
     organization_id: officer.organization_id,
     officer_id: officer.id,
@@ -159,10 +208,50 @@ export async function submitCreditorResponse(formData: FormData) {
     proposed_terms: proposedTerms || null,
     settlement_amount: typeof settlementAmount === "number" && Number.isFinite(settlementAmount) ? settlementAmount : null,
     monthly_payment: typeof monthlyPayment === "number" && Number.isFinite(monthlyPayment) ? monthlyPayment : null,
-  });
+  };
+
+  const { error } = await supabase.from("case_creditor_responses").insert(responsePayload);
 
   if (error) {
+    console.error("Creditor response save failed", {
+      caseId,
+      organizationId: officer.organization_id,
+      officerId: officer.id,
+      response,
+      error,
+    });
     redirectWithError(`/creditor/cases/${caseId}`, "บันทึกการตอบกลับไม่สำเร็จ");
+  }
+
+  const settlementNote = [
+    proposedTerms ? `ข้อเสนอ: ${proposedTerms}` : null,
+    typeof settlementAmount === "number" && Number.isFinite(settlementAmount)
+      ? `ยอดข้อตกลง ${settlementAmount.toLocaleString("th-TH")} บาท`
+      : null,
+    typeof monthlyPayment === "number" && Number.isFinite(monthlyPayment)
+      ? `ผ่อนชำระ ${monthlyPayment.toLocaleString("th-TH")} บาท/เดือน`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" | ");
+
+  await supabase
+    .from("cases")
+    .update({
+      creditor_response_note: settlementNote || proposedTerms || requestedInformation || reason || "เจ้าหนี้ส่งคำตอบกลับแล้ว",
+      rejection_reason: response === "rejected" ? reason || "เจ้าหนี้ปฏิเสธคำขอ" : null,
+    })
+    .eq("id", caseId)
+    .eq("creditor_organization_id", officer.organization_id);
+
+  if (currentCase) {
+    await supabase.from("case_status_history").insert({
+      case_id: caseId,
+      from_status: currentCase.status,
+      to_status: currentCase.status,
+      changed_by: profile.id,
+      note: settlementNote || proposedTerms || requestedInformation || reason || "เจ้าหนี้ส่งคำตอบกลับ",
+    });
   }
 
   redirect(`/creditor/cases/${caseId}?success=${encodeURIComponent("บันทึกการตอบกลับแล้ว")}`);
@@ -173,6 +262,11 @@ async function updateCreditorCase(formData: FormData, response: CreditorResponse
   const officer = await getCreditorOfficer(profile.id);
   const caseId = String(formData.get("case_id") ?? "");
   const note = String(formData.get("note") ?? "").trim();
+  const proposedTerms = String(formData.get("proposed_terms") ?? "").trim();
+  const settlementAmountRaw = String(formData.get("settlement_amount") ?? "").trim();
+  const monthlyPaymentRaw = String(formData.get("monthly_payment") ?? "").trim();
+  const settlementAmount = settlementAmountRaw ? Number(settlementAmountRaw) : null;
+  const monthlyPayment = monthlyPaymentRaw ? Number(monthlyPaymentRaw) : null;
 
   if (!officer?.organization_id || !caseId) {
     redirectWithError("/creditor", "ไม่พบองค์กรเจ้าหนี้หรือเคสที่ต้องการดำเนินการ");
@@ -194,7 +288,18 @@ async function updateCreditorCase(formData: FormData, response: CreditorResponse
     .from("cases")
     .update({
       status: nextStatus,
-      creditor_response_note: note || defaultMessage,
+      creditor_response_note: [
+        note || defaultMessage,
+        proposedTerms ? `ข้อเสนอข้อตกลง: ${proposedTerms}` : null,
+        typeof settlementAmount === "number" && Number.isFinite(settlementAmount)
+          ? `ยอดข้อตกลง ${settlementAmount.toLocaleString("th-TH")} บาท`
+          : null,
+        typeof monthlyPayment === "number" && Number.isFinite(monthlyPayment)
+          ? `ผ่อนชำระ ${monthlyPayment.toLocaleString("th-TH")} บาท/เดือน`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" | "),
       rejection_reason: nextStatus === "creditor_rejected" ? note || defaultMessage : null,
     })
     .eq("id", caseId)
@@ -211,6 +316,18 @@ async function updateCreditorCase(formData: FormData, response: CreditorResponse
     response,
     reason: note || null,
   });
+
+  if (proposedTerms || (typeof settlementAmount === "number" && Number.isFinite(settlementAmount)) || (typeof monthlyPayment === "number" && Number.isFinite(monthlyPayment))) {
+    await supabase.from("case_creditor_responses").insert({
+      case_id: caseId,
+      organization_id: officer.organization_id,
+      officer_id: officer.id,
+      response: "settlement_proposed",
+      proposed_terms: proposedTerms || null,
+      settlement_amount: typeof settlementAmount === "number" && Number.isFinite(settlementAmount) ? settlementAmount : null,
+      monthly_payment: typeof monthlyPayment === "number" && Number.isFinite(monthlyPayment) ? monthlyPayment : null,
+    });
+  }
 
   await supabase.from("case_status_history").insert({
     case_id: caseId,

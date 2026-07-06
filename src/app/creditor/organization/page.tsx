@@ -1,4 +1,4 @@
-import { registerCreditorOrganization, updateCreditorOrganizationLogo } from "@/app/creditor/actions";
+import { registerCreditorOrganization, updateCreditorOrganizationInfo, updateCreditorOrganizationLogo } from "@/app/creditor/actions";
 import { CreditorShell } from "@/components/creditor/creditor-shell";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -35,14 +35,31 @@ export default async function CreditorOrganizationPage({
               <div className="min-w-0 flex-1">
                 <h2 className="text-xl font-semibold">{organization.organization_name}</h2>
                 <p className="mt-2 text-sm text-[#6B7280]">สถานะ: {creditorOrganizationStatusLabels[organization.status]}</p>
-                <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-                  <div><dt className="text-sm text-[#6B7280]">ประเภท</dt><dd className="font-medium">{organization.organization_type}</dd></div>
-                  <div><dt className="text-sm text-[#6B7280]">เลขผู้เสียภาษี</dt><dd className="font-medium">{organization.tax_id ?? "-"}</dd></div>
-                  <div><dt className="text-sm text-[#6B7280]">อีเมลติดต่อ</dt><dd className="font-medium">{organization.contact_email ?? "-"}</dd></div>
-                  <div><dt className="text-sm text-[#6B7280]">โทรศัพท์</dt><dd className="font-medium">{organization.contact_phone ?? "-"}</dd></div>
-                </dl>
               </div>
             </div>
+            {organization.status === "pending" ? (
+              <form action={updateCreditorOrganizationInfo} className="mt-6 grid gap-4 md:grid-cols-2">
+                <input type="hidden" name="organization_id" value={organization.id} />
+                <label><span className="text-sm font-medium">ชื่อองค์กร</span><Input name="organization_name" defaultValue={organization.organization_name} className="mt-2" required /></label>
+                <label><span className="text-sm font-medium">ประเภทองค์กร</span><Input name="organization_type" defaultValue={organization.organization_type} className="mt-2" required /></label>
+                <label><span className="text-sm font-medium">ชื่อย่อ</span><Input name="short_name" defaultValue={organization.short_name ?? ""} className="mt-2" /></label>
+                <label><span className="text-sm font-medium">เลขผู้เสียภาษี</span><Input name="tax_id" defaultValue={organization.tax_id ?? ""} className="mt-2" /></label>
+                <label><span className="text-sm font-medium">อีเมลติดต่อ</span><Input name="contact_email" type="email" defaultValue={organization.contact_email ?? ""} className="mt-2" /></label>
+                <label><span className="text-sm font-medium">โทรศัพท์</span><Input name="contact_phone" defaultValue={organization.contact_phone ?? ""} className="mt-2" /></label>
+                <label><span className="text-sm font-medium">เว็บไซต์</span><Input name="website" defaultValue={organization.website ?? ""} className="mt-2" /></label>
+                <label><span className="text-sm font-medium">ที่อยู่</span><Input name="address" defaultValue={organization.address ?? ""} className="mt-2" /></label>
+                <div className="md:col-span-2">
+                  <Button type="submit" className="rounded-lg font-semibold">บันทึกข้อมูลองค์กร</Button>
+                </div>
+              </form>
+            ) : (
+              <dl className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div><dt className="text-sm text-[#6B7280]">ประเภท</dt><dd className="font-medium">{organization.organization_type}</dd></div>
+                <div><dt className="text-sm text-[#6B7280]">เลขผู้เสียภาษี</dt><dd className="font-medium">{organization.tax_id ?? "-"}</dd></div>
+                <div><dt className="text-sm text-[#6B7280]">อีเมลติดต่อ</dt><dd className="font-medium">{organization.contact_email ?? "-"}</dd></div>
+                <div><dt className="text-sm text-[#6B7280]">โทรศัพท์</dt><dd className="font-medium">{organization.contact_phone ?? "-"}</dd></div>
+              </dl>
+            )}
           </section>
           <form action={updateCreditorOrganizationLogo} className="rounded-lg border border-black/5 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold">อัปโหลดโลโก้</h2>

@@ -2,7 +2,6 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { getRoleHome, isAppRole } from "@/lib/auth/routes";
 import {
-  appUrl,
   getFullNameFromUser,
   getOrganizationNameFromUser,
   getRoleFromUserMetadata,
@@ -68,13 +67,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (!user) {
-    const loginUrl = appUrl("/login");
+    const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("message", "กรุณาเข้าสู่ระบบก่อนเข้าใช้งานพอร์ตัล");
     return NextResponse.redirect(loginUrl);
   }
 
   if (!isEmailVerified(user)) {
-    const verifyUrl = appUrl("/verify-email");
+    const verifyUrl = new URL("/verify-email", request.url);
     if (user.email) {
       verifyUrl.searchParams.set("email", user.email);
     }
@@ -134,7 +133,7 @@ export async function updateSession(request: NextRequest) {
         });
       }
 
-      const loginUrl = appUrl("/login");
+      const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("message", "เข้าสู่ระบบแล้ว แต่ยังสร้างโปรไฟล์ไม่ได้ กรุณาติดต่อผู้ดูแลระบบ");
       return NextResponse.redirect(loginUrl);
     }
@@ -143,7 +142,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (role !== expectedRole) {
-    const roleUrl = appUrl(getRoleHome(role));
+    const roleUrl = new URL(getRoleHome(role), request.url);
     return NextResponse.redirect(roleUrl);
   }
 

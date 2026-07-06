@@ -4,7 +4,12 @@ import { redirect } from "next/navigation";
 import { notifyAppointmentConfirmed, notifyRescheduleRequested } from "@/lib/appointment-notifications";
 import { confirmAppointmentIfReady, normalizeMeetingUrl, recordAppointmentHistory } from "@/lib/appointments";
 import { requireRole } from "@/lib/auth/server";
-import { getMediatorProfileByUser, parseAvailabilityForm, parseMediatorProfileForm } from "@/lib/mediators";
+import {
+  getMediatorProfileByUser,
+  isValidThaiCitizenId,
+  parseAvailabilityForm,
+  parseMediatorProfileForm,
+} from "@/lib/mediators";
 import { formError, type FormState } from "@/lib/form-state";
 import { createClient } from "@/lib/supabase/server";
 import { recalculateMediatorTrustScore } from "@/lib/trust-score";
@@ -54,6 +59,10 @@ async function saveProfile(formData: FormData, submit: boolean): Promise<FormSta
     return formError(formData, "กรุณากรอกข้อมูลสำคัญให้ครบก่อนส่งตรวจสอบ");
   }
 
+  if (payload.citizen_id && !isValidThaiCitizenId(payload.citizen_id)) {
+    return formError(formData, "เลขบัตรประชาชนต้องเป็นเลขไทย 13 หลักและผ่านการตรวจสอบ");
+  }
+
   const supabase = await createClient();
   const current = await getMediatorProfileByUser(profile.id);
   const nextStatus = submit ? "submitted" : current?.status === "approved" ? "submitted" : "draft";
@@ -67,12 +76,15 @@ async function saveProfile(formData: FormData, submit: boolean): Promise<FormSta
 
   const { data, error } = await supabase
     .from("mediator_profiles")
-    .upsert({
-      ...payload,
-      profile_photo_url: uploadedProfilePhotoUrl ?? payload.profile_photo_url ?? current?.profile_photo_url ?? null,
-      status: nextStatus,
-      admin_review_note: submit ? null : current?.admin_review_note ?? null,
-    })
+    .upsert(
+      {
+        ...payload,
+        profile_photo_url: uploadedProfilePhotoUrl ?? payload.profile_photo_url ?? current?.profile_photo_url ?? null,
+        status: nextStatus,
+        admin_review_note: submit ? null : current?.admin_review_note ?? null,
+      },
+      { onConflict: "user_id" },
+    )
     .select("id, status")
     .single();
 
@@ -81,10 +93,15 @@ async function saveProfile(formData: FormData, submit: boolean): Promise<FormSta
     return formError(formData, error?.message ?? "บันทึกข้อมูลผู้ไกล่เกลี่ยไม่สำเร็จ");
   }
 
-  const { error: availabilityError } = await supabase.from("mediator_availability").upsert({
-    mediator_profile_id: data.id,
-    ...availability,
-  });
+  const { error: availabilityError } = await supabase
+    .from("mediator_availability")
+    .upsert(
+      {
+        mediator_profile_id: data.id,
+        ...availability,
+      },
+      { onConflict: "mediator_profile_id" },
+    );
 
   if (availabilityError) {
     console.error("Mediator availability upsert failed", availabilityError);
@@ -137,6 +154,11 @@ async function requireApprovedMediator() {
 function numberField(formData: FormData, name: string, fallback: number) {
   const parsed = Number(String(formData.get(name) ?? ""));
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function timeField(formData: FormData, name: string) {
+  const value = String(formData.get(name) ?? "").trim();
+  return value ? value.slice(0, 5) : null;
 }
 
 export async function createAvailabilitySlot(formData: FormData) {
@@ -208,6 +230,88 @@ export async function disableAvailabilitySlot(formData: FormData) {
 
   if (error) go("/mediator/availability", "ปิดเวลาว่างไม่สำเร็จ", "error");
   go("/mediator/availability", "ปิดเวลาว่างแล้ว");
+}
+
+export async function saveWorkingHours(formData: FormData) {
+  const { mediatorProfile } = await requireApprovedMediator();
+  const supabase = await createClient();
+
+  const rows = Array.from({ length: 7 }, (_, weekday) => {
+    const enabled = formData.get(`weekday_${weekday}_enabled`) === "on";
+    return {
+      mediator_id: mediatorProfile.id,
+      weekday,
+      is_enabled: enabled,
+      start_time: enabled ? timeField(formData, `weekday_${weekday}_start`) : null,
+      end_time: enabled ? timeField(formData, `weekday_${weekday}_end`) : null,
+      break_start: enabled ? timeField(formData, `weekday_${weekday}_break_start`) : null,
+      break_end: enabled ? timeField(formData, `weekday_${weekday}_break_end`) : null,
+      slot_duration_minutes: numberField(formData, `weekday_${weekday}_slot_duration`, 60),
+      buffer_before_minutes: numberField(formData, `weekday_${weekday}_buffer_before`, 15),
+      buffer_after_minutes: numberField(formData, `weekday_${weekday}_buffer_after`, 15),
+    };
+  });
+
+  const invalid = rows.find((row) => {
+    if (!row.is_enabled) return false;
+    if (!row.start_time || !row.end_time || row.end_time <= row.start_time) return true;
+    if (row.break_start && row.break_end && !(row.break_start < row.break_end)) return true;
+    if (row.break_start && row.break_end && !(row.break_start >= row.start_time && row.break_end <= row.end_time)) return true;
+    if (row.slot_duration_minutes <= 0 || row.buffer_before_minutes < 0 || row.buffer_after_minutes < 0) return true;
+    return false;
+  });
+
+  if (invalid) {
+    go("/mediator/availability", "กรุณาตรวจสอบวัน เวลา พักเที่ยง และ buffer ให้ถูกต้อง", "error");
+  }
+
+  const { error: deleteError } = await supabase.from("mediator_working_hours").delete().eq("mediator_id", mediatorProfile.id);
+  if (deleteError) {
+    console.error("Delete existing working hours failed", deleteError);
+    go("/mediator/availability", `บันทึก Working Hours ไม่สำเร็จ: ${deleteError.message}`, "error");
+  }
+
+  const { error } = await supabase.from("mediator_working_hours").insert(rows);
+
+  if (error) {
+    console.error("Save working hours failed", error);
+    go("/mediator/availability", `บันทึก Working Hours ไม่สำเร็จ: ${error.message}`, "error");
+  }
+
+  go("/mediator/availability", "บันทึก Working Hours แล้ว");
+}
+
+export async function seedDefaultWorkingHours() {
+  const { mediatorProfile } = await requireApprovedMediator();
+  const supabase = await createClient();
+
+  const defaults = Array.from({ length: 7 }, (_, weekday) => ({
+    mediator_id: mediatorProfile.id,
+    weekday,
+    is_enabled: weekday >= 1 && weekday <= 5,
+    start_time: weekday >= 1 && weekday <= 5 ? "08:30" : null,
+    end_time: weekday >= 1 && weekday <= 5 ? (weekday === 5 ? "16:30" : "17:00") : null,
+    break_start: weekday >= 1 && weekday <= 5 ? "12:00" : null,
+    break_end: weekday >= 1 && weekday <= 5 ? "13:00" : null,
+    slot_duration_minutes: 60,
+    buffer_before_minutes: 15,
+    buffer_after_minutes: 15,
+  }));
+
+  const { error: deleteError } = await supabase.from("mediator_working_hours").delete().eq("mediator_id", mediatorProfile.id);
+  if (deleteError) {
+    console.error("Delete existing default working hours failed", deleteError);
+    go("/mediator/availability", `สร้าง Working Hours เริ่มต้นไม่สำเร็จ: ${deleteError.message}`, "error");
+  }
+
+  const { error } = await supabase.from("mediator_working_hours").insert(defaults);
+
+  if (error) {
+    console.error("Seed default working hours failed", error);
+    go("/mediator/availability", `สร้าง Working Hours เริ่มต้นไม่สำเร็จ: ${error.message}`, "error");
+  }
+
+  go("/mediator/availability", "สร้าง Working Hours เริ่มต้นแล้ว");
 }
 
 async function getMediatorAppointment(formData: FormData) {

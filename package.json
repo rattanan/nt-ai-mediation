@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "test:e2e:list": "playwright test --list",
     "seed:demo": "node scripts/seed-demo.mjs"
   },
   "dependencies": {
@@ -16,12 +18,14 @@
     "clsx": "^2.1.1",
     "lucide-react": "^1.23.0",
     "next": "16.2.10",
+    "pdf-lib": "^1.17.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "supabase": "^2.109.0",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

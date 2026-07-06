@@ -1,12 +1,13 @@
-import { CalendarCheck2, ClipboardCheck, Clock, UserCheck } from "lucide-react";
+import { CalendarCheck2, ClipboardCheck, Clock, FileText, UserCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 
-export function mediatorSidebar(activePath: "/mediator" | "/mediator/profile" | "/mediator/appointments" | "/mediator/availability") {
+export function mediatorSidebar(activePath: "/mediator" | "/mediator/profile" | "/mediator/cases" | "/mediator/appointments" | "/mediator/availability") {
   return [
     { label: "ภาพรวม", href: "/mediator", icon: UserCheck, active: activePath === "/mediator" },
     { label: "โปรไฟล์", href: "/mediator/profile", icon: ClipboardCheck, active: activePath === "/mediator/profile" },
+    { label: "เคส", href: "/mediator/cases", icon: FileText, active: activePath === "/mediator/cases" },
     { label: "นัดหมาย", href: "/mediator/appointments", icon: CalendarCheck2, active: activePath === "/mediator/appointments" },
-    { label: "จัดการเวลาว่าง", href: "/mediator/availability", icon: Clock, active: activePath === "/mediator/availability" },
+    { label: "Working Hours", href: "/mediator/availability", icon: Clock, active: activePath === "/mediator/availability" },
   ];
 }
 

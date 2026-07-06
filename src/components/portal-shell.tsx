@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { logout } from "@/app/auth/actions";
 import { NtLogoMark } from "@/components/nt-logo-mark";
+import { AppFooter } from "@/components/app-footer";
 
 type MetricCard = {
   label: string;
@@ -101,11 +102,16 @@ export function PortalShell({
                 <h1 className="text-2xl font-semibold">{title}</h1>
                 <p className="mt-1 text-sm text-[#6B7280]">{subtitle}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="hidden h-10 items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 text-sm text-[#6B7280] sm:flex">
+            <div className="flex items-center gap-2">
+                <label className="hidden h-10 items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 text-sm text-[#6B7280] sm:flex">
                   <Search className="h-4 w-4" />
-                  ค้นหาเคสหรือเลขคำขอ
-                </div>
+                  <input
+                    type="search"
+                    className="w-52 bg-transparent outline-none placeholder:text-[#9CA3AF]"
+                    placeholder="ค้นหาเคสหรือเลขคำขอ"
+                    aria-label="ค้นหาเคสหรือเลขคำขอ"
+                  />
+                </label>
                 <button
                   type="button"
                   aria-label="การแจ้งเตือน"
@@ -129,7 +135,7 @@ export function PortalShell({
 
           <main className="flex-1 px-5 py-6 lg:px-8">
             <div className="mb-5 grid grid-cols-2 gap-2 lg:hidden">
-              {sidebarItems.slice(0, 4).map(({ label, icon: Icon, href, active }) => (
+              {sidebarItems.map(({ label, icon: Icon, href, active }) => (
                 <Link
                   key={label}
                   href={href ?? "#"}
@@ -246,6 +252,7 @@ export function PortalShell({
               </section>
             ) : null}
           </main>
+          <AppFooter />
         </div>
       </div>
     </div>

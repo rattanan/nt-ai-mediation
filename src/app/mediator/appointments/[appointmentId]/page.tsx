@@ -92,6 +92,9 @@ export default async function MediatorAppointmentDetailPage({
       <Link href="/mediator/appointments" className="mt-6 inline-block text-sm font-semibold text-[#8A6500] hover:text-[#111827]">
         กลับหน้านัดหมาย
       </Link>
+      <Link href={`/mediator/cases/${appointment.case_id}`} className="mt-2 inline-block text-sm font-semibold text-[#8A6500] hover:text-[#111827]">
+        ไปยังรายละเอียดเคส
+      </Link>
     </PortalShell>
   );
 }

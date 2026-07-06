@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { BadgeCheck, CalendarClock, FileText, Home, LogOut, Settings } from "lucide-react";
 import { logout } from "@/app/auth/actions";
 import { NtLogoMark } from "@/components/nt-logo-mark";
+import { AppFooter } from "@/components/app-footer";
 import type { AuthProfile } from "@/lib/auth/server";
 
 const navItems = [
@@ -73,6 +74,7 @@ export function CreditorShell({
             </div>
           </header>
           <main className="flex-1 px-5 py-6 lg:px-8">{children}</main>
+          <AppFooter />
         </div>
       </div>
     </div>

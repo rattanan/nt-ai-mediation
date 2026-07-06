@@ -3,11 +3,12 @@ import type { ReactNode } from "react";
 import { CalendarClock, FileText, Home, LogOut, MessageSquareText, Scale } from "lucide-react";
 import { logout } from "@/app/auth/actions";
 import { NtLogoMark } from "@/components/nt-logo-mark";
+import { AppFooter } from "@/components/app-footer";
 import type { AuthProfile } from "@/lib/auth/server";
 
 const navItems = [
   { href: "/debtor", label: "ภาพรวม", icon: Home },
-  { href: "/debtor/cases/new", label: "สร้างคำขอ", icon: FileText },
+  { href: "/debtor/cases/new", label: "สร้างใบคำขอ", icon: FileText },
   { href: "#", label: "สัมภาษณ์ AI", icon: MessageSquareText },
   { href: "/debtor/appointments", label: "นัดหมาย", icon: CalendarClock },
   { href: "/debtor/agreements", label: "ข้อตกลง", icon: Scale },
@@ -93,6 +94,7 @@ export function DebtorShell({
           </header>
 
           <main className="flex-1 px-5 py-6 lg:px-8">{children}</main>
+          <AppFooter />
         </div>
       </div>
     </div>

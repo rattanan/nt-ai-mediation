@@ -64,10 +64,14 @@ export function CaseForm({
         <input type="hidden" name="creditor_organization_id" value={campaignSummary?.organizationId ?? defaultCase?.creditor_organization_id ?? ""} />
         <input type="hidden" name="creditor_campaign_id" value={campaignSummary?.campaignId ?? defaultCase?.creditor_campaign_id ?? ""} />
         <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <label className="block">
-            <span className="text-sm font-medium">ชื่อเจ้าหนี้</span>
-            <Input name="creditor_name" defaultValue={creditorName} className="mt-2" required readOnly={Boolean(campaignSummary)} />
-          </label>
+          {campaignSummary ? (
+            <input type="hidden" name="creditor_name" value={creditorName} />
+          ) : (
+            <label className="block">
+              <span className="text-sm font-medium">ชื่อเจ้าหนี้</span>
+              <Input name="creditor_name" defaultValue={creditorName} className="mt-2" required />
+            </label>
+          )}
           <label className="block">
             <span className="text-sm font-medium">ประเภทเจ้าหนี้</span>
             <select name="creditor_type" defaultValue={getValue(state, defaultCase, "creditor_type", "bank")} className="mt-2 h-11 w-full rounded-lg border border-[#D1D5DB] bg-white px-3 text-sm">

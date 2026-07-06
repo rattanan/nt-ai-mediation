@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { bookAppointment } from "@/app/debtor/cases/[id]/appointments/actions";
 import { SlotPicker } from "@/components/appointments/slot-picker";
 import { DebtorShell } from "@/components/debtor/debtor-shell";
@@ -20,6 +21,11 @@ export default async function NewAppointmentPage({
   const { id } = await params;
   const { error, success } = await searchParams;
   const item = await getCaseForDebtor(id, debtor.id);
+
+  if (!item.selected_mediator_profile_id) {
+    redirect(`/debtor/cases/${id}/mediator?error=${encodeURIComponent("กรุณาเลือกผู้ไกล่เกลี่ยก่อนเลือกเวลานัดหมาย")}`);
+  }
+
   const slots = await getAvailableSlotsForCase(id, debtor.id);
   const action = bookAppointment.bind(null, id);
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { adminCancelAppointment, adminForceReschedule, adminUpdateMeetingUrl } from "@/app/admin/appointments/actions";
 import { AppointmentStatusBadge } from "@/components/appointments/appointment-status-badge";
 import { AdminShell } from "@/components/admin/admin-shell";
@@ -13,18 +14,34 @@ export const dynamic = "force-dynamic";
 export default async function AdminAppointmentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ success?: string; error?: string; status?: AppointmentStatus; date?: string; mediator?: string; creditor?: string; page?: string }>;
+  searchParams: Promise<{
+    success?: string;
+    error?: string;
+    status?: AppointmentStatus;
+    date?: string;
+    mediator?: string;
+    creditor?: string;
+    page?: string;
+    sort?: "case_number" | "appointment_date" | "status";
+    dir?: "asc" | "desc";
+  }>;
 }) {
   const profile = await requireRole("admin");
-  const { success, error, status, date, mediator, creditor, page: pageParam } = await searchParams;
+  const { success, error, status, date, mediator, creditor, page: pageParam, sort = "appointment_date", dir = "desc" } = await searchParams;
   const appointments = await getAdminAppointments({
     status,
     date,
     mediatorId: mediator,
     creditorOrganizationId: creditor,
   });
+  const sortedAppointments = [...appointments].sort((a, b) => {
+    const factor = dir === "asc" ? 1 : -1;
+    if (sort === "case_number") return String(a.cases?.case_number ?? "").localeCompare(String(b.cases?.case_number ?? ""), "th") * factor;
+    if (sort === "status") return String(a.status).localeCompare(String(b.status), "th") * factor;
+    return (String(a.appointment_date).localeCompare(String(b.appointment_date), "th") || String(a.start_time).localeCompare(String(b.start_time), "th")) * factor;
+  });
   const pageSize = 10;
-  const { page, pageItems: pagedAppointments } = paginateItems(appointments, getPage(pageParam), pageSize);
+  const { page, pageItems: pagedAppointments } = paginateItems(sortedAppointments, getPage(pageParam), pageSize);
 
   return (
     <AdminShell
@@ -57,22 +74,22 @@ export default async function AdminAppointmentsPage({
       <section className="mt-6 rounded-lg border border-black/5 bg-white shadow-sm">
         <div className="border-b border-black/5 px-5 py-4">
           <h2 className="text-lg font-semibold">รายการนัดหมายทั้งหมด</h2>
-          <p className="mt-1 text-sm text-[#6B7280]">{appointments.length.toLocaleString("th-TH")} รายการ</p>
+          <p className="mt-1 text-sm text-[#6B7280]">{sortedAppointments.length.toLocaleString("th-TH")} รายการ</p>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead className="bg-[#F8FAFC] text-xs font-semibold uppercase text-[#6B7280]">
               <tr>
-                <th className="px-5 py-3">เคส</th>
-                <th className="px-5 py-3">วันเวลา</th>
+                <SortableTh basePath="/admin/appointments" label="เคส" keyName="case_number" currentSort={sort} dir={dir} params={{ status, date, mediator, creditor }} />
+                <SortableTh basePath="/admin/appointments" label="วันเวลา" keyName="appointment_date" currentSort={sort} dir={dir} params={{ status, date, mediator, creditor }} />
                 <th className="px-5 py-3">ผู้ไกล่เกลี่ย</th>
                 <th className="px-5 py-3">เจ้าหนี้</th>
-                <th className="px-5 py-3">สถานะ</th>
+                <SortableTh basePath="/admin/appointments" label="สถานะ" keyName="status" currentSort={sort} dir={dir} params={{ status, date, mediator, creditor }} />
                 <th className="px-5 py-3">จัดการ</th>
               </tr>
             </thead>
             <tbody>
-              {appointments.length === 0 ? (
+              {sortedAppointments.length === 0 ? (
                 <tr><td colSpan={6} className="px-5 py-12 text-center text-[#6B7280]">ยังไม่มีนัดหมาย</td></tr>
               ) : pagedAppointments.map((appointment) => (
                 <tr key={appointment.id} className="border-t border-black/5 align-top">
@@ -107,12 +124,43 @@ export default async function AdminAppointmentsPage({
         </div>
         <Pagination
           basePath="/admin/appointments"
-          params={{ status, date, mediator, creditor, page }}
+          params={{ status, date, mediator, creditor, sort, dir }}
           page={page}
           pageSize={pageSize}
-          total={appointments.length}
+          total={sortedAppointments.length}
         />
       </section>
     </AdminShell>
+  );
+}
+
+function SortableTh({
+  basePath,
+  label,
+  keyName,
+  currentSort,
+  dir,
+  params,
+}: {
+  basePath: string;
+  label: string;
+  keyName: "case_number" | "appointment_date" | "status";
+  currentSort: string;
+  dir: "asc" | "desc";
+  params: Record<string, string | undefined>;
+}) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) search.set(key, value);
+  });
+  search.set("sort", keyName);
+  search.set("dir", currentSort === keyName && dir === "asc" ? "desc" : "asc");
+  return (
+    <th className="px-5 py-3">
+      <Link href={`${basePath}?${search.toString()}`} className="inline-flex items-center gap-1 hover:text-[#111827]">
+        {label}
+        {currentSort === keyName ? <span>{dir === "asc" ? "↑" : "↓"}</span> : null}
+      </Link>
+    </th>
   );
 }

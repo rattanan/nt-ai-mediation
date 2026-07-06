@@ -9,9 +9,11 @@ import {
   LogOut,
   Settings,
   Users,
+  BarChart3,
 } from "lucide-react";
 import { logout } from "@/app/auth/actions";
 import { NtLogoMark } from "@/components/nt-logo-mark";
+import { AppFooter } from "@/components/app-footer";
 import type { AuthProfile } from "@/lib/auth/server";
 
 const navItems = [
@@ -22,6 +24,7 @@ const navItems = [
   { href: "/admin/cases", label: "Cases", icon: FileText },
   { href: "/admin/appointments", label: "Appointments", icon: CalendarClock },
   { href: "/admin/billing", label: "Billing", icon: FileText },
+  { href: "/admin/reports", label: "Reports", icon: BarChart3 },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
@@ -96,12 +99,12 @@ export function AdminShell({
                 </form>
               </div>
             </div>
-            <nav className="flex gap-2 overflow-x-auto px-5 pb-4 lg:hidden">
+            <nav className="grid grid-cols-2 gap-2 px-5 pb-4 lg:hidden">
               {navItems.map(({ href, label }) => (
                 <Link
                   key={href}
                   href={href}
-                  className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium ${
+                  className={`rounded-lg px-3 py-2 text-sm font-medium ${
                     activePath === href ? "bg-[#FFD200]" : "bg-[#F3F4F6] text-[#4B5563]"
                   }`}
                 >
@@ -112,6 +115,7 @@ export function AdminShell({
           </header>
 
           <main className="flex-1 px-5 py-6 lg:px-8">{children}</main>
+          <AppFooter />
         </div>
       </div>
     </div>

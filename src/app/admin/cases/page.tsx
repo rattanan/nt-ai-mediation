@@ -5,40 +5,53 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getPage, paginateItems, Pagination } from "@/components/ui/pagination";
 import { requireAdmin } from "@/lib/admin/auth";
-import { caseStatusLabels, getAdminCaseQueue, getCaseComments, getCaseHistory } from "@/lib/cases";
+import { caseStatusLabels, getCaseComments, getCaseHistory } from "@/lib/cases";
+import { getClosingForCase, resultStatusLabels } from "@/lib/closing";
+import { getCreditorResponses } from "@/lib/creditor";
 import { createClient } from "@/lib/supabase/server";
 import { rejectCaseByAdmin, requestCaseMoreInfo, sendCaseToCreditorReview } from "@/app/admin/cases/actions";
+
+const activeStatuses = ["submitted", "reviewing", "admin_review", "needs_more_info", "creditor_review", "creditor_accepted", "mediator_matching", "matched", "mediator_selected", "appointment_scheduling", "scheduled", "in_mediation", "settlement_draft"] as const;
+const completedStatuses = ["settled", "closed", "not_settled", "creditor_rejected"] as const;
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminCasesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ caseId?: string; page?: string; success?: string; error?: string }>;
+  searchParams: Promise<{ caseId?: string; page?: string; success?: string; error?: string; tab?: "active" | "completed" }>;
 }) {
   const profile = await requireAdmin();
-  const { caseId, page: pageParam, success, error } = await searchParams;
-  const cases = await getAdminCaseQueue();
+  const { caseId, page: pageParam, success, error, tab = "active" } = await searchParams;
+  const cases = await getAllCases();
+  const filteredCases = cases.filter((item) => (tab === "completed" ? completedStatuses.includes(item.status as (typeof completedStatuses)[number]) : activeStatuses.includes(item.status as (typeof activeStatuses)[number])));
   const pageSize = 10;
-  const { page, pageItems: pagedCases } = paginateItems(cases, getPage(pageParam), pageSize);
-  const selectedId = caseId ?? cases[0]?.id;
-  const selectedCase = selectedId ? cases.find((item) => item.id === selectedId) ?? await getAnyCase(selectedId) : null;
+  const { page, pageItems: pagedCases } = paginateItems(filteredCases, getPage(pageParam), pageSize);
+  const selectedId = caseId ?? filteredCases[0]?.id;
+  const selectedCase = selectedId ? filteredCases.find((item) => item.id === selectedId) ?? await getAnyCase(selectedId) : null;
   const history = selectedCase ? await getCaseHistory(selectedCase.id) : [];
   const comments = selectedCase ? await getCaseComments(selectedCase.id) : [];
+  const creditorResponses = selectedCase?.creditor_organization_id ? await getCreditorResponses(selectedCase.id, selectedCase.creditor_organization_id) : [];
+  const closing = selectedCase ? await getClosingForCase(selectedCase.id) : null;
 
   return (
-    <AdminShell profile={profile} activePath="/admin/cases" title="Case Review" subtitle="ตรวจสอบคำขอที่ลูกหนี้ส่งเข้าระบบและส่งต่อให้เจ้าหนี้">
+    <AdminShell profile={profile} activePath="/admin/cases" title="Case Review" subtitle="ตรวจสอบคำขอที่ลูกหนี้ส่งเข้าระบบและจัดการงานระหว่างรอเจ้าหนี้พิจารณา">
       {success ? <Alert variant="success" className="mb-5">{success}</Alert> : null}
       {error ? <Alert variant="destructive" className="mb-5">{error}</Alert> : null}
+
+      <div className="mb-5 flex gap-2">
+        <Button href="/admin/cases?tab=active" variant={tab === "active" ? "default" : "outline"} className="rounded-lg font-semibold">Active Cases</Button>
+        <Button href="/admin/cases?tab=completed" variant={tab === "completed" ? "default" : "outline"} className="rounded-lg font-semibold">Completed Cases</Button>
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-[24rem_1fr]">
         <section className="rounded-lg border border-black/5 bg-white shadow-sm">
           <div className="border-b border-black/5 px-5 py-4">
-            <h2 className="font-semibold">Submitted cases queue</h2>
-            <p className="mt-1 text-sm text-[#6B7280]">{cases.length.toLocaleString("th-TH")} เคสรอการดำเนินการ</p>
+            <h2 className="font-semibold">{tab === "completed" ? "Completed Cases" : "Active Cases"}</h2>
+            <p className="mt-1 text-sm text-[#6B7280]">{filteredCases.length.toLocaleString("th-TH")} เคส</p>
           </div>
           <div className="divide-y divide-black/5">
-            {cases.length === 0 ? (
+            {filteredCases.length === 0 ? (
               <p className="px-5 py-10 text-center text-sm text-[#6B7280]">ไม่มีเคสรอตรวจสอบ</p>
             ) : pagedCases.map((item) => (
               <Link key={item.id} href={`/admin/cases?${new URLSearchParams({ caseId: item.id, ...(page > 1 ? { page: String(page) } : {}) }).toString()}`} className={`block px-5 py-4 hover:bg-[#FFFBEA] ${item.id === selectedCase?.id ? "bg-[#FFF8D9]" : ""}`}>
@@ -46,9 +59,9 @@ export default async function AdminCasesPage({
                 <p className="mt-1 text-sm text-[#6B7280]">{item.creditor_name} · {Number(item.debt_amount).toLocaleString("th-TH")} บาท</p>
                 <Badge className="mt-2">{caseStatusLabels[item.status]}</Badge>
               </Link>
-            ))}
+              ))}
           </div>
-          <Pagination basePath="/admin/cases" params={{ caseId, page }} page={page} pageSize={pageSize} total={cases.length} />
+          <Pagination basePath="/admin/cases" params={{ caseId, tab }} page={page} pageSize={pageSize} total={filteredCases.length} />
         </section>
 
         {selectedCase ? (
@@ -60,9 +73,15 @@ export default async function AdminCasesPage({
                 <p className="mt-1 text-sm text-[#6B7280]">{selectedCase.creditor_name} · {selectedCase.debt_type}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <CaseAction action={sendCaseToCreditorReview} caseId={selectedCase.id} label="ส่งให้เจ้าหนี้" />
-                <CaseAction action={requestCaseMoreInfo} caseId={selectedCase.id} label="ขอข้อมูลเพิ่ม" variant="outline" />
-                <CaseAction action={rejectCaseByAdmin} caseId={selectedCase.id} label="ปฏิเสธ" variant="outline" />
+                {tab === "active" ? (
+                  <>
+                    <CaseAction action={sendCaseToCreditorReview} caseId={selectedCase.id} label="ส่งให้เจ้าหนี้พิจารณา" />
+                    <CaseAction action={requestCaseMoreInfo} caseId={selectedCase.id} label="ขอข้อมูลเพิ่มเติม" variant="outline" />
+                    <CaseAction action={rejectCaseByAdmin} caseId={selectedCase.id} label="ปิดเคส" variant="outline" />
+                  </>
+                ) : (
+                  <span className="rounded-lg bg-[#F8FAFC] px-3 py-2 text-sm text-[#6B7280]">เคสที่สำเร็จแล้วจัดการได้เฉพาะการดูรายละเอียด</span>
+                )}
               </div>
             </div>
 
@@ -78,6 +97,33 @@ export default async function AdminCasesPage({
             <div className="mt-6 grid gap-5 lg:grid-cols-2">
               <TextPanel title="รายละเอียดปัญหา" value={selectedCase.problem_description} />
               <TextPanel title="ข้อเสนอที่ต้องการ" value={selectedCase.desired_solution} />
+            </div>
+
+            <div className="mt-6 grid gap-5 lg:grid-cols-2">
+              <TextPanel
+                title="รายละเอียดข้อตกลงจากเจ้าหนี้"
+                value={selectedCase.creditor_response_note || "ยังไม่มีการแจ้งข้อตกลงจากเจ้าหนี้"}
+              />
+              <TextPanel
+                title="ข้อตกลงปิดเคส"
+                value={closing?.settlement_summary || (closing ? resultStatusLabels[closing.result_status] : "ยังไม่มีข้อตกลงปิดเคส")}
+              />
+            </div>
+
+            <div className="mt-6">
+              <h3 className="font-semibold">ประวัติการตอบกลับของเจ้าหนี้</h3>
+              <div className="mt-3 space-y-2">
+                {creditorResponses.length === 0 ? (
+                  <p className="text-sm text-[#6B7280]">ยังไม่มีการตอบกลับจากเจ้าหนี้</p>
+                ) : creditorResponses.map((response) => (
+                  <div key={response.id} className="rounded-lg bg-[#F8FAFC] p-3 text-sm">
+                    <p className="font-semibold">{response.response}</p>
+                    <p className="mt-1 text-xs text-[#6B7280]">{new Date(response.created_at).toLocaleString("th-TH")}</p>
+                    {response.reason ? <p className="mt-2 whitespace-pre-line">{response.reason}</p> : null}
+                    {response.proposed_terms ? <p className="mt-2 whitespace-pre-line">{response.proposed_terms}</p> : null}
+                  </div>
+                ))}
+              </div>
             </div>
 
             <form action={sendCaseToCreditorReview} className="mt-6 rounded-lg bg-[#F8FAFC] p-4">
@@ -104,6 +150,12 @@ async function getAnyCase(caseId: string) {
   const supabase = await createClient();
   const { data } = await supabase.from("cases").select("*").eq("id", caseId).maybeSingle();
   return data;
+}
+
+async function getAllCases() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("cases").select("*").order("updated_at", { ascending: false });
+  return data ?? [];
 }
 
 function CaseAction({ action, caseId, label, variant = "default" }: { action: (formData: FormData) => Promise<void>; caseId: string; label: string; variant?: "default" | "outline" }) {

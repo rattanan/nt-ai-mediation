@@ -4,22 +4,24 @@ import { AppointmentSummaryCard } from "@/components/appointments/appointment-su
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Pagination, getPage, paginateItems } from "@/components/ui/pagination";
 import { PortalShell } from "@/components/portal-shell";
 import { getAppointmentsForMediator, isUpcomingAppointment } from "@/lib/appointments";
 import { requireRole } from "@/lib/auth/server";
 import { getAssignedMediatorCases, mediatorSidebar } from "@/lib/mediator-portal";
 import { getMediatorProfileByUser } from "@/lib/mediators";
+import { caseStatusLabels } from "@/lib/cases";
 
 export const dynamic = "force-dynamic";
 
 export default async function MediatorAppointmentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ success?: string; error?: string; page?: string }>;
+  searchParams: Promise<{ success?: string; error?: string; page?: string; q?: string }>;
 }) {
   const authProfile = await requireRole("mediator");
-  const { success, error, page: pageParam } = await searchParams;
+  const { success, error, page: pageParam, q = "" } = await searchParams;
   const mediatorProfile = await getMediatorProfileByUser(authProfile.id);
 
   if (!mediatorProfile || mediatorProfile.status !== "approved") {
@@ -41,10 +43,26 @@ export default async function MediatorAppointmentsPage({
 
   const appointments = await getAppointmentsForMediator(mediatorProfile.id);
   const assignedCases = await getAssignedMediatorCases(mediatorProfile.id);
+  const normalizedQuery = q.trim().toLowerCase();
+  const filteredAssignedCases = normalizedQuery
+    ? assignedCases.filter((caseItem) => {
+        const haystack = [
+          caseItem.case_number,
+          caseItem.creditor_name,
+          caseStatusLabels[caseItem.status],
+          caseItem.province,
+          caseItem.debt_type,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(normalizedQuery);
+      })
+    : assignedCases;
   const pendingAppointments = appointments.filter((appointment) => appointment.status === "pending_confirmation" && !appointment.confirmed_by_mediator_at);
   const upcomingAppointments = appointments.filter(isUpcomingAppointment);
   const pageSize = 8;
-  const { page, pageItems: pagedAssignedCases, total } = paginateItems(assignedCases, getPage(pageParam), pageSize);
+  const { page, pageItems: pagedAssignedCases, total } = paginateItems(filteredAssignedCases, getPage(pageParam), pageSize);
 
   return (
     <PortalShell
@@ -62,6 +80,17 @@ export default async function MediatorAppointmentsPage({
     >
       {success ? <Alert variant="success" className="mb-5">{success}</Alert> : null}
       {error ? <Alert variant="destructive" className="mb-5">{error}</Alert> : null}
+
+      <form className="mb-5 grid gap-3 rounded-lg border border-black/5 bg-white p-4 shadow-sm sm:grid-cols-[1fr_auto]">
+        <label className="block">
+          <span className="mb-2 block text-sm font-medium text-[#374151]">ค้นหาเคสหรือเลขคำขอ</span>
+          <Input name="q" type="search" defaultValue={q} placeholder="พิมพ์เลขเคส ชื่อเจ้าหนี้ หรือสถานะ" />
+        </label>
+        <div className="flex items-end gap-2">
+          <Button type="submit" className="h-11 rounded-lg font-semibold">ค้นหา</Button>
+          <Button href="/mediator/appointments" variant="outline" className="h-11 rounded-lg font-semibold">ล้าง</Button>
+        </div>
+      </form>
 
       <section className="mt-6 grid gap-5 xl:grid-cols-2">
         <div className="space-y-5">
@@ -97,25 +126,31 @@ export default async function MediatorAppointmentsPage({
                   <th className="px-3 py-3">เจ้าหนี้</th>
                   <th className="px-3 py-3">ยอดหนี้</th>
                   <th className="px-3 py-3">สถานะ</th>
+                  <th className="px-3 py-3">เปิดดู</th>
                 </tr>
               </thead>
               <tbody>
                 {pagedAssignedCases.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-3 py-10 text-center text-[#6B7280]">ยังไม่มีเคสที่ได้รับมอบหมาย</td>
+                    <td colSpan={5} className="px-3 py-10 text-center text-[#6B7280]">ยังไม่มีเคสที่ได้รับมอบหมาย</td>
                   </tr>
                 ) : pagedAssignedCases.map((caseItem) => (
                   <tr key={caseItem.id} className="border-b border-black/5 last:border-0">
                     <td className="px-3 py-3 font-medium">{caseItem.case_number}</td>
                     <td className="px-3 py-3 text-[#6B7280]">{caseItem.creditor_name}</td>
                     <td className="px-3 py-3">{Number(caseItem.debt_amount).toLocaleString("th-TH")} บาท</td>
-                    <td className="px-3 py-3"><Badge>{caseItem.status}</Badge></td>
+                    <td className="px-3 py-3"><Badge>{caseStatusLabels[caseItem.status]}</Badge></td>
+                    <td className="px-3 py-3">
+                      <Button href={`/mediator/cases/${caseItem.id}`} variant="outline" className="h-9 rounded-lg font-semibold">
+                        ดูรายละเอียด
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <Pagination basePath="/mediator/appointments" params={{}} page={page} pageSize={pageSize} total={total} />
+          <Pagination basePath="/mediator/appointments" params={{ q }} page={page} pageSize={pageSize} total={total} />
         </section>
       </section>
     </PortalShell>

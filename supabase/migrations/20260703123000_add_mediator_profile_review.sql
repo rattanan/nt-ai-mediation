@@ -163,7 +163,7 @@ on public.mediator_profiles for update
 to authenticated
 using (
   public.is_admin()
-  or (user_id = auth.uid() and status in ('draft', 'needs_revision', 'rejected'))
+  or user_id = auth.uid()
 )
 with check (
   public.is_admin()

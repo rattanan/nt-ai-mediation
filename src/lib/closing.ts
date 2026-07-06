@@ -8,6 +8,7 @@ export type FeeSettings = Database["public"]["Tables"]["fee_settings"]["Row"];
 export type ClosingRecord = Database["public"]["Tables"]["mediation_closing_records"]["Row"];
 export type PaymentPlan = Database["public"]["Tables"]["settlement_payment_plans"]["Row"];
 export type SettlementDocument = Database["public"]["Tables"]["settlement_documents"]["Row"];
+export type SettlementDocumentSignature = Database["public"]["Tables"]["settlement_document_signatures"]["Row"];
 export type BillingInvoice = Database["public"]["Tables"]["billing_invoices"]["Row"];
 export type BillingInvoiceItem = Database["public"]["Tables"]["billing_invoice_items"]["Row"];
 
@@ -129,7 +130,7 @@ export async function queueClosingEmails(input: {
 }
 
 export function settlementDocumentUrl(documentId: string) {
-  return `/documents/settlements/${documentId}`;
+  return `/documents/settlements/${documentId}/pdf`;
 }
 
 export function invoiceDocumentUrl(invoiceId: string) {
@@ -158,12 +159,13 @@ export async function getSettlementDocument(documentId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("settlement_documents")
-    .select("*, mediation_closing_records(*, cases(*), settlement_payment_plans(*), mediator_profiles(*), creditor_organizations(*))")
+    .select("*, mediation_closing_records(*, cases(*), settlement_payment_plans(*), mediator_profiles(*), creditor_organizations(*)), settlement_document_signatures(*)")
     .eq("id", documentId)
     .maybeSingle();
   if (!data) notFound();
   return data as unknown as SettlementDocument & {
     mediation_closing_records: Awaited<ReturnType<typeof getClosingDetail>>;
+    settlement_document_signatures?: SettlementDocumentSignature[] | null;
   };
 }
 

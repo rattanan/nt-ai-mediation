@@ -37,6 +37,45 @@ export async function updateCreditorOrganizationStatus(formData: FormData) {
   go("อัปเดตสถานะองค์กรสำเร็จ");
 }
 
+export async function updateCreditorOrganizationInfo(formData: FormData) {
+  await requireAdmin();
+  const organizationId = String(formData.get("organization_id") ?? "");
+  const organizationName = String(formData.get("organization_name") ?? "").trim();
+  const organizationType = String(formData.get("organization_type") ?? "").trim();
+  const taxId = String(formData.get("tax_id") ?? "").trim();
+  const contactEmail = String(formData.get("contact_email") ?? "").trim();
+  const contactPhone = String(formData.get("contact_phone") ?? "").trim();
+  const address = String(formData.get("address") ?? "").trim();
+  const website = String(formData.get("website") ?? "").trim();
+  const shortName = String(formData.get("short_name") ?? "").trim();
+
+  if (!organizationId || !organizationName || !organizationType) {
+    go("กรุณากรอกชื่อองค์กรและประเภทองค์กร", "error");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("creditor_organizations")
+    .update({
+      organization_name: organizationName,
+      organization_type: organizationType,
+      tax_id: taxId || null,
+      contact_email: contactEmail || null,
+      contact_phone: contactPhone || null,
+      address: address || null,
+      website: website || null,
+      short_name: shortName || null,
+    })
+    .eq("id", organizationId);
+
+  if (error) {
+    go("บันทึกข้อมูลองค์กรไม่สำเร็จ", "error");
+  }
+
+  revalidatePath("/admin/creditors");
+  redirect(`/admin/creditors?orgId=${encodeURIComponent(organizationId)}&success=${encodeURIComponent("บันทึกข้อมูลองค์กรแล้ว")}`);
+}
+
 export async function linkCaseToCreditorOrganization(formData: FormData) {
   await requireAdmin();
   const caseNumber = String(formData.get("case_number") ?? "").trim();

@@ -3,6 +3,7 @@ import { PortalShell } from "@/components/portal-shell";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth/server";
+import { mediatorSidebar } from "@/lib/mediator-portal";
 import { getMediatorProfileByUser } from "@/lib/mediators";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,7 +29,7 @@ export default async function MediatorClosingPage({
       title="ปิดเคสไกล่เกลี่ย"
       subtitle="บันทึกผลการไกล่เกลี่ย สร้างเอกสารข้อตกลง และออกใบแจ้งหนี้ให้เจ้าหนี้"
       userName={profile.full_name}
-      sidebarItems={[]}
+      sidebarItems={mediatorSidebar("/mediator/cases")}
       metrics={[]}
       table={{ title: "Closing", description: "Closing form", columns: [], actionLabel: "Back" }}
     >

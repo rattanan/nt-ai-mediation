@@ -28,14 +28,22 @@ export function MediatorProfileForm({
   const value = (name: string, fallback?: string | number | null) => state.values?.[name] ?? fallback ?? "";
 
   return (
-    <form className="space-y-6">
+    <form className="space-y-6" encType="multipart/form-data">
       {state.error ? <Alert variant="destructive">{state.error}</Alert> : null}
       <Section step="1" title="ข้อมูลส่วนบุคคล">
         <InputGrid>
           <Field name="title" label="คำนำหน้า" value={value("title", profile?.title)} />
           <Field name="first_name" label="ชื่อ" value={value("first_name", profile?.first_name)} required />
           <Field name="last_name" label="นามสกุล" value={value("last_name", profile?.last_name)} required />
-          <Field name="citizen_id" label="เลขบัตรประชาชน" value={value("citizen_id", profile?.citizen_id)} required />
+          <Field
+            name="citizen_id"
+            label="เลขบัตรประชาชน"
+            value={value("citizen_id", profile?.citizen_id)}
+            required
+            pattern="[0-9]{13}"
+            inputMode="numeric"
+            maxLength={13}
+          />
           <Field name="date_of_birth" label="วันเกิด" value={value("date_of_birth", profile?.date_of_birth)} type="date" />
           <Field name="gender" label="เพศ" value={value("gender", profile?.gender)} />
           <Field name="phone" label="โทรศัพท์" value={value("phone", profile?.phone)} required />
@@ -134,8 +142,40 @@ function InputGrid({ children }: { children: React.ReactNode }) {
   return <div className="grid gap-4 md:grid-cols-2">{children}</div>;
 }
 
-function Field({ name, label, value, type = "text", required = false }: { name: string; label: string; value?: string | number | null; type?: string; required?: boolean }) {
-  return <label className="block"><span className="text-sm font-medium">{label}</span><Input name={name} type={type} defaultValue={value ?? ""} required={required} className="mt-2" /></label>;
+function Field({
+  name,
+  label,
+  value,
+  type = "text",
+  required = false,
+  pattern,
+  inputMode,
+  maxLength,
+}: {
+  name: string;
+  label: string;
+  value?: string | number | null;
+  type?: string;
+  required?: boolean;
+  pattern?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  maxLength?: number;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-medium">{label}</span>
+      <Input
+        name={name}
+        type={type}
+        defaultValue={value ?? ""}
+        required={required}
+        pattern={pattern}
+        inputMode={inputMode}
+        maxLength={maxLength}
+        className="mt-2"
+      />
+    </label>
+  );
 }
 
 function TextArea({ name, label, value }: { name: string; label: string; value?: string | number | null }) {

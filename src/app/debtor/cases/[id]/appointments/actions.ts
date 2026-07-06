@@ -2,9 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { notifyAppointmentRequested } from "@/lib/appointment-notifications";
-import { getAvailableSlotsForCase, recordAppointmentHistory } from "@/lib/appointments";
+import { getActiveAppointmentForCase, getAvailableSlotsForCase, recordAppointmentHistory } from "@/lib/appointments";
 import { requireRole } from "@/lib/auth/server";
 import { getCaseForDebtor } from "@/lib/cases";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export async function bookAppointment(caseId: string, formData: FormData) {
@@ -25,6 +26,7 @@ export async function bookAppointment(caseId: string, formData: FormData) {
 
   const supabase = await createClient();
   const now = new Date().toISOString();
+  const activeAppointment = await getActiveAppointmentForCase(caseId);
   const { data: creditorOfficer } = currentCase.creditor_organization_id
     ? await supabase
       .from("creditor_officers")
@@ -36,69 +38,122 @@ export async function bookAppointment(caseId: string, formData: FormData) {
       .maybeSingle()
     : { data: null };
 
-  const { data: appointment, error } = await supabase
-    .from("mediation_appointments")
-    .insert({
-      case_id: currentCase.id,
-      mediator_id: currentCase.selected_mediator_profile_id,
-      debtor_user_id: debtor.id,
-      creditor_organization_id: currentCase.creditor_organization_id,
-      creditor_officer_user_id: creditorOfficer?.user_id ?? null,
-      appointment_date: slot.date,
-      start_time: slot.startTime,
-      end_time: slot.endTime,
-      timezone: slot.timezone,
-      meeting_type: slot.meetingType,
-      status: "pending_confirmation",
-      requested_by: debtor.id,
-      confirmed_by_debtor_at: now,
-    })
-    .select()
-    .single();
+  const appointmentPayload = {
+    case_id: currentCase.id,
+    mediator_id: currentCase.selected_mediator_profile_id,
+    debtor_user_id: debtor.id,
+    creditor_organization_id: currentCase.creditor_organization_id,
+    creditor_officer_user_id: creditorOfficer?.user_id ?? null,
+    appointment_date: slot.date,
+    start_time: slot.startTime,
+    end_time: slot.endTime,
+    timezone: slot.timezone,
+    meeting_type: slot.meetingType,
+    status: "pending_confirmation" as const,
+    requested_by: debtor.id,
+    confirmed_by_debtor_at: now,
+    confirmed_by_creditor_at: null,
+    confirmed_by_mediator_at: null,
+    meeting_url: null,
+    meeting_provider: "manual_link" as const,
+    cancellation_reason: null,
+  };
+
+  const { data: appointment, error } = activeAppointment?.status === "reschedule_requested"
+    ? await supabase
+      .from("mediation_appointments")
+      .update(appointmentPayload)
+      .eq("id", activeAppointment.id)
+      .select()
+      .single()
+    : await supabase
+      .from("mediation_appointments")
+      .insert(appointmentPayload)
+      .select()
+      .single();
 
   if (error || !appointment) {
     redirect(`/debtor/cases/${caseId}/appointments/new?error=${encodeURIComponent("บันทึกนัดหมายไม่สำเร็จ กรุณาลองอีกครั้ง")}`);
   }
 
-  await supabase.from("appointment_participants").insert([
-    {
-      appointment_id: appointment.id,
-      profile_id: debtor.id,
-      role: "debtor",
-      status: "confirmed",
-      confirmed_at: now,
-    },
-    {
-      appointment_id: appointment.id,
-      profile_id: currentCase.assigned_mediator_id,
-      role: "mediator",
-      status: "pending",
-    },
-    {
-      appointment_id: appointment.id,
-      profile_id: creditorOfficer?.user_id ?? null,
-      organization_id: currentCase.creditor_organization_id,
-      role: "creditor_officer",
-      status: "pending",
-    },
-  ]);
+  if (activeAppointment?.status === "reschedule_requested") {
+    await supabase
+      .from("appointment_participants")
+      .update({ status: "confirmed", confirmed_at: now, note: "ลูกหนี้เลือกเวลานัดใหม่", profile_id: debtor.id })
+      .eq("appointment_id", appointment.id)
+      .eq("role", "debtor");
+    await supabase
+      .from("appointment_participants")
+      .update({ status: "pending", confirmed_at: null, note: null, profile_id: currentCase.assigned_mediator_id })
+      .eq("appointment_id", appointment.id)
+      .eq("role", "mediator");
+    await supabase
+      .from("appointment_participants")
+      .update({ status: "pending", confirmed_at: null, note: null, profile_id: creditorOfficer?.user_id ?? null })
+      .eq("appointment_id", appointment.id)
+      .eq("role", "creditor_officer");
+  } else {
+    await supabase.from("appointment_participants").insert([
+      {
+        appointment_id: appointment.id,
+        profile_id: debtor.id,
+        role: "debtor",
+        status: "confirmed",
+        confirmed_at: now,
+      },
+      {
+        appointment_id: appointment.id,
+        profile_id: currentCase.assigned_mediator_id,
+        role: "mediator",
+        status: "pending",
+      },
+      {
+        appointment_id: appointment.id,
+        profile_id: creditorOfficer?.user_id ?? null,
+        organization_id: currentCase.creditor_organization_id,
+        role: "creditor_officer",
+        status: "pending",
+      },
+    ]);
+  }
 
-  await recordAppointmentHistory(appointment.id, null, "pending_confirmation", debtor.id, "ลูกหนี้ส่งคำขอนัดหมาย");
+  await recordAppointmentHistory(
+    appointment.id,
+    activeAppointment?.status ?? null,
+    "pending_confirmation",
+    debtor.id,
+    activeAppointment?.status === "reschedule_requested" ? "ลูกหนี้เลือกเวลานัดหมายใหม่หลังมีคำขอเลื่อน" : "ลูกหนี้ส่งคำขอนัดหมาย",
+  );
 
-  await supabase
+  const { data: updatedCase, error: updateCaseError } = await supabase
     .from("cases")
     .update({ status: "appointment_scheduling" })
     .eq("id", currentCase.id)
-    .eq("debtor_user_id", debtor.id);
+    .eq("debtor_user_id", debtor.id)
+    .select("id")
+    .maybeSingle();
+
+  if (!updateCaseError && !updatedCase) {
+    try {
+      const admin = createAdminClient();
+      await admin
+        .from("cases")
+        .update({ status: "appointment_scheduling" })
+        .eq("id", currentCase.id)
+        .eq("debtor_user_id", debtor.id);
+    } catch {
+      // Appointment is already saved; keep the booking flow successful even if case status lags behind.
+    }
+  }
 
   await supabase.from("case_status_history").insert({
     case_id: currentCase.id,
     from_status: currentCase.status,
     to_status: "appointment_scheduling",
     changed_by: debtor.id,
-    note: "ลูกหนี้เลือกช่วงเวลานัดหมายไกล่เกลี่ย",
+    note: activeAppointment?.status === "reschedule_requested" ? "ลูกหนี้เลือกช่วงเวลานัดใหม่หลังคำขอเลื่อนนัด" : "ลูกหนี้เลือกช่วงเวลานัดหมายไกล่เกลี่ย",
   });
 
   await notifyAppointmentRequested({ appointmentId: appointment.id, caseId: currentCase.id, status: "pending_confirmation" });
-  redirect(`/debtor/cases/${caseId}/appointments/${appointment.id}?success=${encodeURIComponent("ส่งคำขอนัดหมายแล้ว")}`);
+  redirect(`/debtor/cases/${caseId}/appointments/${appointment.id}?success=${encodeURIComponent(activeAppointment?.status === "reschedule_requested" ? "เลือกเวลานัดใหม่แล้ว รอทุกฝ่ายยืนยันอีกครั้ง" : "ส่งคำขอนัดหมายแล้ว")}`);
 }

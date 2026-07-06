@@ -88,6 +88,17 @@ export async function listCreditorOrganizations() {
   return data ?? [];
 }
 
+export async function listPublicCreditorOrganizations() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("creditor_organizations")
+    .select("*")
+    .eq("status", "approved")
+    .eq("is_public", true)
+    .order("display_order", { ascending: true });
+  return data ?? [];
+}
+
 export async function listCreditorOfficers(organizationId: string) {
   const supabase = await createClient();
   const { data } = await supabase

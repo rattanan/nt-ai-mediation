@@ -9,6 +9,7 @@ import type {
   MeetingProvider,
   MeetingType,
 } from "@/types/database";
+import { generateAvailableSlots } from "@/lib/availability-engine";
 
 export type Appointment = Database["public"]["Tables"]["mediation_appointments"]["Row"];
 export type AppointmentParticipant = Database["public"]["Tables"]["appointment_participants"]["Row"];
@@ -105,6 +106,18 @@ function dayOfWeek(date: string) {
 
 function monthKey(date: string) {
   return date.slice(0, 7);
+}
+
+function parseTimeRanges(values: unknown) {
+  const raw = Array.isArray(values) ? values : [];
+  return raw
+    .map((item) => String(item).trim())
+    .filter(Boolean)
+    .map((item) => {
+      const [startTime, endTime] = item.split(/\s*-\s*/);
+      return startTime && endTime ? { startTime: startTime.slice(0, 5), endTime: endTime.slice(0, 5) } : null;
+    })
+    .filter((item): item is { startTime: string; endTime: string } => Boolean(item));
 }
 
 export function formatThaiDate(date: string) {
@@ -265,6 +278,7 @@ export async function getAvailableSlotsForCase(caseId: string, debtorUserId: str
 
   const startDate = todayString();
   const endDate = addDays(startDate, 45);
+  const generatedSlots = await generateAvailableSlots(currentCase.selected_mediator_profile_id, startDate, endDate);
 
   const { data: slots } = await supabase
     .from("mediator_availability_slots")
@@ -272,6 +286,12 @@ export async function getAvailableSlotsForCase(caseId: string, debtorUserId: str
     .eq("mediator_profile_id", currentCase.selected_mediator_profile_id)
     .eq("active", true)
     .order("start_time", { ascending: true });
+
+  const { data: availability } = await supabase
+    .from("mediator_availability")
+    .select("*")
+    .eq("mediator_profile_id", currentCase.selected_mediator_profile_id)
+    .maybeSingle();
 
   const { data: appointments } = await supabase
     .from("mediation_appointments")
@@ -294,37 +314,92 @@ export async function getAvailableSlotsForCase(caseId: string, debtorUserId: str
 
   const expanded: AvailableSlotView[] = [];
   const rows = slots ?? [];
+  const fallbackDays = availability?.active
+    ? new Set(
+        (Array.isArray(availability.available_days) ? availability.available_days : [])
+          .map((item) => {
+            const value = String(item).trim();
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : value;
+          }),
+      )
+    : new Set<number | string>();
+  const fallbackTimeRanges = availability?.active ? parseTimeRanges(availability.available_time_slots) : [];
 
-  for (let offset = 0; offset <= 45; offset += 1) {
-    const date = addDays(startDate, offset);
-    const weekday = dayOfWeek(date);
-
-    for (const slot of rows) {
-      const matches = slot.is_recurring
-        ? slot.day_of_week === weekday
-        : slot.slot_date === date;
-      if (!matches) continue;
-
-      const startTime = slot.start_time.slice(0, 5);
-      const endTime = slot.end_time.slice(0, 5);
-      const occupied = bookedSlotKeys.has(`${date}|${startTime}|${endTime}`);
-      const dailyFull = (bookingCountByDate.get(date) ?? 0) >= slot.max_cases_per_day;
-      const monthlyFull = (bookingCountByMonth.get(monthKey(date)) ?? 0) >= slot.max_cases_per_month;
-
+  if (generatedSlots.length > 0) {
+    for (const slot of generatedSlots) {
+      const occupied = bookedSlotKeys.has(`${slot.date}|${slot.start}|${slot.end}`);
+      const dailyFull = (bookingCountByDate.get(slot.date) ?? 0) >= 3;
+      const monthlyFull = (bookingCountByMonth.get(monthKey(slot.date)) ?? 0) >= (availability?.max_cases_per_month ?? 20);
       if (occupied || dailyFull || monthlyFull) continue;
 
       expanded.push({
-        key: `${slot.id}:${date}`,
-        slotId: slot.id,
-        date,
-        startTime,
-        endTime,
-        timezone: slot.timezone,
-        meetingType: slot.meeting_type,
-        isRecurring: slot.is_recurring,
-        maxCasesPerDay: slot.max_cases_per_day,
-        maxCasesPerMonth: slot.max_cases_per_month,
+        key: `working-hours:${slot.date}:${slot.start}-${slot.end}`,
+        slotId: currentCase.selected_mediator_profile_id,
+        date: slot.date,
+        startTime: slot.start,
+        endTime: slot.end,
+        timezone: "Asia/Bangkok",
+        meetingType: "online",
+        isRecurring: true,
+        maxCasesPerDay: 3,
+        maxCasesPerMonth: 20,
       });
+    }
+  } else {
+    for (let offset = 0; offset <= 45; offset += 1) {
+      const date = addDays(startDate, offset);
+      const weekday = dayOfWeek(date);
+
+      for (const slot of rows) {
+        const matches = slot.is_recurring
+          ? slot.day_of_week === weekday
+          : slot.slot_date === date;
+        if (!matches) continue;
+
+        const startTime = slot.start_time.slice(0, 5);
+        const endTime = slot.end_time.slice(0, 5);
+        const occupied = bookedSlotKeys.has(`${date}|${startTime}|${endTime}`);
+        const dailyFull = (bookingCountByDate.get(date) ?? 0) >= slot.max_cases_per_day;
+        const monthlyFull = (bookingCountByMonth.get(monthKey(date)) ?? 0) >= slot.max_cases_per_month;
+
+        if (occupied || dailyFull || monthlyFull) continue;
+
+        expanded.push({
+          key: `${slot.id}:${date}`,
+          slotId: slot.id,
+          date,
+          startTime,
+          endTime,
+          timezone: slot.timezone,
+          meetingType: slot.meeting_type,
+          isRecurring: slot.is_recurring,
+          maxCasesPerDay: slot.max_cases_per_day,
+          maxCasesPerMonth: slot.max_cases_per_month,
+        });
+      }
+
+      if (rows.length === 0 && fallbackDays.size > 0 && fallbackTimeRanges.length > 0 && fallbackDays.has(weekday)) {
+        for (const range of fallbackTimeRanges) {
+          const occupied = bookedSlotKeys.has(`${date}|${range.startTime}|${range.endTime}`);
+          const dailyFull = (bookingCountByDate.get(date) ?? 0) >= 3;
+          const monthlyFull = (bookingCountByMonth.get(monthKey(date)) ?? 0) >= (availability?.max_cases_per_month ?? 10);
+          if (occupied || dailyFull || monthlyFull) continue;
+
+          expanded.push({
+            key: `availability:${date}:${range.startTime}-${range.endTime}`,
+            slotId: availability?.id ?? "fallback",
+            date,
+            startTime: range.startTime,
+            endTime: range.endTime,
+            timezone: "Asia/Bangkok",
+            meetingType: "online",
+            isRecurring: true,
+            maxCasesPerDay: 3,
+            maxCasesPerMonth: availability?.max_cases_per_month ?? 10,
+          });
+        }
+      }
     }
   }
 

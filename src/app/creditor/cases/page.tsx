@@ -42,7 +42,17 @@ export default async function CreditorCasesPage({
                 <tr key={item.id} className="border-t border-black/5">
                   <td className="px-5 py-4 font-medium">{item.case_number}</td>
                   <td className="px-5 py-4">{item.creditor_name}</td>
-                  <td className="px-5 py-4">{Number(item.debt_amount).toLocaleString("th-TH")} บาท</td>
+                  <td className="px-5 py-4">
+                    <div className="space-y-1">
+                      <p>{Number(item.debt_amount).toLocaleString("th-TH")} บาท</p>
+                      <p className="text-xs text-[#6B7280]">
+                        รายได้ {formatMoney(item.monthly_income)} · รายจ่าย {formatMoney(item.monthly_expense)}
+                      </p>
+                      <p className="text-xs text-[#6B7280]">
+                        ผ่อนได้ {formatMoney(item.affordable_monthly_payment)} / เดือน
+                      </p>
+                    </div>
+                  </td>
                   <td className="px-5 py-4"><Badge>{caseStatusLabels[item.status]}</Badge></td>
                   <td className="px-5 py-4 text-[#6B7280]">{new Date(item.updated_at).toLocaleDateString("th-TH")}</td>
                   <td className="px-5 py-4 text-right"><Link href={`/creditor/cases/${item.id}`} className="font-semibold text-[#8A6500]">รายละเอียด</Link></td>
@@ -55,4 +65,11 @@ export default async function CreditorCasesPage({
       </section>
     </CreditorShell>
   );
+}
+
+function formatMoney(value: unknown) {
+  if (value === null || value === undefined || value === "") return "-";
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "-";
+  return `${number.toLocaleString("th-TH")} บาท`;
 }

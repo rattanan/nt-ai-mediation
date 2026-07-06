@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Building2, CheckCircle2, Link2, ShieldAlert, Users } from "lucide-react";
-import { linkCaseToCreditorOrganization, updateCreditorOrganizationStatus } from "@/app/admin/creditors/actions";
+import { linkCaseToCreditorOrganization, updateCreditorOrganizationInfo, updateCreditorOrganizationStatus } from "@/app/admin/creditors/actions";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -73,7 +73,7 @@ export default async function AdminCreditorsPage({
                 <article key={organization.id} className="grid gap-4 px-5 py-4 lg:grid-cols-[1fr_auto] lg:items-center">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Link href={`/admin/creditors?${new URLSearchParams({ orgId: organization.id, ...(page > 1 ? { page: String(page) } : {}) }).toString()}`} className="font-semibold hover:underline">
+                      <Link href={`/admin/creditors?${new URLSearchParams({ orgId: organization.id, page: String(page) }).toString()}`} className="font-semibold hover:underline">
                         {organization.organization_name}
                       </Link>
                       <Badge>{creditorOrganizationStatusLabels[organization.status]}</Badge>
@@ -113,11 +113,47 @@ export default async function AdminCreditorsPage({
           <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
             <h2 className="font-semibold">รายละเอียดองค์กร</h2>
             {selectedOrganization ? (
-              <div className="mt-4 space-y-3 text-sm">
-                <p className="font-semibold">{selectedOrganization.organization_name}</p>
-                <p className="text-[#6B7280]">{selectedOrganization.address || "ยังไม่มีที่อยู่"}</p>
-                <Badge>{creditorOrganizationStatusLabels[selectedOrganization.status]}</Badge>
-              </div>
+              <form action={updateCreditorOrganizationInfo} className="mt-4 space-y-4 text-sm">
+                <input type="hidden" name="organization_id" value={selectedOrganization.id} />
+                <label className="block">
+                  <span className="font-medium">ชื่อองค์กร</span>
+                  <Input name="organization_name" defaultValue={selectedOrganization.organization_name} className="mt-2" required />
+                </label>
+                <label className="block">
+                  <span className="font-medium">ประเภทองค์กร</span>
+                  <Input name="organization_type" defaultValue={selectedOrganization.organization_type} className="mt-2" required />
+                </label>
+                <label className="block">
+                  <span className="font-medium">ชื่อย่อ</span>
+                  <Input name="short_name" defaultValue={selectedOrganization.short_name ?? ""} className="mt-2" />
+                </label>
+                <label className="block">
+                  <span className="font-medium">เลขผู้เสียภาษี</span>
+                  <Input name="tax_id" defaultValue={selectedOrganization.tax_id ?? ""} className="mt-2" />
+                </label>
+                <label className="block">
+                  <span className="font-medium">อีเมลติดต่อ</span>
+                  <Input name="contact_email" type="email" defaultValue={selectedOrganization.contact_email ?? ""} className="mt-2" />
+                </label>
+                <label className="block">
+                  <span className="font-medium">โทรศัพท์</span>
+                  <Input name="contact_phone" defaultValue={selectedOrganization.contact_phone ?? ""} className="mt-2" />
+                </label>
+                <label className="block">
+                  <span className="font-medium">เว็บไซต์</span>
+                  <Input name="website" defaultValue={selectedOrganization.website ?? ""} className="mt-2" />
+                </label>
+                <label className="block">
+                  <span className="font-medium">ที่อยู่</span>
+                  <Input name="address" defaultValue={selectedOrganization.address ?? ""} className="mt-2" />
+                </label>
+                <div className="flex items-center gap-2">
+                  <Badge>{creditorOrganizationStatusLabels[selectedOrganization.status]}</Badge>
+                </div>
+                <Button type="submit" className="h-11 w-full rounded-lg font-semibold">
+                  บันทึกข้อมูลองค์กร
+                </Button>
+              </form>
             ) : (
               <p className="mt-4 text-sm text-[#6B7280]">เลือกองค์กรเพื่อดูรายละเอียด</p>
             )}
