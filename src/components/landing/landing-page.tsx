@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Benefits } from "@/components/landing/benefits";
 import { CTA } from "@/components/landing/cta";
 import { Features } from "@/components/landing/features";
+import { LineChatbotSection } from "@/components/landing/line-chatbot-section";
 import { Hero } from "@/components/landing/hero";
 import { Security } from "@/components/landing/security";
 import { ParticipatingCreditors } from "@/components/landing/participating-creditors";
@@ -30,6 +31,7 @@ export function LandingPage({ trustedMediatorsSection }: { trustedMediatorsSecti
         <Timeline content={content.timeline} />
         <Benefits content={content.benefits} />
         <ParticipatingCreditors />
+        <LineChatbotSection />
         {trustedMediatorsSection}
         <Stats stats={content.stats} />
         <Security content={content.security} />
