@@ -34,7 +34,7 @@ export default async function SettlementDocumentPage({ params, searchParams }: {
   return (
     <main className="mx-auto max-w-4xl bg-white px-8 py-10 text-[#111827] print:px-0">
       <div className="mb-6 flex flex-wrap gap-2 print:hidden">
-        <Link href={`/documents/settlements/${documentId}/pdf`} className="rounded-lg bg-[#FFD200] px-4 py-2 text-sm font-semibold">ดาวน์โหลด PDF พร้อมลายเซ็น</Link>
+        <Link href={`/documents/certificates/${closing.case_id}/pdf`} className="rounded-lg bg-[#FFD200] px-4 py-2 text-sm font-semibold">ดาวน์โหลด PDF พร้อมลายเซ็น</Link>
         <a href="#" onClick={undefined} className="rounded-lg border border-black/10 px-4 py-2 text-sm font-semibold" suppressHydrationWarning>ใช้เมนู Print / Save as PDF</a>
       </div>
       {success ? <p className="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{success}</p> : null}

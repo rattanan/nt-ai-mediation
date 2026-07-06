@@ -62,7 +62,9 @@ export default async function DebtorAgreementsPage({
                     {document?.pdf_url ? (
                       <Button href={document.pdf_url} variant="outline" className="rounded-lg font-semibold">เปิดเอกสาร</Button>
                     ) : null}
-                    <Button href={`/documents/certificates/${closing.case_id}`} className="rounded-lg font-semibold">ใบรับรอง</Button>
+                    {document ? (
+                      <Button href={`/documents/settlements/${document.id}`} className="rounded-lg font-semibold">ใบรับรอง</Button>
+                    ) : null}
                   </div>
                 </div>
                 <dl className="mt-5 grid gap-4 sm:grid-cols-3">

@@ -181,20 +181,19 @@ function RepaymentProgress({ caseItem, plan, review }: { caseItem: MediationCase
           <h2 className="mt-1 text-2xl font-semibold text-[#111827]">ติดตามแผนชำระหนี้</h2>
           <p className="mt-1 text-sm text-[#6B7280]">{completedInstallments} / {totalInstallments} งวด</p>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            <p className="font-semibold">ชำระงวดถัดไป</p>
-            <p>{formatDate(plan.first_payment_due_date)} · {money(plan.installment_amount)}</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              <p className="font-semibold">ชำระงวดถัดไป</p>
+              <p>{formatDate(plan.first_payment_due_date)} · {money(plan.installment_amount)}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {review ? (
+                <Button type="button" disabled className="rounded-lg">Review Submitted</Button>
+              ) : (
+                <Button href={`/debtor/cases/${caseItem.id}/review`} className="rounded-lg">Rate Mediator</Button>
+              )}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button href={`/documents/certificates/${caseItem.id}`} variant="outline" className="rounded-lg">Completion Certificate</Button>
-            {review ? (
-              <Button type="button" disabled className="rounded-lg">Review Submitted</Button>
-            ) : (
-              <Button href={`/debtor/cases/${caseItem.id}/review`} className="rounded-lg">Rate Mediator</Button>
-            )}
-          </div>
-        </div>
       </div>
       <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#E5E7EB]">
         <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${percent}%` }} />
@@ -227,7 +226,6 @@ function ClosedBanner({ caseItem, closing, review }: { caseItem: MediationCase; 
           <p className="mt-1 text-sm text-[#6B7280]">วันที่สรุปผล {formatDateTime(closing.closed_at)}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button href={`/documents/certificates/${caseItem.id}`} variant="outline" className="rounded-lg">Completion Certificate</Button>
           {closing.settlement_documents?.map((document) => (
             <Button key={document.id} href={`/documents/settlements/${document.id}`} variant="outline" className="rounded-lg">Download Agreement PDF</Button>
           ))}

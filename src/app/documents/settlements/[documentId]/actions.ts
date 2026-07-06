@@ -10,6 +10,12 @@ function textField(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
 }
 
+function redirectWithMessage(documentId: string, messageType: "success" | "error", message: string) {
+  const params = new URLSearchParams();
+  params.set(messageType, message);
+  redirect(`/documents/settlements/${documentId}?${params.toString()}`);
+}
+
 export async function signSettlementDocument(formData: FormData) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
@@ -20,7 +26,7 @@ export async function signSettlementDocument(formData: FormData) {
   const signerName = textField(formData, "signer_name") || profile.full_name;
 
   if (!documentId || !caseId || !["debtor", "creditor", "mediator"].includes(signerRole)) {
-    redirect(`/documents/settlements/${documentId || caseId}?error=ข้อมูลการลงนามไม่ครบถ้วน`);
+    redirectWithMessage(documentId || caseId, "error", "ข้อมูลการลงนามไม่ครบถ้วน");
   }
 
   const supabase = await createClient();
@@ -30,14 +36,20 @@ export async function signSettlementDocument(formData: FormData) {
     .eq("id", documentId)
     .maybeSingle();
 
-  if (!document) redirect(`/documents/settlements/${documentId}?error=ไม่พบเอกสาร`);
+  if (!document) {
+    redirectWithMessage(documentId, "error", "ไม่พบเอกสาร");
+    return;
+  }
 
   const { data: closing } = await supabase
     .from("mediation_closing_records")
     .select("id, case_id, debtor_user_id, creditor_organization_id, mediator_id")
     .eq("id", document.closing_record_id)
     .maybeSingle();
-  if (!closing || document.case_id !== caseId) redirect(`/documents/settlements/${documentId}?error=ไม่พบข้อมูลที่ตรงกัน`);
+  if (!closing || document.case_id !== caseId) {
+    redirectWithMessage(documentId, "error", "ไม่พบข้อมูลที่ตรงกัน");
+    return;
+  }
 
   const creditorOfficer = signerRole === "creditor" ? await getCreditorOfficer(profile.id) : null;
   const mediatorProfile = signerRole === "mediator" ? await getMediatorProfileByUser(profile.id) : null;
@@ -46,7 +58,8 @@ export async function signSettlementDocument(formData: FormData) {
   const isCreditor = signerRole === "creditor" && profile.role === "creditor" && creditorOfficer?.organization_id === closing.creditor_organization_id;
   const isMediator = signerRole === "mediator" && profile.role === "mediator" && mediatorProfile?.id === closing.mediator_id;
   if (!isDebtor && !isCreditor && !isMediator) {
-    redirect(`/documents/settlements/${documentId}?error=คุณไม่มีสิทธิ์ลงนามเอกสารนี้`);
+    redirectWithMessage(documentId, "error", "คุณไม่มีสิทธิ์ลงนามเอกสารนี้");
+    return;
   }
 
   const { error } = await supabase.from("settlement_document_signatures").upsert(
@@ -62,8 +75,9 @@ export async function signSettlementDocument(formData: FormData) {
   );
 
   if (error) {
-    redirect(`/documents/settlements/${documentId}?error=ลงนามไม่สำเร็จ`);
+    redirectWithMessage(documentId, "error", "ลงนามไม่สำเร็จ");
+    return;
   }
 
-  redirect(`/documents/settlements/${documentId}?success=ลงนามเรียบร้อยแล้ว`);
+  redirectWithMessage(documentId, "success", "ลงนามเรียบร้อยแล้ว");
 }

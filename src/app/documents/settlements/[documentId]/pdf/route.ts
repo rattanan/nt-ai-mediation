@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 import { getSettlementDocument, money, paymentFrequencyLabels, resultStatusLabels } from "@/lib/closing";
 import { getCurrentProfile } from "@/lib/auth/server";
 
@@ -17,11 +20,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const plan = closing.settlement_payment_plans?.[0];
   const signatures = new Map((document.settlement_document_signatures ?? []).map((row) => [row.signer_role, row]));
   const pdf = await PDFDocument.create();
+  pdf.registerFontkit(fontkit);
+  const thaiFontBytes = readFileSync(join(process.cwd(), "public/fonts/ArialUnicode.ttf"));
   const page = pdf.addPage([595, 842]);
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const font = await pdf.embedFont(thaiFontBytes);
   const draw = (text: string, x: number, y: number, size = 11, isBold = false) => {
-    page.drawText(text, { x, y, size, font: isBold ? bold : font, color: rgb(0.08, 0.09, 0.11) });
+    page.drawText(text, { x, y, size, font, color: rgb(0.08, 0.09, 0.11) });
   };
 
   draw("NT AI Digital Mediation Platform", 48, 798, 12, true);
