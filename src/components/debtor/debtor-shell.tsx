@@ -5,6 +5,7 @@ import { logout } from "@/app/auth/actions";
 import { NtLogoMark } from "@/components/nt-logo-mark";
 import { AppFooter } from "@/components/app-footer";
 import type { AuthProfile } from "@/lib/auth/server";
+import { countUpcomingDebtorAppointments } from "@/lib/portal-counts";
 
 const navItems = [
   { href: "/debtor", label: "ภาพรวม", icon: Home },
@@ -14,7 +15,7 @@ const navItems = [
   { href: "/debtor/agreements", label: "ข้อตกลง", icon: Scale },
 ];
 
-export function DebtorShell({
+export async function DebtorShell({
   profile,
   title,
   subtitle,
@@ -27,6 +28,11 @@ export function DebtorShell({
   activePath: string;
   children: ReactNode;
 }) {
+  const upcomingAppointments = await countUpcomingDebtorAppointments(profile.id);
+  const itemCounts: Record<string, number> = {
+    "/debtor/appointments": upcomingAppointments,
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#111827]">
       <div className="flex min-h-screen">
@@ -44,6 +50,7 @@ export function DebtorShell({
           <nav className="flex-1 space-y-1 px-4 py-5">
             {navItems.map(({ href, label, icon: Icon }) => {
               const active = activePath === href;
+              const count = itemCounts[href] ?? 0;
               return (
                 <Link
                   key={label}
@@ -53,7 +60,10 @@ export function DebtorShell({
                   }`}
                 >
                   <Icon className="h-4 w-4" aria-hidden="true" />
-                  {label}
+                  <span className="min-w-0 flex-1">{label}</span>
+                  {count > 0 ? (
+                    <span className="rounded-full bg-[#111827] px-2 py-0.5 text-xs font-semibold text-white">{count.toLocaleString("th-TH")}</span>
+                  ) : null}
                 </Link>
               );
             })}
@@ -79,17 +89,23 @@ export function DebtorShell({
               </form>
             </div>
             <nav className="flex gap-2 overflow-x-auto px-5 pb-4 lg:hidden">
-              {navItems.map((item) => (
+              {navItems.map((item) => {
+                const count = itemCounts[item.href] ?? 0;
+                return (
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium ${
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${
                     activePath === item.href ? "bg-[#FFD200]" : "bg-[#F3F4F6] text-[#4B5563]"
                   }`}
                 >
                   {item.label}
+                  {count > 0 ? (
+                    <span className="rounded-full bg-[#111827] px-2 py-0.5 text-xs font-semibold text-white">{count.toLocaleString("th-TH")}</span>
+                  ) : null}
                 </Link>
-              ))}
+                );
+              })}
             </nav>
           </header>
 

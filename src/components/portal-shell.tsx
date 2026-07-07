@@ -13,6 +13,9 @@ import {
 import { logout } from "@/app/auth/actions";
 import { NtLogoMark } from "@/components/nt-logo-mark";
 import { AppFooter } from "@/components/app-footer";
+import { getCurrentProfile } from "@/lib/auth/server";
+import { getMediatorProfileByUser } from "@/lib/mediators";
+import { countOpenMediatorCases, countUpcomingMediatorAppointments } from "@/lib/portal-counts";
 
 type MetricCard = {
   label: string;
@@ -26,6 +29,7 @@ type SidebarItem = {
   icon: LucideIcon;
   href?: string;
   active?: boolean;
+  badgeCount?: number;
 };
 
 type EmptyTable = {
@@ -35,7 +39,7 @@ type EmptyTable = {
   actionLabel: string;
 };
 
-export function PortalShell({
+export async function PortalShell({
   roleLabel,
   title,
   subtitle,
@@ -54,6 +58,21 @@ export function PortalShell({
   table: EmptyTable;
   children?: React.ReactNode;
 }) {
+  let renderedSidebarItems = sidebarItems;
+  if (roleLabel === "Mediator Portal" && sidebarItems.length > 0) {
+    const profile = await getCurrentProfile();
+    const mediator = profile?.role === "mediator" ? await getMediatorProfileByUser(profile.id) : null;
+    const [openCases, upcomingAppointments] = await Promise.all([
+      countOpenMediatorCases(mediator?.id),
+      countUpcomingMediatorAppointments(mediator?.id),
+    ]);
+    renderedSidebarItems = sidebarItems.map((item) => {
+      if (item.href === "/mediator/cases") return { ...item, badgeCount: openCases };
+      if (item.href === "/mediator/appointments") return { ...item, badgeCount: upcomingAppointments };
+      return item;
+    });
+  }
+
   return (
     <div className="min-h-screen bg-[#F7F7F7] text-[#1F2937]">
       <div className="flex min-h-screen">
@@ -69,7 +88,7 @@ export function PortalShell({
           </div>
 
           <nav className="flex-1 space-y-1 px-4 py-5">
-            {sidebarItems.map(({ label, icon: Icon, href, active }) => (
+            {renderedSidebarItems.map(({ label, icon: Icon, href, active, badgeCount }) => (
               <Link
                 key={label}
                 href={href ?? "#"}
@@ -80,7 +99,10 @@ export function PortalShell({
                 }`}
               >
                 <Icon className="h-4 w-4" />
-                {label}
+                <span className="min-w-0 flex-1">{label}</span>
+                {badgeCount && badgeCount > 0 ? (
+                  <span className="rounded-full bg-[#111827] px-2 py-0.5 text-xs font-semibold text-white">{badgeCount.toLocaleString("th-TH")}</span>
+                ) : null}
               </Link>
             ))}
           </nav>
@@ -135,7 +157,7 @@ export function PortalShell({
 
           <main className="flex-1 px-5 py-6 lg:px-8">
             <div className="mb-5 grid grid-cols-2 gap-2 lg:hidden">
-              {sidebarItems.map(({ label, icon: Icon, href, active }) => (
+              {renderedSidebarItems.map(({ label, icon: Icon, href, active, badgeCount }) => (
                 <Link
                   key={label}
                   href={href ?? "#"}
@@ -144,7 +166,10 @@ export function PortalShell({
                   }`}
                 >
                   <Icon className="h-4 w-4" />
-                  {label}
+                  <span className="min-w-0 flex-1">{label}</span>
+                  {badgeCount && badgeCount > 0 ? (
+                    <span className="rounded-full bg-[#111827] px-2 py-0.5 text-xs font-semibold text-white">{badgeCount.toLocaleString("th-TH")}</span>
+                  ) : null}
                 </Link>
               ))}
             </div>
