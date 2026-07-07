@@ -1,8 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { notifyAppointmentRequested } from "@/lib/appointment-notifications";
-import { getActiveAppointmentForCase, getAvailableSlotsForCase, recordAppointmentHistory } from "@/lib/appointments";
+import { notifyAppointmentRequested, notifyRescheduleRequested } from "@/lib/appointment-notifications";
+import { getActiveAppointmentForCase, getAvailableSlotsForCase, recordAppointmentHistory, requestAppointmentReschedule } from "@/lib/appointments";
 import { requireRole } from "@/lib/auth/server";
 import { getCaseForDebtor } from "@/lib/cases";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -156,4 +156,46 @@ export async function bookAppointment(caseId: string, formData: FormData) {
 
   await notifyAppointmentRequested({ appointmentId: appointment.id, caseId: currentCase.id, status: "pending_confirmation" });
   redirect(`/debtor/cases/${caseId}/appointments/${appointment.id}?success=${encodeURIComponent(activeAppointment?.status === "reschedule_requested" ? "เลือกเวลานัดใหม่แล้ว รอทุกฝ่ายยืนยันอีกครั้ง" : "ส่งคำขอนัดหมายแล้ว")}`);
+}
+
+export async function requestDebtorAppointmentReschedule(formData: FormData) {
+  const debtor = await requireRole("debtor");
+  const appointmentId = String(formData.get("appointment_id") ?? "");
+  const caseId = String(formData.get("case_id") ?? "");
+  const note = String(formData.get("note") ?? "").trim() || "ลูกหนี้ขอเลื่อนนัดหมาย";
+
+  if (!appointmentId || !caseId) {
+    redirect(`/debtor/appointments?error=${encodeURIComponent("ไม่พบนัดหมายที่ต้องการขอเลื่อน")}`);
+  }
+
+  const supabase = await createClient();
+  const { data: appointment } = await supabase
+    .from("mediation_appointments")
+    .select("*")
+    .eq("id", appointmentId)
+    .eq("case_id", caseId)
+    .eq("debtor_user_id", debtor.id)
+    .maybeSingle();
+
+  if (!appointment) {
+    redirect(`/debtor/cases/${caseId}?error=${encodeURIComponent("ไม่พบนัดหมายของคุณ")}`);
+  }
+
+  if (appointment.status === "completed" || appointment.status === "cancelled") {
+    redirect(`/debtor/cases/${caseId}/appointments/${appointmentId}?error=${encodeURIComponent("นัดหมายนี้ไม่สามารถขอเลื่อนได้แล้ว")}`);
+  }
+
+  const { error } = await requestAppointmentReschedule({
+    appointment,
+    actorId: debtor.id,
+    actorRole: "debtor",
+    note,
+  });
+
+  if (error) {
+    redirect(`/debtor/cases/${caseId}/appointments/${appointmentId}?error=${encodeURIComponent("ขอเลื่อนนัดหมายไม่สำเร็จ")}`);
+  }
+
+  await notifyRescheduleRequested({ appointmentId, caseId, status: "reschedule_requested" });
+  redirect(`/debtor/cases/${caseId}?success=${encodeURIComponent("ส่งคำขอเลื่อนนัดแล้ว กรุณาเลือกเวลานัดหมายใหม่")}`);
 }

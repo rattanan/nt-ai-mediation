@@ -182,9 +182,9 @@ export async function recordUserConsent(userId: string, version: string, languag
     headerStore.get("x-real-ip") ||
     null;
   const userAgent = headerStore.get("user-agent");
-  const admin = createAdminClient();
+  const writer = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : await createClient();
 
-  const { error } = await admin.from("user_consents").upsert(
+  const { error } = await writer.from("user_consents").upsert(
     {
       user_id: userId,
       consent_version: version,

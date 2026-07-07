@@ -118,10 +118,12 @@ export default async function CreditorCaseDetailPage({
                 <input type="hidden" name="case_id" value={item.id} />
                 <textarea name="note" className="min-h-24 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" placeholder="หมายเหตุสำหรับการพิจารณา" />
                 <textarea name="proposed_terms" className="min-h-24 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" placeholder="เงื่อนไขข้อตกลงที่ต้องการแจ้งกลับไปยังลูกหนี้ (ถ้ามี)" />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Input name="settlement_amount" type="number" min="0" step="0.01" placeholder="ยอดข้อตกลง" />
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <Input name="discount_amount" type="number" min="0" step="0.01" placeholder="ส่วนลดที่เสนอ" />
+                  <Input name="settlement_amount" type="number" min="0" step="0.01" placeholder="ยอดข้อตกลงหลังส่วนลด" />
                   <Input name="monthly_payment" type="number" min="0" step="0.01" placeholder="ยอดชำระต่อเดือน" />
                 </div>
+                <p className="text-xs text-[#6B7280]">ระบบจะบันทึกส่วนลดรวมในข้อเสนอ และใช้ยอดข้อตกลงหลังส่วนลดสำหรับการพิจารณาแผนชำระ</p>
                 <Button type="submit" className="h-11 w-full rounded-lg font-semibold">รับคำขอ</Button>
               </form>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -176,7 +178,7 @@ export default async function CreditorCaseDetailPage({
               <p className="mt-1 text-sm text-[#6B7280]">{resultStatusLabels[closing.result_status]}</p>
               <div className="mt-4 grid gap-2">
                 {closing.settlement_documents?.map((doc) => (
-                  <Button key={doc.id} href={`/documents/settlements/${doc.id}`} variant="outline" className="h-11 rounded-lg">ดาวน์โหลดเอกสาร</Button>
+                  <Button key={doc.id} href={`/documents/settlements/${doc.id}`} variant="outline" className="h-11 rounded-lg">เปิดเอกสาร/ลงนาม</Button>
                 ))}
                 {closing.billing_invoices?.map((invoice) => (
                   <Button key={invoice.id} href={`/documents/invoices/${invoice.id}`} className="h-11 rounded-lg">ดาวน์โหลดใบแจ้งหนี้</Button>

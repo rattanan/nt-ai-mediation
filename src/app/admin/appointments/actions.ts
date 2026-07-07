@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { notifyAppointmentCancelled, notifyRescheduleRequested } from "@/lib/appointment-notifications";
-import { normalizeMeetingUrl, recordAppointmentHistory } from "@/lib/appointments";
+import { normalizeMeetingUrl, recordAppointmentHistory, requestAppointmentReschedule } from "@/lib/appointments";
 import { requireRole } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -30,11 +30,15 @@ export async function adminCancelAppointment(formData: FormData) {
 }
 
 export async function adminForceReschedule(formData: FormData) {
-  const { admin, supabase, appointment } = await getAdminAppointment(formData);
+  const { admin, appointment } = await getAdminAppointment(formData);
   const reason = String(formData.get("reason") ?? "").trim() || "ผู้ดูแลระบบขอให้เลื่อนนัดหมาย";
-  const { error } = await supabase.from("mediation_appointments").update({ status: "reschedule_requested", cancellation_reason: reason }).eq("id", appointment.id);
+  const { error } = await requestAppointmentReschedule({
+    appointment,
+    actorId: admin.id,
+    actorRole: "admin",
+    note: reason,
+  });
   if (error) go("ขอเลื่อนนัดหมายไม่สำเร็จ", "error");
-  await recordAppointmentHistory(appointment.id, appointment.status, "reschedule_requested", admin.id, reason);
   await notifyRescheduleRequested({ appointmentId: appointment.id, caseId: appointment.case_id, status: "reschedule_requested" });
   go("ส่งคำขอเลื่อนนัดหมายแล้ว");
 }

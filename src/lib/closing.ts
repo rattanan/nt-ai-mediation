@@ -133,6 +133,10 @@ export function settlementDocumentUrl(documentId: string) {
   return `/documents/settlements/${documentId}/pdf`;
 }
 
+export function settlementDocumentPageUrl(documentId: string) {
+  return `/documents/settlements/${documentId}`;
+}
+
 export function invoiceDocumentUrl(invoiceId: string) {
   return `/documents/invoices/${invoiceId}`;
 }

@@ -3,6 +3,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type {
+  AppointmentParticipantRole,
   AppointmentParticipantStatus,
   AppointmentStatus,
   Database,
@@ -421,6 +422,63 @@ export async function recordAppointmentHistory(
     changed_by: changedBy,
     note: note?.trim() || null,
   });
+}
+
+export async function requestAppointmentReschedule(input: {
+  appointment: Appointment;
+  actorId: string;
+  actorRole: AppointmentParticipantRole;
+  note: string;
+}) {
+  const supabase = await createClient();
+  const { appointment, actorId, actorRole, note } = input;
+
+  const { error } = await supabase
+    .from("mediation_appointments")
+    .update({
+      status: "reschedule_requested",
+      cancellation_reason: note,
+      confirmed_by_debtor_at: null,
+      confirmed_by_creditor_at: null,
+      confirmed_by_mediator_at: null,
+    })
+    .eq("id", appointment.id);
+
+  if (error) return { error };
+
+  await supabase
+    .from("appointment_participants")
+    .update({ status: "pending", confirmed_at: null, note: null })
+    .eq("appointment_id", appointment.id);
+
+  await supabase
+    .from("appointment_participants")
+    .update({ status: "reschedule_requested", confirmed_at: null, note, profile_id: actorId })
+    .eq("appointment_id", appointment.id)
+    .eq("role", actorRole);
+
+  if (actorRole === "admin") {
+    const { data: adminParticipant } = await supabase
+      .from("appointment_participants")
+      .select("id")
+      .eq("appointment_id", appointment.id)
+      .eq("role", "admin")
+      .eq("profile_id", actorId)
+      .maybeSingle();
+
+    if (!adminParticipant) {
+      await supabase.from("appointment_participants").insert({
+        appointment_id: appointment.id,
+        profile_id: actorId,
+        role: "admin",
+        status: "reschedule_requested",
+        note,
+      });
+    }
+  }
+
+  await recordAppointmentHistory(appointment.id, appointment.status, "reschedule_requested", actorId, note);
+  return { error: null };
 }
 
 export async function confirmAppointmentIfReady(appointmentId: string, actorId: string) {

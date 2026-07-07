@@ -61,7 +61,7 @@ export function LineChatbotSection() {
 
             <h2
               id="line-chatbot-heading"
-              className="mt-5 text-balance text-4xl font-bold tracking-tight text-foreground sm:text-5xl"
+              className="mt-5 text-balance text-4xl font-bold tracking-tight text-foreground sm:text-4xl"
             >
               💬 เริ่มต้นปรึกษาปัญหาหนี้กับ &quot;สัญญาใจ&quot;
             </h2>

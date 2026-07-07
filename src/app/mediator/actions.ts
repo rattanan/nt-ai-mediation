@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { notifyAppointmentConfirmed, notifyRescheduleRequested } from "@/lib/appointment-notifications";
-import { confirmAppointmentIfReady, normalizeMeetingUrl, recordAppointmentHistory } from "@/lib/appointments";
+import { confirmAppointmentIfReady, normalizeMeetingUrl, recordAppointmentHistory, requestAppointmentReschedule } from "@/lib/appointments";
 import { requireRole } from "@/lib/auth/server";
 import {
   getMediatorProfileByUser,
@@ -364,16 +364,16 @@ export async function confirmMediatorAppointment(formData: FormData) {
 }
 
 export async function requestMediatorReschedule(formData: FormData) {
-  const { profile, supabase, appointment } = await getMediatorAppointment(formData);
+  const { profile, appointment } = await getMediatorAppointment(formData);
   const note = String(formData.get("note") ?? "").trim() || "ผู้ไกล่เกลี่ยขอเลื่อนนัดหมาย";
-  const { error } = await supabase
-    .from("mediation_appointments")
-    .update({ status: "reschedule_requested", cancellation_reason: note })
-    .eq("id", appointment.id);
+  const { error } = await requestAppointmentReschedule({
+    appointment,
+    actorId: profile.id,
+    actorRole: "mediator",
+    note,
+  });
 
   if (error) go("/mediator/appointments", "ขอเลื่อนนัดหมายไม่สำเร็จ", "error");
-  await supabase.from("appointment_participants").update({ status: "reschedule_requested", note }).eq("appointment_id", appointment.id).eq("role", "mediator");
-  await recordAppointmentHistory(appointment.id, appointment.status, "reschedule_requested", profile.id, note);
   await notifyRescheduleRequested({ appointmentId: appointment.id, caseId: appointment.case_id, status: "reschedule_requested" });
   go(`/mediator/appointments/${appointment.id}`, "ส่งคำขอเลื่อนนัดหมายแล้ว");
 }

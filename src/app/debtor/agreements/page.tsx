@@ -60,10 +60,10 @@ export default async function DebtorAgreementsPage({
                   </div>
                   <div className="flex gap-2">
                     {document?.pdf_url ? (
-                      <Button href={document.pdf_url} variant="outline" className="rounded-lg font-semibold">เปิดเอกสาร</Button>
+                      <Button href={document.pdf_url} variant="outline" className="rounded-lg font-semibold">ดาวน์โหลด PDF</Button>
                     ) : null}
                     {document ? (
-                      <Button href={`/documents/settlements/${document.id}`} className="rounded-lg font-semibold">ใบรับรอง</Button>
+                      <Button href={`/documents/settlements/${document.id}`} className="rounded-lg font-semibold">เปิดเอกสาร/ลงนาม</Button>
                     ) : null}
                   </div>
                 </div>

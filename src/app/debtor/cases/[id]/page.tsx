@@ -126,7 +126,7 @@ export default async function CaseDetailPage({
               <p className="mt-1 text-sm text-[#6B7280]">{resultStatusLabels[closing.result_status]}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {closing.settlement_documents?.map((doc) => (
-                  <Button key={doc.id} href={`/documents/settlements/${doc.id}`} variant="outline" className="rounded-lg">ดาวน์โหลดเอกสาร</Button>
+                  <Button key={doc.id} href={`/documents/settlements/${doc.id}`} variant="outline" className="rounded-lg">เปิดเอกสาร/ลงนาม</Button>
                 ))}
               </div>
             </section>

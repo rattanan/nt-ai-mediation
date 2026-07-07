@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { notifyAppointmentConfirmed, notifyRescheduleRequested } from "@/lib/appointment-notifications";
-import { confirmAppointmentIfReady, recordAppointmentHistory } from "@/lib/appointments";
+import { confirmAppointmentIfReady, recordAppointmentHistory, requestAppointmentReschedule } from "@/lib/appointments";
 import { requireRole } from "@/lib/auth/server";
 import { getCreditorOfficer } from "@/lib/creditor";
 import { createClient } from "@/lib/supabase/server";
@@ -166,8 +166,10 @@ export async function submitCreditorResponse(formData: FormData) {
   const reason = String(formData.get("reason") ?? "").trim();
   const requestedInformation = String(formData.get("requested_information") ?? "").trim();
   const proposedTerms = String(formData.get("proposed_terms") ?? "").trim();
+  const discountAmountRaw = String(formData.get("discount_amount") ?? "").trim();
   const settlementAmountRaw = String(formData.get("settlement_amount") ?? "").trim();
   const monthlyPaymentRaw = String(formData.get("monthly_payment") ?? "").trim();
+  const discountAmount = discountAmountRaw ? Number(discountAmountRaw) : null;
   const settlementAmount = settlementAmountRaw ? Number(settlementAmountRaw) : null;
   const monthlyPayment = monthlyPaymentRaw ? Number(monthlyPaymentRaw) : null;
 
@@ -198,6 +200,13 @@ export async function submitCreditorResponse(formData: FormData) {
     .eq("id", caseId)
     .eq("creditor_organization_id", officer.organization_id)
     .maybeSingle();
+  const enrichedProposedTerms = [
+    proposedTerms || null,
+    typeof discountAmount === "number" && Number.isFinite(discountAmount)
+      ? `ส่วนลดที่เสนอ ${discountAmount.toLocaleString("th-TH")} บาท`
+      : null,
+  ].filter(Boolean).join("\n") || null;
+
   const responsePayload = {
     case_id: caseId,
     organization_id: officer.organization_id,
@@ -205,7 +214,7 @@ export async function submitCreditorResponse(formData: FormData) {
     response,
     reason: reason || null,
     requested_information: requestedInformation || null,
-    proposed_terms: proposedTerms || null,
+    proposed_terms: enrichedProposedTerms,
     settlement_amount: typeof settlementAmount === "number" && Number.isFinite(settlementAmount) ? settlementAmount : null,
     monthly_payment: typeof monthlyPayment === "number" && Number.isFinite(monthlyPayment) ? monthlyPayment : null,
   };
@@ -224,7 +233,7 @@ export async function submitCreditorResponse(formData: FormData) {
   }
 
   const settlementNote = [
-    proposedTerms ? `ข้อเสนอ: ${proposedTerms}` : null,
+    enrichedProposedTerms ? `ข้อเสนอ: ${enrichedProposedTerms}` : null,
     typeof settlementAmount === "number" && Number.isFinite(settlementAmount)
       ? `ยอดข้อตกลง ${settlementAmount.toLocaleString("th-TH")} บาท`
       : null,
@@ -238,7 +247,7 @@ export async function submitCreditorResponse(formData: FormData) {
   await supabase
     .from("cases")
     .update({
-      creditor_response_note: settlementNote || proposedTerms || requestedInformation || reason || "เจ้าหนี้ส่งคำตอบกลับแล้ว",
+      creditor_response_note: settlementNote || enrichedProposedTerms || requestedInformation || reason || "เจ้าหนี้ส่งคำตอบกลับแล้ว",
       rejection_reason: response === "rejected" ? reason || "เจ้าหนี้ปฏิเสธคำขอ" : null,
     })
     .eq("id", caseId)
@@ -250,7 +259,7 @@ export async function submitCreditorResponse(formData: FormData) {
       from_status: currentCase.status,
       to_status: currentCase.status,
       changed_by: profile.id,
-      note: settlementNote || proposedTerms || requestedInformation || reason || "เจ้าหนี้ส่งคำตอบกลับ",
+      note: settlementNote || enrichedProposedTerms || requestedInformation || reason || "เจ้าหนี้ส่งคำตอบกลับ",
     });
   }
 
@@ -263,8 +272,10 @@ async function updateCreditorCase(formData: FormData, response: CreditorResponse
   const caseId = String(formData.get("case_id") ?? "");
   const note = String(formData.get("note") ?? "").trim();
   const proposedTerms = String(formData.get("proposed_terms") ?? "").trim();
+  const discountAmountRaw = String(formData.get("discount_amount") ?? "").trim();
   const settlementAmountRaw = String(formData.get("settlement_amount") ?? "").trim();
   const monthlyPaymentRaw = String(formData.get("monthly_payment") ?? "").trim();
+  const discountAmount = discountAmountRaw ? Number(discountAmountRaw) : null;
   const settlementAmount = settlementAmountRaw ? Number(settlementAmountRaw) : null;
   const monthlyPayment = monthlyPaymentRaw ? Number(monthlyPaymentRaw) : null;
 
@@ -284,13 +295,20 @@ async function updateCreditorCase(formData: FormData, response: CreditorResponse
     redirectWithError("/creditor", "ไม่พบเคสที่เชื่อมกับองค์กรนี้");
   }
 
+  const enrichedProposedTerms = [
+    proposedTerms || null,
+    typeof discountAmount === "number" && Number.isFinite(discountAmount)
+      ? `ส่วนลดที่เสนอ ${discountAmount.toLocaleString("th-TH")} บาท`
+      : null,
+  ].filter(Boolean).join("\n") || null;
+
   const { error } = await supabase
     .from("cases")
     .update({
       status: nextStatus,
       creditor_response_note: [
         note || defaultMessage,
-        proposedTerms ? `ข้อเสนอข้อตกลง: ${proposedTerms}` : null,
+        enrichedProposedTerms ? `ข้อเสนอข้อตกลง: ${enrichedProposedTerms}` : null,
         typeof settlementAmount === "number" && Number.isFinite(settlementAmount)
           ? `ยอดข้อตกลง ${settlementAmount.toLocaleString("th-TH")} บาท`
           : null,
@@ -317,13 +335,13 @@ async function updateCreditorCase(formData: FormData, response: CreditorResponse
     reason: note || null,
   });
 
-  if (proposedTerms || (typeof settlementAmount === "number" && Number.isFinite(settlementAmount)) || (typeof monthlyPayment === "number" && Number.isFinite(monthlyPayment))) {
+  if (enrichedProposedTerms || (typeof settlementAmount === "number" && Number.isFinite(settlementAmount)) || (typeof monthlyPayment === "number" && Number.isFinite(monthlyPayment))) {
     await supabase.from("case_creditor_responses").insert({
       case_id: caseId,
       organization_id: officer.organization_id,
       officer_id: officer.id,
       response: "settlement_proposed",
-      proposed_terms: proposedTerms || null,
+      proposed_terms: enrichedProposedTerms,
       settlement_amount: typeof settlementAmount === "number" && Number.isFinite(settlementAmount) ? settlementAmount : null,
       monthly_payment: typeof monthlyPayment === "number" && Number.isFinite(monthlyPayment) ? monthlyPayment : null,
     });
@@ -333,7 +351,7 @@ async function updateCreditorCase(formData: FormData, response: CreditorResponse
     case_id: caseId,
     from_status: currentCase.status,
     to_status: nextStatus,
-    note: note || defaultMessage,
+    note: [note || defaultMessage, enrichedProposedTerms].filter(Boolean).join(" | "),
   });
 
   redirect(`/creditor/cases/${caseId}?success=${encodeURIComponent("บันทึกการพิจารณาแล้ว")}`);
@@ -427,22 +445,17 @@ export async function requestCreditorAppointmentReschedule(formData: FormData) {
     redirectWithError(`/creditor/cases/${caseId}`, "ไม่พบนัดหมายขององค์กรนี้");
   }
 
-  const { error } = await supabase
-    .from("mediation_appointments")
-    .update({ status: "reschedule_requested", cancellation_reason: note })
-    .eq("id", appointmentId);
+  const { error } = await requestAppointmentReschedule({
+    appointment,
+    actorId: profile.id,
+    actorRole: "creditor_officer",
+    note,
+  });
 
   if (error) {
     redirectWithError(`/creditor/cases/${caseId}`, "ขอเลื่อนนัดหมายไม่สำเร็จ");
   }
 
-  await supabase
-    .from("appointment_participants")
-    .update({ status: "reschedule_requested", note, profile_id: profile.id })
-    .eq("appointment_id", appointmentId)
-    .eq("role", "creditor_officer");
-
-  await recordAppointmentHistory(appointmentId, appointment.status, "reschedule_requested", profile.id, note);
   await notifyRescheduleRequested({ appointmentId, caseId, status: "reschedule_requested" });
   redirect(`/creditor/cases/${caseId}?success=${encodeURIComponent("ส่งคำขอเลื่อนนัดหมายแล้ว")}`);
 }

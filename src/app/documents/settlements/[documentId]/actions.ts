@@ -1,10 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { getCurrentProfile } from "@/lib/auth/server";
 import { getCreditorOfficer } from "@/lib/creditor";
 import { getMediatorProfileByUser } from "@/lib/mediators";
 import { createClient } from "@/lib/supabase/server";
+import type { SettlementDocumentSignatureRole } from "@/types/database";
 
 function textField(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -32,7 +34,7 @@ export async function signSettlementDocument(formData: FormData) {
   const supabase = await createClient();
   const { data: document } = await supabase
     .from("settlement_documents")
-    .select("id, case_id, closing_record_id")
+    .select("id, case_id, closing_record_id, document_type")
     .eq("id", documentId)
     .maybeSingle();
 
@@ -77,6 +79,34 @@ export async function signSettlementDocument(formData: FormData) {
   if (error) {
     redirectWithMessage(documentId, "error", "ลงนามไม่สำเร็จ");
     return;
+  }
+
+  const { data: signatures } = await supabase
+    .from("settlement_document_signatures")
+    .select("signer_role")
+    .eq("document_id", documentId);
+
+  const requiredRoles: SettlementDocumentSignatureRole[] = ["debtor", "creditor", "mediator"];
+  const signedRoles = new Set<SettlementDocumentSignatureRole>((signatures ?? []).map((signature) => signature.signer_role));
+  const allPartiesSigned = requiredRoles.every((role) => signedRoles.has(role));
+
+  if (allPartiesSigned && document.document_type === "settlement_agreement") {
+    const { data: currentCase } = await supabase.from("cases").select("status").eq("id", caseId).maybeSingle();
+    if (currentCase && currentCase.status !== "closed") {
+      const { error: closeError } = await supabase.from("cases").update({ status: "closed" }).eq("id", caseId);
+      if (!closeError) {
+        await supabase.from("case_status_history").insert({
+          case_id: caseId,
+          from_status: currentCase.status,
+          to_status: "closed",
+          changed_by: profile.id,
+          note: "ทุกฝ่ายลงนามบันทึกตกลงข้อพิพาทครบถ้วนแล้ว ระบบปิดเคสอัตโนมัติ",
+        });
+        revalidatePath(`/debtor/cases/${caseId}`);
+        revalidatePath(`/creditor/cases/${caseId}`);
+        revalidatePath(`/documents/settlements/${documentId}`);
+      }
+    }
   }
 
   redirectWithMessage(documentId, "success", "ลงนามเรียบร้อยแล้ว");

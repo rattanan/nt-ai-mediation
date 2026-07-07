@@ -7,6 +7,7 @@ import {
   invoiceDocumentUrl,
   invoiceNumber,
   queueClosingEmails,
+  settlementDocumentPageUrl,
   settlementDocumentUrl,
 } from "@/lib/closing";
 import { requireRole } from "@/lib/auth/server";
@@ -115,10 +116,12 @@ export async function closeMediationCase(formData: FormData) {
   });
   const dueAt = new Date();
   dueAt.setDate(dueAt.getDate() + feeSettings.payment_due_days);
+  const invoiceId = crypto.randomUUID();
 
-  const { data: invoice } = await supabase
+  const { data: invoice, error: invoiceError } = await supabase
     .from("billing_invoices")
     .insert({
+      id: invoiceId,
       invoice_number: invoiceNumber(feeSettings.invoice_prefix),
       case_id: caseId,
       closing_record_id: closing.id,
@@ -132,18 +135,26 @@ export async function closeMediationCase(formData: FormData) {
       vat_percent: feeSettings.vat_percent,
       vat_amount: fees.vatAmount,
       total_amount: fees.totalAmount,
-      status: "issued",
+      status: "sent",
       due_at: dueAt.toISOString(),
+      pdf_url: invoiceDocumentUrl(invoiceId),
     })
     .select()
     .single();
 
-  if (invoice) {
-    await supabase.from("billing_invoice_items").insert([
-      { invoice_id: invoice.id, item_name: "Platform Fee", description: "ค่าบริการแพลตฟอร์ม", calculation_base_amount: originalDebtAmount, fee_percent: feeSettings.platform_fee_percent, amount: fees.platformFeeAmount },
-      { invoice_id: invoice.id, item_name: "Success Fee", description: "ค่าความสำเร็จเมื่อไกล่เกลี่ยสำเร็จ", calculation_base_amount: settledAmount ?? 0, fee_percent: resultStatus === "settled" ? feeSettings.success_fee_percent : 0, amount: fees.successFeeAmount },
-    ]);
-    await supabase.from("billing_invoices").update({ pdf_url: invoiceDocumentUrl(invoice.id) }).eq("id", invoice.id);
+  if (invoiceError || !invoice) {
+    console.error("Billing invoice insert failed", invoiceError);
+    redirect(`/mediator/closing/${caseId}?appointment=${appointmentId ?? ""}&error=สร้างใบแจ้งหนี้ให้เจ้าหนี้ไม่สำเร็จ`);
+  }
+
+  const { error: invoiceItemsError } = await supabase.from("billing_invoice_items").insert([
+    { invoice_id: invoice.id, item_name: "Platform Fee", description: "ค่าบริการแพลตฟอร์ม", calculation_base_amount: originalDebtAmount, fee_percent: feeSettings.platform_fee_percent, amount: fees.platformFeeAmount },
+    { invoice_id: invoice.id, item_name: "Success Fee", description: "ค่าความสำเร็จเมื่อไกล่เกลี่ยสำเร็จ", calculation_base_amount: settledAmount ?? 0, fee_percent: resultStatus === "settled" ? feeSettings.success_fee_percent : 0, amount: fees.successFeeAmount },
+  ]);
+
+  if (invoiceItemsError) {
+    console.error("Billing invoice items insert failed", invoiceItemsError);
+    redirect(`/mediator/closing/${caseId}?appointment=${appointmentId ?? ""}&error=สร้างรายการค่าบริการในใบแจ้งหนี้ไม่สำเร็จ`);
   }
 
   const nextStatus = resultStatus === "settled" ? "settled" : "not_settled";
@@ -165,7 +176,7 @@ export async function closeMediationCase(formData: FormData) {
     caseNumber: currentCase.case_number,
     resultStatus,
     summary: settlementSummary || unsuccessfulReason,
-    documentUrl: document ? settlementDocumentUrl(document.id) : "",
+    documentUrl: document ? settlementDocumentPageUrl(document.id) : "",
     invoiceUrl: invoice ? invoiceDocumentUrl(invoice.id) : null,
   });
   await recalculateMediatorTrustScore(mediator.id);

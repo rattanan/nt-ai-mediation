@@ -4,6 +4,7 @@ import { getCurrentProfile } from "@/lib/auth/server";
 import { getSettlementDocument, money, paymentFrequencyLabels, resultStatusLabels } from "@/lib/closing";
 import { getCreditorOfficer } from "@/lib/creditor";
 import { createClient } from "@/lib/supabase/server";
+import type { SettlementDocumentSignatureRole } from "@/types/database";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -30,15 +31,22 @@ export default async function SettlementDocumentPage({ params, searchParams }: {
   const canSignDebtor = profile.role === "debtor" && profile.id === closing.debtor_user_id && !signatureByRole.has("debtor");
   const canSignCreditor = profile.role === "creditor" && creditorOfficer?.organization_id === closing.creditor_organization_id && !signatureByRole.has("creditor");
   const canSignMediator = profile.role === "mediator" && profile.id === mediatorProfile?.user_id && !signatureByRole.has("mediator");
+  const requiredRoles: SettlementDocumentSignatureRole[] = ["debtor", "creditor", "mediator"];
+  const completedSignatures = requiredRoles.filter((role) => signatureByRole.has(role)).length;
+  const allSigned = completedSignatures === 3;
 
   return (
     <main className="mx-auto max-w-4xl bg-white px-8 py-10 text-[#111827] print:px-0">
       <div className="mb-6 flex flex-wrap gap-2 print:hidden">
-        <Link href={`/documents/certificates/${closing.case_id}/pdf`} className="rounded-lg bg-[#FFD200] px-4 py-2 text-sm font-semibold">ดาวน์โหลด PDF พร้อมลายเซ็น</Link>
+        <Link href={`/documents/settlements/${documentId}/pdf`} className="rounded-lg bg-[#FFD200] px-4 py-2 text-sm font-semibold">ดาวน์โหลดบันทึกตกลงข้อพิพาทพร้อมลายเซ็น</Link>
         <a href="#" onClick={undefined} className="rounded-lg border border-black/10 px-4 py-2 text-sm font-semibold" suppressHydrationWarning>ใช้เมนู Print / Save as PDF</a>
       </div>
       {success ? <p className="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{success}</p> : null}
       {error ? <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</p> : null}
+      <section className={`mb-6 rounded-lg border p-4 text-sm print:hidden ${allSigned ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]"}`}>
+        <p className="font-semibold">{allSigned ? "ลงนามครบถ้วนแล้ว" : `รอลงนาม ${3 - completedSignatures} ฝ่าย`}</p>
+        <p className="mt-1">{allSigned ? "ระบบปิดเคสสมบูรณ์แล้ว และสามารถดาวน์โหลดบันทึกตกลงข้อพิพาทพร้อมลายเซ็นได้" : "เมื่อลูกหนี้ เจ้าหนี้ และผู้ไกล่เกลี่ยลงนามครบ ระบบจะปิดเคสให้อัตโนมัติ"}</p>
+      </section>
       <header className="border-b border-black pb-5">
         <p className="text-sm font-semibold text-[#A87900]">NT AI Digital Mediation Platform</p>
         <h1 className="mt-2 text-3xl font-bold">{settled ? "แบบบันทึกข้อตกลงระงับข้อพิพาท" : "แบบบันทึกผลการไกล่เกลี่ยไม่สำเร็จ"}</h1>
