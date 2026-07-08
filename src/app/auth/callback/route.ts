@@ -11,8 +11,18 @@ import {
 } from "@/lib/auth/verification";
 import { getActiveConsentVersion, getPendingConsent, recordUserConsent, userHasLatestConsent } from "@/lib/consent";
 
+function getRedirectOrigin(request: NextRequest) {
+  const url = new URL(request.url);
+
+  if (url.hostname === "0.0.0.0") {
+    url.hostname = "localhost";
+  }
+
+  return url.origin;
+}
+
 function redirectWithMessage(_request: NextRequest, path: string, message: string) {
-  const url = new URL(path, _request.nextUrl.origin);
+  const url = new URL(path, getRedirectOrigin(_request));
   url.searchParams.set("message", message);
   return NextResponse.redirect(url);
 }
@@ -102,7 +112,7 @@ export async function GET(request: NextRequest) {
   const isGoogleUser = user.app_metadata?.provider === "google" || providers.includes("google");
 
   if (!isGoogleUser) {
-    const confirmedUrl = new URL("/auth/email-confirmed", request.nextUrl.origin);
+    const confirmedUrl = new URL("/auth/email-confirmed", getRedirectOrigin(request));
     return NextResponse.redirect(confirmedUrl);
   }
 
@@ -112,15 +122,15 @@ export async function GET(request: NextRequest) {
     const pendingConsent = await getPendingConsent(activeConsent.version);
     if (pendingConsent) {
       await recordUserConsent(user.id, activeConsent.version, pendingConsent.language);
-      return NextResponse.redirect(new URL(nextPath, request.nextUrl.origin));
+      return NextResponse.redirect(new URL(nextPath, getRedirectOrigin(request)));
     }
 
-    const consentUrl = new URL("/auth/consent", request.nextUrl.origin);
+    const consentUrl = new URL("/auth/consent", getRedirectOrigin(request));
     consentUrl.searchParams.set("next", nextPath);
     return NextResponse.redirect(consentUrl);
   }
 
-  const redirectUrl = new URL(nextPath, request.nextUrl.origin);
+  const redirectUrl = new URL(nextPath, getRedirectOrigin(request));
 
   return NextResponse.redirect(redirectUrl);
 }

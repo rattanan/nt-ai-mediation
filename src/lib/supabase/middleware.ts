@@ -11,6 +11,16 @@ import { getSupabaseEnv } from "@/lib/supabase/env";
 import type { Database } from "@/types/database";
 import type { AppRole } from "@/types/database";
 
+function getRedirectOrigin(request: NextRequest) {
+  const url = new URL(request.url);
+
+  if (url.hostname === "0.0.0.0") {
+    url.hostname = "localhost";
+  }
+
+  return url.origin;
+}
+
 const portalRoutes: Record<string, AppRole> = {
   "/debtor": "debtor",
   "/mediator": "mediator",
@@ -67,13 +77,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (!user) {
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = new URL("/login", getRedirectOrigin(request));
     loginUrl.searchParams.set("message", "กรุณาเข้าสู่ระบบก่อนเข้าใช้งานพอร์ตัล");
     return NextResponse.redirect(loginUrl);
   }
 
   if (!isEmailVerified(user)) {
-    const verifyUrl = new URL("/verify-email", request.url);
+    const verifyUrl = new URL("/verify-email", getRedirectOrigin(request));
     if (user.email) {
       verifyUrl.searchParams.set("email", user.email);
     }
@@ -133,7 +143,7 @@ export async function updateSession(request: NextRequest) {
         });
       }
 
-      const loginUrl = new URL("/login", request.url);
+      const loginUrl = new URL("/login", getRedirectOrigin(request));
       loginUrl.searchParams.set("message", "เข้าสู่ระบบแล้ว แต่ยังสร้างโปรไฟล์ไม่ได้ กรุณาติดต่อผู้ดูแลระบบ");
       return NextResponse.redirect(loginUrl);
     }
@@ -142,7 +152,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (role !== expectedRole) {
-    const roleUrl = new URL(getRoleHome(role), request.url);
+    const roleUrl = new URL(getRoleHome(role), getRedirectOrigin(request));
     return NextResponse.redirect(roleUrl);
   }
 

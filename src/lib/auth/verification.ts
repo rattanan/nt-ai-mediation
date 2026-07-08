@@ -2,16 +2,27 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { AppRole, Database, Json } from "@/types/database";
 import { isAppRole } from "@/lib/auth/routes";
 
+function normalizeAppBaseUrl(rawUrl: string) {
+  const url = new URL(rawUrl);
+
+  if (url.hostname === "0.0.0.0") {
+    url.hostname = "localhost";
+  }
+
+  return url.toString().replace(/\/$/, "");
+}
+
 export const appBaseUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
   process.env.NEXTAUTH_URL ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://127.0.0.1:3000");
+export const normalizedAppBaseUrl = normalizeAppBaseUrl(appBaseUrl);
 export const emailVerificationRedirectUrl = `${appBaseUrl}/auth/callback`;
 
 export type AccountStatus = "pending_verification" | "active" | "suspended" | "disabled";
 
 export function appUrl(path: string) {
-  return new URL(path, appBaseUrl);
+  return new URL(path, normalizedAppBaseUrl);
 }
 
 export function isEmailVerified(user: User) {

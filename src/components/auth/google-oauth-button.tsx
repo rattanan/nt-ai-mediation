@@ -19,7 +19,11 @@ export function GoogleOAuthButton({ label, role, returnUrl }: GoogleOAuthButtonP
     setErrorMessage(null);
 
     const supabase = createClient();
-    const redirectUrl = new URL("/auth/callback", window.location.origin);
+    const origin =
+      window.location.hostname === "0.0.0.0"
+        ? `${window.location.protocol}//localhost:${window.location.port || "3000"}`
+        : window.location.origin;
+    const redirectUrl = new URL("/auth/callback", origin);
 
     if (role) {
       redirectUrl.searchParams.set("role", role);
