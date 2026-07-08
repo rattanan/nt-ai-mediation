@@ -6,14 +6,13 @@ import {
   getFullNameFromUser,
   getOrganizationNameFromUser,
   getRoleFromUserMetadata,
-  appUrl,
   isEmailVerified,
   writeAuditLog,
 } from "@/lib/auth/verification";
 import { getActiveConsentVersion, getPendingConsent, recordUserConsent, userHasLatestConsent } from "@/lib/consent";
 
 function redirectWithMessage(_request: NextRequest, path: string, message: string) {
-  const url = appUrl(path);
+  const url = new URL(path, _request.nextUrl.origin);
   url.searchParams.set("message", message);
   return NextResponse.redirect(url);
 }
@@ -103,7 +102,7 @@ export async function GET(request: NextRequest) {
   const isGoogleUser = user.app_metadata?.provider === "google" || providers.includes("google");
 
   if (!isGoogleUser) {
-    const confirmedUrl = appUrl("/auth/email-confirmed");
+    const confirmedUrl = new URL("/auth/email-confirmed", request.nextUrl.origin);
     return NextResponse.redirect(confirmedUrl);
   }
 
@@ -113,15 +112,15 @@ export async function GET(request: NextRequest) {
     const pendingConsent = await getPendingConsent(activeConsent.version);
     if (pendingConsent) {
       await recordUserConsent(user.id, activeConsent.version, pendingConsent.language);
-      return NextResponse.redirect(appUrl(nextPath));
+      return NextResponse.redirect(new URL(nextPath, request.nextUrl.origin));
     }
 
-    const consentUrl = appUrl("/auth/consent");
+    const consentUrl = new URL("/auth/consent", request.nextUrl.origin);
     consentUrl.searchParams.set("next", nextPath);
     return NextResponse.redirect(consentUrl);
   }
 
-  const redirectUrl = appUrl(nextPath);
+  const redirectUrl = new URL(nextPath, request.nextUrl.origin);
 
   return NextResponse.redirect(redirectUrl);
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { appUrl } from "@/lib/auth/verification";
 import { createClient } from "@/lib/supabase/client";
 import type { AppRole } from "@/types/database";
 
@@ -20,7 +19,7 @@ export function GoogleOAuthButton({ label, role, returnUrl }: GoogleOAuthButtonP
     setErrorMessage(null);
 
     const supabase = createClient();
-    const redirectUrl = appUrl("/auth/callback");
+    const redirectUrl = new URL("/auth/callback", window.location.origin);
 
     if (role) {
       redirectUrl.searchParams.set("role", role);
