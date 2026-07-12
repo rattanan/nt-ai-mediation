@@ -79,7 +79,7 @@ export default async function CaseDetailPage({
               {["creditor_accepted", "mediator_matching", "matched"].includes(item.status) ? (
                 <Button href={`/debtor/cases/${item.id}/mediator`} className="rounded-lg font-semibold">เลือกผู้ไกล่เกลี่ย</Button>
               ) : null}
-              {(item.status === "mediator_selected" && !appointment) || appointment?.status === "reschedule_requested" ? (
+              {(["mediator_selected", "appointment_scheduling"].includes(item.status) && !appointment) || appointment?.status === "reschedule_requested" ? (
                 <Button href={`/debtor/cases/${item.id}/appointments/new`} className="rounded-lg font-semibold">เลือกเวลานัดหมาย</Button>
               ) : null}
             </div>

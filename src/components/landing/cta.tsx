@@ -24,7 +24,7 @@ export function CTA({ content }: { content: LandingContent["cta"] }) {
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Button>
               <Button
-                href="/mediator"
+                href="/mediators"
                 size="lg"
                 variant="outline"
                 className="rounded-full border-background/30 bg-transparent font-semibold text-background hover:bg-background/10 hover:text-background"

@@ -30,7 +30,7 @@ export function Hero({ content }: { content: LandingContent["hero"] }) {
               {content.primaryCta}
               <ArrowRight className="size-4" aria-hidden="true" />
             </Button>
-            <Button href="/mediator" size="lg" variant="outline" className="rounded-full font-semibold">
+            <Button href="/mediators" size="lg" variant="outline" className="rounded-full font-semibold">
               {content.secondaryCta}
             </Button>
             <Button size="lg" variant="ghost" className="rounded-full font-semibold">

@@ -73,15 +73,15 @@ export default async function AdminCasesPage({
                 <p className="mt-1 text-sm text-[#6B7280]">{selectedCase.creditor_name} · {selectedCase.debt_type}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {tab === "active" ? (
+                {tab === "active" && ["submitted", "reviewing", "admin_review"].includes(selectedCase.status) ? (
                   <>
                     <CaseAction action={sendCaseToCreditorReview} caseId={selectedCase.id} label="ส่งให้เจ้าหนี้พิจารณา" />
                     <CaseAction action={requestCaseMoreInfo} caseId={selectedCase.id} label="ขอข้อมูลเพิ่มเติม" variant="outline" />
                     <CaseAction action={rejectCaseByAdmin} caseId={selectedCase.id} label="ปิดเคส" variant="outline" />
                   </>
-                ) : (
+                ) : tab === "completed" ? (
                   <span className="rounded-lg bg-[#F8FAFC] px-3 py-2 text-sm text-[#6B7280]">เคสที่สำเร็จแล้วจัดการได้เฉพาะการดูรายละเอียด</span>
-                )}
+                ) : <span className="rounded-lg bg-[#F8FAFC] px-3 py-2 text-sm text-[#6B7280]">กำลังรอผู้รับผิดชอบในขั้นตอนปัจจุบันดำเนินการ</span>}
               </div>
             </div>
 
@@ -126,14 +126,14 @@ export default async function AdminCasesPage({
               </div>
             </div>
 
-            <form action={sendCaseToCreditorReview} className="mt-6 rounded-lg bg-[#F8FAFC] p-4">
+            {["submitted", "reviewing", "admin_review"].includes(selectedCase.status) ? <form action={sendCaseToCreditorReview} className="mt-6 rounded-lg bg-[#F8FAFC] p-4">
               <input type="hidden" name="case_id" value={selectedCase.id} />
               <label className="block">
                 <span className="text-sm font-medium">Internal note</span>
                 <textarea name="note" className="mt-2 min-h-24 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" placeholder="บันทึกภายในสำหรับทีมผู้ดูแล" />
               </label>
               <Button type="submit" className="mt-3 rounded-lg font-semibold">บันทึก note และส่งให้เจ้าหนี้</Button>
-            </form>
+            </form> : null}
 
             <div className="mt-6 grid gap-5 lg:grid-cols-2">
               <Timeline title="ประวัติสถานะ" items={history.map((item) => `${caseStatusLabels[item.to_status]}${item.note ? ` - ${item.note}` : ""}`)} />

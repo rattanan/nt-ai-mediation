@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { UserPlus } from "lucide-react";
+import { ArrowLeft, UserPlus } from "lucide-react";
 import { GoogleOAuthButton } from "@/components/auth/google-oauth-button";
 import { RegisterForm } from "@/components/auth/register-form";
 import { getCurrentProfile } from "@/lib/auth/server";
@@ -31,18 +31,22 @@ export default async function RegisterPage({
   return (
     <main className="min-h-screen bg-[#F7F7F7] text-[#1F2937]">
       <div className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-5 py-10">
-        <section className="grid w-full overflow-hidden rounded-lg border border-black/5 bg-white shadow-sm lg:grid-cols-[1fr_30rem]">
-          <div className="hidden bg-[#1F2937] p-10 text-white lg:block">
+        <section className="grid w-full overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm lg:grid-cols-[1fr_30rem]">
+          <div className="hidden bg-[#111827] p-10 text-white lg:block">
             <Link href="/" className="inline-flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#FFD200] text-[#1F2937]">
-                <Image src="/images/nt-logo.png" alt="NT" width={36} height={36} className="h-9 w-9 object-contain" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-white p-1.5">
+                <Image src="/images/nt-logo.png" alt="NT" width={36} height={36} className="h-full w-full object-contain" priority />
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase text-[#FFD200]">NT AI</p>
                 <p className="font-semibold">Digital Mediation Platform</p>
               </div>
             </Link>
-            <h1 className="mt-16 text-4xl font-semibold">สร้างบัญชีตามบทบาทผู้ใช้งาน</h1>
+            <Link href="/" className="mt-12 inline-flex items-center gap-2 text-sm font-medium text-white/70 hover:text-white">
+              <ArrowLeft className="size-4" aria-hidden="true" />
+              กลับหน้าแรก
+            </Link>
+            <h1 className="mt-10 text-4xl font-semibold tracking-tight">สร้างบัญชีตามบทบาทผู้ใช้งาน</h1>
             <p className="mt-4 max-w-md leading-7 text-white/70">
               เลือกบทบาทให้ตรงกับการใช้งาน ระบบจะพาไปยังพอร์ตัลที่เหมาะสมหลังลงทะเบียน
             </p>

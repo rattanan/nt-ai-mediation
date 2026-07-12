@@ -21,6 +21,16 @@ async function updateCaseStatus(formData: FormData, status: CaseStatus, defaultN
 
   const supabase = await createClient();
   const { data: currentCase } = await supabase.from("cases").select("status").eq("id", caseId).maybeSingle();
+  if (!currentCase) go(caseId, "ไม่พบเคสที่ต้องการดำเนินการ", "error");
+
+  const allowedCurrentStatuses: Record<string, CaseStatus[]> = {
+    creditor_review: ["submitted", "reviewing", "admin_review"],
+    needs_more_info: ["submitted", "reviewing", "admin_review", "creditor_review"],
+    closed: ["submitted", "reviewing", "admin_review"],
+  };
+  if (!allowedCurrentStatuses[status]?.includes(currentCase.status)) {
+    go(caseId, `ไม่สามารถเปลี่ยนสถานะจาก ${currentCase.status} เป็น ${status} ได้`, "error");
+  }
   const updatePayload =
     status === "needs_more_info"
       ? { status, admin_review_note: note || defaultNote }
@@ -28,10 +38,11 @@ async function updateCaseStatus(formData: FormData, status: CaseStatus, defaultN
         ? { status, rejection_reason: note || defaultNote, admin_review_note: note || defaultNote }
         : { status, admin_review_note: note || defaultNote };
 
-  const { error } = await supabase.from("cases").update(updatePayload).eq("id", caseId);
+  const { data: updatedCase, error } = await supabase.from("cases").update(updatePayload)
+    .eq("id", caseId).eq("status", currentCase.status).select("id").maybeSingle();
 
-  if (error) {
-    go(caseId, "อัปเดตสถานะเคสไม่สำเร็จ", "error");
+  if (error || !updatedCase) {
+    go(caseId, "อัปเดตสถานะเคสไม่สำเร็จ หรือมีผู้ดำเนินการเคสนี้ไปแล้ว", "error");
   }
 
   await supabase.from("case_status_history").insert({

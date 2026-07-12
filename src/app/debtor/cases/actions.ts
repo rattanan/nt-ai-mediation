@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { requireRole } from "@/lib/auth/server";
 import { getCaseForDebtor, isEditableCase, parseCaseForm, type CaseFormState } from "@/lib/cases";
 import { formError } from "@/lib/form-state";
@@ -63,6 +64,10 @@ export async function createCase(_state: CaseFormState, formData: FormData): Pro
   }
 
   const supabase = await createClient();
+  const preferredMediatorId = (await cookies()).get("nt_preferred_mediator")?.value ?? "";
+  const { data: preferredMediator } = preferredMediatorId
+    ? await supabase.from("mediator_profiles").select("id, user_id").eq("id", preferredMediatorId).eq("status", "approved").maybeSingle()
+    : { data: null };
   const uploaded = await uploadCaseDocuments(supabase, profile.id, formData);
 
   if (uploaded.error) {
@@ -75,6 +80,8 @@ export async function createCase(_state: CaseFormState, formData: FormData): Pro
       ...payload,
       uploaded_documents: [...payload.uploaded_documents, ...uploaded.documents],
       debtor_user_id: profile.id,
+      selected_mediator_profile_id: preferredMediator?.id ?? null,
+      assigned_mediator_id: preferredMediator?.user_id ?? null,
       status: "draft",
     })
     .select("id")
@@ -89,7 +96,7 @@ export async function createCase(_state: CaseFormState, formData: FormData): Pro
     case_id: data.id,
     from_status: null,
     to_status: "draft",
-    note: "สร้างแบบร่างคำขอไกล่เกลี่ย",
+    note: preferredMediator ? "สร้างแบบร่างคำขอไกล่เกลี่ยพร้อมผู้ไกล่เกลี่ยที่เลือกไว้ล่วงหน้า" : "สร้างแบบร่างคำขอไกล่เกลี่ย",
   });
 
   redirect(`/debtor/cases/${data.id}?success=${encodeURIComponent("บันทึกแบบร่างสำเร็จ")}`);

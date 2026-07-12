@@ -6,7 +6,7 @@ import { confirmAppointmentIfReady, recordAppointmentHistory, requestAppointment
 import { requireRole } from "@/lib/auth/server";
 import { getCreditorOfficer } from "@/lib/creditor";
 import { createClient } from "@/lib/supabase/server";
-import type { CreditorResponseStatus } from "@/types/database";
+import type { CaseStatus, CreditorResponseStatus } from "@/types/database";
 
 const CREDITOR_LOGOS_BUCKET = "creditor-logos";
 
@@ -286,7 +286,7 @@ async function updateCreditorCase(formData: FormData, response: CreditorResponse
   const supabase = await createClient();
   const { data: currentCase } = await supabase
     .from("cases")
-    .select("status, creditor_organization_id")
+    .select("status, creditor_organization_id, selected_mediator_profile_id")
     .eq("id", caseId)
     .eq("creditor_organization_id", officer.organization_id)
     .maybeSingle();
@@ -294,6 +294,10 @@ async function updateCreditorCase(formData: FormData, response: CreditorResponse
   if (!currentCase) {
     redirectWithError("/creditor", "ไม่พบเคสที่เชื่อมกับองค์กรนี้");
   }
+
+  const resolvedNextStatus: CaseStatus = nextStatus === "creditor_accepted" && currentCase.selected_mediator_profile_id
+    ? "mediator_selected"
+    : nextStatus;
 
   const enrichedProposedTerms = [
     proposedTerms || null,
@@ -305,7 +309,7 @@ async function updateCreditorCase(formData: FormData, response: CreditorResponse
   const { error } = await supabase
     .from("cases")
     .update({
-      status: nextStatus,
+      status: resolvedNextStatus,
       creditor_response_note: [
         note || defaultMessage,
         enrichedProposedTerms ? `ข้อเสนอข้อตกลง: ${enrichedProposedTerms}` : null,
@@ -318,7 +322,7 @@ async function updateCreditorCase(formData: FormData, response: CreditorResponse
       ]
         .filter(Boolean)
         .join(" | "),
-      rejection_reason: nextStatus === "creditor_rejected" ? note || defaultMessage : null,
+      rejection_reason: resolvedNextStatus === "creditor_rejected" ? note || defaultMessage : null,
     })
     .eq("id", caseId)
     .eq("creditor_organization_id", officer.organization_id);
@@ -350,8 +354,8 @@ async function updateCreditorCase(formData: FormData, response: CreditorResponse
   await supabase.from("case_status_history").insert({
     case_id: caseId,
     from_status: currentCase.status,
-    to_status: nextStatus,
-    note: [note || defaultMessage, enrichedProposedTerms].filter(Boolean).join(" | "),
+    to_status: resolvedNextStatus,
+    note: [note || defaultMessage, currentCase.selected_mediator_profile_id && resolvedNextStatus === "mediator_selected" ? "ใช้ผู้ไกล่เกลี่ยที่ลูกหนี้เลือกไว้ล่วงหน้า" : null, enrichedProposedTerms].filter(Boolean).join(" | "),
   });
 
   redirect(`/creditor/cases/${caseId}?success=${encodeURIComponent("บันทึกการพิจารณาแล้ว")}`);

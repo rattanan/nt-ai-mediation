@@ -24,11 +24,11 @@ export default async function ConsentPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#F7F7F7] px-5 py-8 text-[#1F2937] dark:bg-[#050816] dark:text-white">
+    <main className="min-h-screen bg-[#F8FAFC] px-5 py-8 text-[#111827] dark:bg-[#050816] dark:text-white">
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl flex-col justify-center">
         <Link href="/" className="mb-6 inline-flex items-center gap-3 self-start">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#FFD200] text-[#111827]">
-            <Image src="/images/nt-logo.png" alt="NT" width={36} height={36} className="h-9 w-9 object-contain" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-white p-1.5 shadow-sm">
+            <Image src="/images/nt-logo.png" alt="NT" width={36} height={36} className="h-full w-full object-contain" priority />
           </div>
           <div>
             <p className="text-xs font-semibold uppercase text-[#8A6500] dark:text-[#FFD200]">NT AI</p>

@@ -14,7 +14,7 @@ test.describe("rbac security", () => {
       const otherPath = Object.entries(roleHome).find(([otherRole]) => otherRole !== role)?.[1];
       test.skip(!otherPath || !credentialsFor(role), "Role credentials are required");
 
-      await page.goto(otherPath);
+      await page.goto(otherPath!);
       await expect(page).toHaveURL(new RegExp(`${roleHome[role]}($|[/?#])`));
     });
   }
