@@ -81,6 +81,8 @@ export type LandingContent = {
     primaryCta: string;
     secondaryCta: string;
     demoCta: string;
+    demoModalTitle: string;
+    demoModalCloseLabel: string;
     trustNote: string;
     imageAlt: string;
     floatingTitle: string;
@@ -569,6 +571,8 @@ export const landingContent: Record<Language, LandingContent> = {
       primaryCta: "Start Mediation",
       secondaryCta: "Find a Mediator",
       demoCta: "Watch Demo",
+      demoModalTitle: "AI Mediation Platform Demo",
+      demoModalCloseLabel: "Close demo video",
       trustNote: "Trusted by government agencies and enterprise creditors",
       imageAlt: "AI assistant mediating a conversation between a debtor and a certified mediator",
       floatingTitle: "Settlement reached",
@@ -642,6 +646,8 @@ export const landingContent: Record<Language, LandingContent> = {
       primaryCta: "เริ่มไกล่เกลี่ย",
       secondaryCta: "ค้นหาผู้ไกล่เกลี่ย",
       demoCta: "ดูตัวอย่าง",
+      demoModalTitle: "วิดีโอตัวอย่างแพลตฟอร์ม AI ไกล่เกลี่ย",
+      demoModalCloseLabel: "ปิดวิดีโอตัวอย่าง",
       trustNote: "ได้รับความไว้วางใจจากหน่วยงานรัฐและองค์กรเจ้าหนี้ระดับ enterprise",
       imageAlt: "ผู้ช่วย AI กำลังสนับสนุนการไกล่เกลี่ยระหว่างลูกหนี้และผู้ไกล่เกลี่ย",
       floatingTitle: "บรรลุข้อตกลงแล้ว",
