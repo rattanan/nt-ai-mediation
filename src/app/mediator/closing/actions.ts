@@ -25,10 +25,14 @@ function textField(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
 }
 
+function redirectClosingError(caseId: string, appointmentId: string | null, message: string): never {
+  redirect(`/mediator/closing/${encodeURIComponent(caseId)}?appointment=${encodeURIComponent(appointmentId ?? "")}&error=${encodeURIComponent(message)}`);
+}
+
 export async function closeMediationCase(formData: FormData) {
   const profile = await requireRole("mediator");
   const mediator = await getMediatorProfileByUser(profile.id);
-  if (!mediator || mediator.status !== "approved") redirect("/mediator?error=โปรไฟล์ผู้ไกล่เกลี่ยยังไม่พร้อมใช้งาน");
+  if (!mediator || mediator.status !== "approved") redirect(`/mediator?error=${encodeURIComponent("โปรไฟล์ผู้ไกล่เกลี่ยยังไม่พร้อมใช้งาน")}`);
 
   const caseId = textField(formData, "case_id");
   const appointmentId = textField(formData, "appointment_id") || null;
@@ -40,13 +44,13 @@ export async function closeMediationCase(formData: FormData) {
   const mediatorNote = textField(formData, "mediator_note");
 
   if (!caseId || !["settled", "not_settled"].includes(resultStatus) || originalDebtAmount <= 0) {
-    redirect("/mediator?error=กรุณากรอกข้อมูลปิดเคสให้ครบถ้วน");
+    redirect(`/mediator?error=${encodeURIComponent("กรุณากรอกข้อมูลปิดเคสให้ครบถ้วน")}`);
   }
   if (resultStatus === "settled" && (!settledAmount || settledAmount <= 0 || !settlementSummary)) {
-    redirect(`/mediator/closing/${caseId}?appointment=${appointmentId ?? ""}&error=กรุณากรอกยอดตกลงและสรุปข้อตกลง`);
+    redirectClosingError(caseId, appointmentId, "กรุณากรอกยอดตกลงและสรุปข้อตกลง");
   }
   if (resultStatus === "not_settled" && !unsuccessfulReason) {
-    redirect(`/mediator/closing/${caseId}?appointment=${appointmentId ?? ""}&error=กรุณาระบุเหตุผลที่ไกล่เกลี่ยไม่สำเร็จ`);
+    redirectClosingError(caseId, appointmentId, "กรุณาระบุเหตุผลที่ไกล่เกลี่ยไม่สำเร็จ");
   }
 
   const supabase = await createClient();
@@ -56,52 +60,76 @@ export async function closeMediationCase(formData: FormData) {
     .eq("id", caseId)
     .eq("selected_mediator_profile_id", mediator.id)
     .maybeSingle();
-  if (!currentCase) redirect("/mediator?error=ไม่พบเคสที่คุณได้รับมอบหมาย");
+  if (!currentCase) redirect(`/mediator?error=${encodeURIComponent("ไม่พบเคสที่คุณได้รับมอบหมาย")}`);
 
-  const { data: closing, error: closingError } = await supabase
+  const { data: latestClosing } = await supabase
     .from("mediation_closing_records")
-    .insert({
-      case_id: caseId,
-      appointment_id: appointmentId,
-      mediator_id: mediator.id,
-      debtor_user_id: currentCase.debtor_user_id,
-      creditor_organization_id: currentCase.creditor_organization_id,
-      result_status: resultStatus,
-      original_debt_amount: originalDebtAmount,
-      settled_amount: settledAmount,
-      settlement_summary: settlementSummary || null,
-      unsuccessful_reason: unsuccessfulReason || null,
-      mediator_note: mediatorNote || null,
-    })
-    .select()
-    .single();
-  if (closingError || !closing) {
-    console.error("Closing record insert failed", closingError);
-    redirect(`/mediator/closing/${caseId}?appointment=${appointmentId ?? ""}&error=บันทึกผลการไกล่เกลี่ยไม่สำเร็จ`);
+    .select("*")
+    .eq("case_id", caseId)
+    .eq("mediator_id", mediator.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const { data: existingInvoice } = latestClosing
+    ? await supabase.from("billing_invoices").select("id").eq("closing_record_id", latestClosing.id).maybeSingle()
+    : { data: null };
+
+  let closing = latestClosing && !existingInvoice ? latestClosing : null;
+  if (!closing) {
+    const { data: insertedClosing, error: closingError } = await supabase
+      .from("mediation_closing_records")
+      .insert({
+        case_id: caseId,
+        appointment_id: appointmentId,
+        mediator_id: mediator.id,
+        debtor_user_id: currentCase.debtor_user_id,
+        creditor_organization_id: currentCase.creditor_organization_id,
+        result_status: resultStatus,
+        original_debt_amount: originalDebtAmount,
+        settled_amount: settledAmount,
+        settlement_summary: settlementSummary || null,
+        unsuccessful_reason: unsuccessfulReason || null,
+        mediator_note: mediatorNote || null,
+      })
+      .select()
+      .single();
+    if (closingError || !insertedClosing) {
+      console.error("Closing record insert failed", closingError);
+      redirectClosingError(caseId, appointmentId, "บันทึกผลการไกล่เกลี่ยไม่สำเร็จ");
+    }
+    closing = insertedClosing;
   }
 
   if (resultStatus === "settled") {
-    await supabase.from("settlement_payment_plans").insert({
-      closing_record_id: closing.id,
-      case_id: caseId,
-      total_settlement_amount: settledAmount ?? 0,
-      down_payment_amount: numberField(formData, "down_payment_amount"),
-      installment_amount: numberField(formData, "installment_amount"),
-      number_of_installments: Math.max(1, Math.round(numberField(formData, "number_of_installments") || 1)),
-      first_payment_due_date: textField(formData, "first_payment_due_date") || null,
-      payment_frequency: (textField(formData, "payment_frequency") || "monthly") as PaymentFrequency,
-      payment_method: textField(formData, "payment_method") || null,
-      special_terms: textField(formData, "special_terms") || null,
-    });
+    const { data: existingPlan } = await supabase.from("settlement_payment_plans").select("id").eq("closing_record_id", closing.id).maybeSingle();
+    if (!existingPlan) {
+      await supabase.from("settlement_payment_plans").insert({
+        closing_record_id: closing.id,
+        case_id: caseId,
+        total_settlement_amount: settledAmount ?? 0,
+        down_payment_amount: numberField(formData, "down_payment_amount"),
+        installment_amount: numberField(formData, "installment_amount"),
+        number_of_installments: Math.max(1, Math.round(numberField(formData, "number_of_installments") || 1)),
+        first_payment_due_date: textField(formData, "first_payment_due_date") || null,
+        payment_frequency: (textField(formData, "payment_frequency") || "monthly") as PaymentFrequency,
+        payment_method: textField(formData, "payment_method") || null,
+        special_terms: textField(formData, "special_terms") || null,
+      });
+    }
   }
 
   const documentType = resultStatus === "settled" ? "settlement_agreement" : "unsuccessful_closing_report";
-  const { data: document } = await supabase
-    .from("settlement_documents")
-    .insert({ closing_record_id: closing.id, case_id: caseId, document_type: documentType })
-    .select()
-    .single();
-  if (document) {
+  const { data: existingDocument } = await supabase.from("settlement_documents").select("*").eq("closing_record_id", closing.id).limit(1).maybeSingle();
+  let document = existingDocument;
+  if (!document) {
+    const { data: insertedDocument } = await supabase
+      .from("settlement_documents")
+      .insert({ closing_record_id: closing.id, case_id: caseId, document_type: documentType })
+      .select()
+      .single();
+    document = insertedDocument;
+  }
+  if (document && !document.pdf_url) {
     await supabase.from("settlement_documents").update({ pdf_url: settlementDocumentUrl(document.id) }).eq("id", document.id);
   }
 
@@ -144,7 +172,7 @@ export async function closeMediationCase(formData: FormData) {
 
   if (invoiceError || !invoice) {
     console.error("Billing invoice insert failed", invoiceError);
-    redirect(`/mediator/closing/${caseId}?appointment=${appointmentId ?? ""}&error=สร้างใบแจ้งหนี้ให้เจ้าหนี้ไม่สำเร็จ`);
+    redirectClosingError(caseId, appointmentId, "สร้างใบแจ้งหนี้ให้เจ้าหนี้ไม่สำเร็จ");
   }
 
   const { error: invoiceItemsError } = await supabase.from("billing_invoice_items").insert([
@@ -154,7 +182,7 @@ export async function closeMediationCase(formData: FormData) {
 
   if (invoiceItemsError) {
     console.error("Billing invoice items insert failed", invoiceItemsError);
-    redirect(`/mediator/closing/${caseId}?appointment=${appointmentId ?? ""}&error=สร้างรายการค่าบริการในใบแจ้งหนี้ไม่สำเร็จ`);
+    redirectClosingError(caseId, appointmentId, "สร้างรายการค่าบริการในใบแจ้งหนี้ไม่สำเร็จ");
   }
 
   const nextStatus = resultStatus === "settled" ? "settled" : "not_settled";

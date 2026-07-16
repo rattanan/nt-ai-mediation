@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { adminCancelAppointment, adminForceReschedule, adminUpdateMeetingUrl } from "@/app/admin/appointments/actions";
+import { adminCancelAppointment, adminCreateGoogleMeet, adminForceReschedule, adminUpdateMeetingUrl } from "@/app/admin/appointments/actions";
 import { AppointmentStatusBadge } from "@/components/appointments/appointment-status-badge";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Alert } from "@/components/ui/alert";
@@ -100,6 +100,7 @@ export default async function AdminAppointmentsPage({
                   <td className="px-5 py-4"><AppointmentStatusBadge status={appointment.status} /></td>
                   <td className="px-5 py-4">
                     <div className="grid min-w-72 gap-2">
+                      {["online", "hybrid"].includes(appointment.meeting_type) && !["cancelled", "completed"].includes(appointment.status) ? <form action={adminCreateGoogleMeet}><input type="hidden" name="appointment_id" value={appointment.id}/><Button type="submit" className="h-10 w-full rounded-lg" disabled={appointment.google_sync_status === "creating"}>{appointment.meeting_url ? "ซิงก์ Google Meet แล้ว" : "สร้าง Google Meet"}</Button></form> : null}
                       <form action={adminUpdateMeetingUrl} className="flex gap-2">
                         <input type="hidden" name="appointment_id" value={appointment.id} />
                         <input name="meeting_url" defaultValue={appointment.meeting_url ?? ""} className="h-10 min-w-0 flex-1 rounded-lg border border-[#D1D5DB] px-3 text-sm" placeholder="Meeting URL" />
@@ -115,6 +116,7 @@ export default async function AdminAppointmentsPage({
                         <input name="reason" className="h-10 min-w-0 flex-1 rounded-lg border border-[#D1D5DB] px-3 text-sm" placeholder="เหตุผลยกเลิก" />
                         <Button type="submit" variant="outline" className="h-10 rounded-lg">ยกเลิก</Button>
                       </form>
+                      {appointment.status === "completed" ? <Button href={`/staff/appointments/${appointment.id}/minutes`} variant="outline" className="h-10 rounded-lg">Transcript / Minutes</Button> : null}
                     </div>
                   </td>
                 </tr>

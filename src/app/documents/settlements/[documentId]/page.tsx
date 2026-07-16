@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { signSettlementDocument } from "@/app/documents/settlements/[documentId]/actions";
+import Image from "next/image";
+import { SignaturePadForm } from "@/components/documents/signature-pad-form";
 import { getCurrentProfile } from "@/lib/auth/server";
 import { getSettlementDocument, money, paymentFrequencyLabels, resultStatusLabels } from "@/lib/closing";
 import { getCreditorOfficer } from "@/lib/creditor";
@@ -83,9 +84,9 @@ export default async function SettlementDocumentPage({ params, searchParams }: {
       <TextBlock title="หมายเหตุผู้ไกล่เกลี่ย" value={closing.mediator_note} />
 
       <section className="mt-10 grid gap-8 sm:grid-cols-3">
-        <SignatureBox label="ลูกหนี้" signature={signatureByRole.get("debtor") ?? null} action={canSignDebtor ? <SignForm documentId={documentId} caseId={closing.case_id} signerRole="debtor" signerName={debtorProfile?.full_name ?? profile.full_name} /> : null} />
-        <SignatureBox label="เจ้าหนี้" signature={signatureByRole.get("creditor") ?? null} action={canSignCreditor ? <SignForm documentId={documentId} caseId={closing.case_id} signerRole="creditor" signerName={closing.creditor_organizations?.organization_name ?? profile.full_name} /> : null} />
-        <SignatureBox label="ผู้ไกล่เกลี่ย" signature={signatureByRole.get("mediator") ?? null} action={canSignMediator ? <SignForm documentId={documentId} caseId={closing.case_id} signerRole="mediator" signerName={mediatorProfile ? `${mediatorProfile.title ?? ""} ${mediatorProfile.first_name} ${mediatorProfile.last_name}`.trim() : profile.full_name} /> : null} />
+        <SignatureBox label="ลูกหนี้" signature={signatureByRole.get("debtor") ?? null} action={canSignDebtor ? <SignaturePadForm documentId={documentId} caseId={closing.case_id} signerRole="debtor" signerName={debtorProfile?.full_name ?? profile.full_name} /> : null} />
+        <SignatureBox label="เจ้าหนี้" signature={signatureByRole.get("creditor") ?? null} action={canSignCreditor ? <SignaturePadForm documentId={documentId} caseId={closing.case_id} signerRole="creditor" signerName={closing.creditor_organizations?.organization_name ?? profile.full_name} /> : null} />
+        <SignatureBox label="ผู้ไกล่เกลี่ย" signature={signatureByRole.get("mediator") ?? null} action={canSignMediator ? <SignaturePadForm documentId={documentId} caseId={closing.case_id} signerRole="mediator" signerName={mediatorProfile ? `${mediatorProfile.title ?? ""} ${mediatorProfile.first_name} ${mediatorProfile.last_name}`.trim() : profile.full_name} /> : null} />
       </section>
     </main>
   );
@@ -99,13 +100,16 @@ function TextBlock({ title, value }: { title: string; value?: string | null }) {
   return <section className="mt-8"><h2 className="text-xl font-semibold">{title}</h2><p className="mt-3 whitespace-pre-line rounded-lg border p-4 text-sm leading-7">{value || "-"}</p></section>;
 }
 
-function SignatureBox({ label, signature, action }: { label: string; signature: { signer_name: string; signed_at: string } | null; action: React.ReactNode }) {
+function SignatureBox({ label, signature, action }: { label: string; signature: { signer_name: string; signature_image_data: string | null; signed_at: string } | null; action: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-black/10 p-4">
       <p className="text-sm font-semibold">{label}</p>
-      <div className="mt-14 border-t border-black pt-2 text-center text-sm">
+      <div className="mt-6 border-t border-black pt-2 text-center text-sm">
         {signature ? (
           <>
+            {signature.signature_image_data ? (
+              <Image src={signature.signature_image_data} alt={`ลายเซ็น${label}`} width={240} height={90} unoptimized className="mx-auto mb-2 h-20 w-full object-contain" />
+            ) : null}
             <p className="font-semibold">{signature.signer_name}</p>
             <p className="text-xs text-[#6B7280]">ลงนามเมื่อ {new Date(signature.signed_at).toLocaleString("th-TH")}</p>
           </>
@@ -115,17 +119,5 @@ function SignatureBox({ label, signature, action }: { label: string; signature: 
       </div>
       {action ? <div className="mt-4">{action}</div> : null}
     </div>
-  );
-}
-
-function SignForm({ documentId, caseId, signerRole, signerName }: { documentId: string; caseId: string; signerRole: "debtor" | "creditor" | "mediator"; signerName: string }) {
-  return (
-    <form action={signSettlementDocument} className="space-y-3">
-      <input type="hidden" name="document_id" value={documentId} />
-      <input type="hidden" name="case_id" value={caseId} />
-      <input type="hidden" name="signer_role" value={signerRole} />
-      <input name="signer_name" defaultValue={signerName} className="h-11 w-full rounded-lg border border-[#D1D5DB] px-3 text-sm" />
-      <button type="submit" className="h-11 w-full rounded-lg bg-[#FFD200] px-4 text-sm font-semibold">ลงนามเอกสาร</button>
-    </form>
   );
 }

@@ -14,7 +14,6 @@ import {
   ShieldCheck,
   Sparkles,
   UserCheck,
-  WalletCards,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { caseStatusLabels, type MediationCase } from "@/lib/cases";
@@ -52,7 +51,6 @@ const workflowSteps: WorkflowStep[] = [
   { key: "session", title: "ประชุมไกล่เกลี่ย", statuses: ["in_mediation"], estimate: "ตามรอบประชุม", owner: "mediator", icon: Route },
   { key: "settlement", title: "ข้อตกลง", statuses: ["settlement_draft", "settled", "not_settled"], estimate: "1-3 วันทำการ", owner: "mediator", icon: FileText },
   { key: "signature", title: "ลงนามดิจิทัล", statuses: ["settled"], estimate: "หลังออกเอกสาร", owner: "debtor", icon: PenLine },
-  { key: "repayment", title: "แผนชำระหนี้", statuses: ["settled"], estimate: "ตามแผนชำระ", owner: "debtor", icon: WalletCards },
   { key: "closed", title: "ปิดเคส", statuses: ["closed"], estimate: "เสร็จสิ้น", owner: "system", icon: CheckCircle2 },
 ];
 
@@ -68,7 +66,7 @@ const ownerLabels: Record<WorkflowStep["owner"], string> = {
 
 function getCurrentStepIndex(status: CaseStatus) {
   if (status === "closed") return workflowSteps.length - 1;
-  if (status === "settled") return workflowSteps.findIndex((step) => step.key === "repayment");
+  if (status === "settled") return workflowSteps.findIndex((step) => step.key === "signature");
   const index = workflowSteps.findIndex((step) => step.statuses.includes(status));
   return index >= 0 ? index : 0;
 }
@@ -84,15 +82,6 @@ function formatDateTime(value: string) {
   return new Date(value).toLocaleString("th-TH", {
     dateStyle: "medium",
     timeStyle: "short",
-  });
-}
-
-function formatDate(value: string | null | undefined) {
-  if (!value) return "รอกำหนด";
-  return new Date(`${value}T00:00:00+07:00`).toLocaleDateString("th-TH", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
   });
 }
 
@@ -136,7 +125,7 @@ function statusDescription(caseItem: MediationCase, currentStep: WorkflowStep) {
     return {
       title: "ไกล่เกลี่ยสำเร็จ",
       description: "ระบบสร้างเอกสารข้อตกลงและแผนดำเนินการหลังไกล่เกลี่ยแล้ว",
-      action: "ดาวน์โหลดเอกสารและติดตามแผนชำระหนี้",
+      action: "ดาวน์โหลดเอกสารข้อตกลงและตรวจสอบสถานะการลงนาม",
     };
   }
   if (caseItem.status === "creditor_review") {
@@ -166,47 +155,6 @@ function nextStepText(currentIndex: number, caseItem: MediationCase) {
   const next = workflowSteps[currentIndex + 1];
   if (!next) return "ขั้นตอนหลักเสร็จครบแล้ว";
   return `หลังจากขั้นตอนนี้เสร็จ ระบบจะเข้าสู่ขั้นตอน${next.title}`;
-}
-
-function RepaymentProgress({ caseItem, plan, review }: { caseItem: MediationCase; plan: PaymentPlan; review?: MediatorReview | null }) {
-  const completedInstallments = 0;
-  const totalInstallments = Math.max(1, plan.number_of_installments);
-  const percent = Math.round((completedInstallments / totalInstallments) * 100);
-
-  return (
-    <section className="sticky top-4 z-10 rounded-xl border border-[#D1FAE5] bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase text-emerald-700">Repayment Progress</p>
-          <h2 className="mt-1 text-2xl font-semibold text-[#111827]">ติดตามแผนชำระหนี้</h2>
-          <p className="mt-1 text-sm text-[#6B7280]">{completedInstallments} / {totalInstallments} งวด</p>
-        </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-              <p className="font-semibold">ชำระงวดถัดไป</p>
-              <p>{formatDate(plan.first_payment_due_date)} · {money(plan.installment_amount)}</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {review ? (
-                <Button type="button" disabled className="rounded-lg">Review Submitted</Button>
-              ) : (
-                <Button href={`/debtor/cases/${caseItem.id}/review`} className="rounded-lg">Rate Mediator</Button>
-              )}
-            </div>
-          </div>
-      </div>
-      <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#E5E7EB]">
-        <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${percent}%` }} />
-      </div>
-      <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        {Array.from({ length: Math.min(totalInstallments, 12) }).map((_, index) => (
-          <div key={index} className={cn("rounded-lg border px-3 py-2 text-sm", index < completedInstallments ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-[#E5E7EB] bg-[#F8FAFC] text-[#6B7280]")}>
-            งวดที่ {index + 1}
-          </div>
-        ))}
-      </div>
-    </section>
-  );
 }
 
 function ClosedBanner({ caseItem, closing, review }: { caseItem: MediationCase; closing: ClosingWithDetails; review?: MediatorReview | null }) {
@@ -276,8 +224,6 @@ export function CaseProgressTracker({
   closing: ClosingWithDetails;
   review?: MediatorReview | null;
 }) {
-  const plan = closing?.result_status === "settled" ? closing.settlement_payment_plans?.[0] : null;
-  if (caseItem.status === "settled" && plan) return <RepaymentProgress caseItem={caseItem} plan={plan} review={review} />;
   if (caseItem.status === "closed" || caseItem.status === "settled") return <ClosedBanner caseItem={caseItem} closing={closing} review={review} />;
   if (failedStatuses.includes(caseItem.status)) return <FailedBanner caseItem={caseItem} closing={closing} />;
 

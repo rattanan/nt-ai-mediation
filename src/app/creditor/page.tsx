@@ -82,7 +82,7 @@ export default async function CreditorDashboardPage({
             <Summary label="สถานะองค์กร" value={creditorOrganizationStatusLabels[organization.status]} icon={Landmark} />
             <Summary label="คำขอรอพิจารณา" value={pending} icon={ClipboardList} />
             <Summary label="เคสกำลังดำเนินการ" value={active} icon={FolderOpen} />
-            <Summary label="รออนุมัติ settlement" value={approvalQueue} icon={BadgeCheck} />
+            <Summary label="ตกลงสำเร็จ" value={approvalQueue} icon={BadgeCheck} />
             <Summary label="เคสปิดแล้ว" value={closed} icon={FileCheck} />
             <Summary label="มูลหนี้รวม" value={money(totalDebt)} icon={ClipboardList} />
             <Summary label="มูลหนี้ที่ตกลงได้" value={money(settledDebt)} icon={BadgeCheck} />

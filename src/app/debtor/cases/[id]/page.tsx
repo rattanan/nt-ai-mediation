@@ -50,6 +50,7 @@ export default async function CaseDetailPage({
               <input type="hidden" name="case_id" value={item.id} />
               <Button type="submit" className="h-11 rounded-lg font-semibold">ส่งคำขอเข้าสู่การตรวจ</Button>
             </form>
+            <Button href={`/debtor/cases/${item.id}/ai`} variant="outline" className="h-11 rounded-lg font-semibold">เปิด AI เตรียมเคส</Button>
           </div>
         </section>
       ) : null}
@@ -69,6 +70,9 @@ export default async function CaseDetailPage({
             <div className="flex flex-wrap gap-2">
               {isEditableCase(item.status) ? (
                 <Button href={`/debtor/cases/${item.id}/edit`} variant="outline" className="rounded-lg">แก้ไขแบบร่าง</Button>
+              ) : null}
+              {isEditableCase(item.status) ? (
+                <Button href={`/debtor/cases/${item.id}/ai`} variant="outline" className="rounded-lg">AI เตรียมเคส</Button>
               ) : null}
               {isEditableCase(item.status) ? (
                 <form action={submitCase}>
@@ -93,6 +97,15 @@ export default async function CaseDetailPage({
           </dl>
 
           <div className="mt-6 space-y-5">
+            {item.admin_review_note && ["needs_more_info", "closed"].includes(item.status) ? (
+              <div>
+                <h3 className="font-semibold text-[#92400E]">ข้อความจากผู้ดูแลระบบ</h3>
+                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-[#78350F]">
+                  <p className="font-semibold">{item.status === "needs_more_info" ? "กรุณาส่งข้อมูลเพิ่มเติม" : "เหตุผลที่ปิดเคส"}</p>
+                  <p className="mt-2 whitespace-pre-line">{item.admin_review_note}</p>
+                </div>
+              </div>
+            ) : null}
             <div>
               <h3 className="font-semibold">รายละเอียดปัญหา</h3>
               <p className="mt-2 whitespace-pre-line rounded-lg bg-[#F8FAFC] p-4 text-sm leading-6 text-[#374151]">{item.problem_description}</p>

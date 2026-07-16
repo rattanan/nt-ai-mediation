@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   confirmMediatorAppointment,
+  createMediatorGoogleMeet,
   markAppointmentOutcome,
   requestMediatorReschedule,
   updateAppointmentMeetingUrl,
@@ -44,6 +45,7 @@ export default async function MediatorAppointmentDetailPage({
         appointment={appointment}
         actions={
           <div className="grid gap-4 lg:grid-cols-2">
+            {["online", "hybrid"].includes(appointment.meeting_type) && !["cancelled", "completed"].includes(appointment.status) ? <form action={createMediatorGoogleMeet} className="space-y-3"><input type="hidden" name="appointment_id" value={appointment.id}/><input type="hidden" name="case_id" value={appointment.case_id}/><p className="text-sm text-[#6B7280]">ระบบจะส่ง Calendar invite ให้ผู้เข้าร่วมทุกฝ่าย</p><Button type="submit" className="h-11 w-full rounded-lg font-semibold" disabled={appointment.google_sync_status === "creating"}>{appointment.meeting_url ? "Google Meet พร้อมใช้งาน" : "สร้าง Google Meet"}</Button></form> : null}
             {!appointment.confirmed_by_mediator_at && appointment.status !== "cancelled" ? (
               <form action={confirmMediatorAppointment} className="space-y-3">
                 <input type="hidden" name="appointment_id" value={appointment.id} />
@@ -81,9 +83,7 @@ export default async function MediatorAppointmentDetailPage({
               </form>
             ) : null}
             {appointment.status === "completed" ? (
-              <Button href={`/mediator/closing/${appointment.case_id}?appointment=${appointment.id}`} className="h-11 rounded-lg font-semibold">
-                ปิดเคสและสร้างเอกสาร
-              </Button>
+              <div className="grid gap-2"><Button href={`/staff/appointments/${appointment.id}/minutes`} variant="outline" className="h-11 rounded-lg font-semibold">ตรวจ transcript / บันทึกการประชุม</Button><Button href={`/mediator/closing/${appointment.case_id}?appointment=${appointment.id}`} className="h-11 rounded-lg font-semibold">ปิดเคสและสร้างเอกสาร</Button></div>
             ) : null}
           </div>
         }

@@ -170,132 +170,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      creditors: {
-        Row: {
-          id: string;
-          profile_id: string | null;
-          name: string;
-          tax_id: string | null;
-          contact_name: string | null;
-          contact_email: string | null;
-          contact_phone: string | null;
-          address: string | null;
-          created_by: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          profile_id?: string | null;
-          name: string;
-          tax_id?: string | null;
-          contact_name?: string | null;
-          contact_email?: string | null;
-          contact_phone?: string | null;
-          address?: string | null;
-          created_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          profile_id?: string | null;
-          name?: string;
-          tax_id?: string | null;
-          contact_name?: string | null;
-          contact_email?: string | null;
-          contact_phone?: string | null;
-          address?: string | null;
-          created_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      mediators: {
-        Row: {
-          id: string;
-          profile_id: string;
-          license_no: string | null;
-          expertise: string[];
-          service_area: string | null;
-          active: boolean;
-          max_active_cases: number;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          profile_id: string;
-          license_no?: string | null;
-          expertise?: string[];
-          service_area?: string | null;
-          active?: boolean;
-          max_active_cases?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          profile_id?: string;
-          license_no?: string | null;
-          expertise?: string[];
-          service_area?: string | null;
-          active?: boolean;
-          max_active_cases?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      debtor_cases: {
-        Row: {
-          id: string;
-          case_number: string;
-          debtor_profile_id: string;
-          creditor_id: string | null;
-          mediator_id: string | null;
-          debt_amount: number;
-          debt_type: string;
-          status: "draft" | "submitted" | "ai_interview" | "matching" | "scheduled" | "in_mediation" | "settled" | "closed" | "cancelled";
-          ai_summary: string | null;
-          debtor_notes: string | null;
-          submitted_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          case_number?: string;
-          debtor_profile_id?: string;
-          creditor_id?: string | null;
-          mediator_id?: string | null;
-          debt_amount: number;
-          debt_type: string;
-          status?: "draft" | "submitted" | "ai_interview" | "matching" | "scheduled" | "in_mediation" | "settled" | "closed" | "cancelled";
-          ai_summary?: string | null;
-          debtor_notes?: string | null;
-          submitted_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          case_number?: string;
-          debtor_profile_id?: string;
-          creditor_id?: string | null;
-          mediator_id?: string | null;
-          debt_amount?: number;
-          debt_type?: string;
-          status?: "draft" | "submitted" | "ai_interview" | "matching" | "scheduled" | "in_mediation" | "settled" | "closed" | "cancelled";
-          ai_summary?: string | null;
-          debtor_notes?: string | null;
-          submitted_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
       cases: {
         Row: {
           id: string;
@@ -1083,6 +957,15 @@ export type Database = {
           meeting_type: MeetingType;
           meeting_url: string | null;
           meeting_provider: MeetingProvider;
+          calendar_event_id: string | null;
+          meet_space_name: string | null;
+          meeting_code: string | null;
+          organizer_email: string | null;
+          google_sync_status: "not_created" | "creating" | "synced" | "updating" | "cancelling" | "cancelled" | "failed";
+          google_sync_error: string | null;
+          recording_status: "not_requested" | "waiting_consent" | "enabled" | "disabled" | "processing" | "ready" | "failed";
+          meeting_created_by: string | null;
+          artifact_poll_after: string | null;
           status: AppointmentStatus;
           requested_by: string | null;
           confirmed_by_mediator_at: string | null;
@@ -1106,6 +989,15 @@ export type Database = {
           meeting_type?: MeetingType;
           meeting_url?: string | null;
           meeting_provider?: MeetingProvider;
+          calendar_event_id?: string | null;
+          meet_space_name?: string | null;
+          meeting_code?: string | null;
+          organizer_email?: string | null;
+          google_sync_status?: "not_created" | "creating" | "synced" | "updating" | "cancelling" | "cancelled" | "failed";
+          google_sync_error?: string | null;
+          recording_status?: "not_requested" | "waiting_consent" | "enabled" | "disabled" | "processing" | "ready" | "failed";
+          meeting_created_by?: string | null;
+          artifact_poll_after?: string | null;
           status?: AppointmentStatus;
           requested_by?: string | null;
           confirmed_by_mediator_at?: string | null;
@@ -1220,10 +1112,10 @@ export type Database = {
       };
       settlement_document_signatures: {
         Row: {
-          id: string; document_id: string; case_id: string; signer_role: SettlementDocumentSignatureRole; signer_user_id: string; signer_name: string; signed_at: string; created_at: string;
+          id: string; document_id: string; case_id: string; signer_role: SettlementDocumentSignatureRole; signer_user_id: string; signer_name: string; signature_image_data: string | null; signed_at: string; created_at: string;
         };
         Insert: {
-          id?: string; document_id: string; case_id: string; signer_role: SettlementDocumentSignatureRole; signer_user_id: string; signer_name: string; signed_at?: string; created_at?: string;
+          id?: string; document_id: string; case_id: string; signer_role: SettlementDocumentSignatureRole; signer_user_id: string; signer_name: string; signature_image_data?: string | null; signed_at?: string; created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["settlement_document_signatures"]["Insert"]>;
         Relationships: [];
@@ -1254,130 +1146,88 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["email_logs"]["Insert"]>;
         Relationships: [];
       };
-      mediation_sessions: {
-        Row: {
-          id: string;
-          case_id: string;
-          mediator_id: string | null;
-          scheduled_at: string;
-          duration_minutes: number;
-          channel: "online" | "phone" | "onsite";
-          meeting_url: string | null;
-          status: "scheduled" | "completed" | "cancelled" | "no_show";
-          notes: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          case_id: string;
-          mediator_id?: string | null;
-          scheduled_at: string;
-          duration_minutes?: number;
-          channel?: "online" | "phone" | "onsite";
-          meeting_url?: string | null;
-          status?: "scheduled" | "completed" | "cancelled" | "no_show";
-          notes?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          case_id?: string;
-          mediator_id?: string | null;
-          scheduled_at?: string;
-          duration_minutes?: number;
-          channel?: "online" | "phone" | "onsite";
-          meeting_url?: string | null;
-          status?: "scheduled" | "completed" | "cancelled" | "no_show";
-          notes?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      settlement_agreements: {
-        Row: {
-          id: string;
-          case_id: string;
-          session_id: string | null;
-          total_amount: number;
-          monthly_payment: number | null;
-          start_date: string | null;
-          end_date: string | null;
-          terms: string;
-          status: "draft" | "proposed" | "accepted" | "active" | "completed" | "defaulted" | "cancelled";
-          accepted_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          case_id: string;
-          session_id?: string | null;
-          total_amount: number;
-          monthly_payment?: number | null;
-          start_date?: string | null;
-          end_date?: string | null;
-          terms: string;
-          status?: "draft" | "proposed" | "accepted" | "active" | "completed" | "defaulted" | "cancelled";
-          accepted_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          case_id?: string;
-          session_id?: string | null;
-          total_amount?: number;
-          monthly_payment?: number | null;
-          start_date?: string | null;
-          end_date?: string | null;
-          terms?: string;
-          status?: "draft" | "proposed" | "accepted" | "active" | "completed" | "defaulted" | "cancelled";
-          accepted_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
       case_documents: {
-        Row: {
-          id: string;
-          case_id: string;
-          mediation_case_id: string | null;
-          uploaded_by: string | null;
-          document_type: string;
-          file_name: string;
-          file_path: string;
-          mime_type: string | null;
-          file_size_bytes: number | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          case_id: string;
-          mediation_case_id?: string | null;
-          uploaded_by?: string | null;
-          document_type: string;
-          file_name: string;
-          file_path: string;
-          mime_type?: string | null;
-          file_size_bytes?: number | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          case_id?: string;
-          mediation_case_id?: string | null;
-          uploaded_by?: string | null;
-          document_type?: string;
-          file_name?: string;
-          file_path?: string;
-          mime_type?: string | null;
-          file_size_bytes?: number | null;
-          created_at?: string;
-        };
+        Row: { id: string; case_id: string; uploaded_by: string | null; storage_path: string; file_name: string; mime_type: string | null; size_bytes: number; page_count: number | null; ocr_status: "pending" | "processing" | "completed" | "failed" | "manual_bypass"; ocr_text: string | null; ocr_confidence: number | null; extracted_fields: Json; confirmed_fields: Json; retry_count: number; last_error: string | null; processed_at: string | null; created_at: string; updated_at: string; };
+        Insert: { id?: string; case_id: string; uploaded_by?: string | null; storage_path: string; file_name: string; mime_type?: string | null; size_bytes?: number; page_count?: number | null; ocr_status?: "pending" | "processing" | "completed" | "failed" | "manual_bypass"; ocr_text?: string | null; ocr_confidence?: number | null; extracted_fields?: Json; confirmed_fields?: Json; retry_count?: number; last_error?: string | null; processed_at?: string | null; created_at?: string; updated_at?: string; };
+        Update: Partial<Database["public"]["Tables"]["case_documents"]["Insert"]>;
+        Relationships: [];
+      };
+      case_ai_sessions: {
+        Row: { id: string; case_id: string; status: "pending" | "processing" | "interview" | "ready" | "completed" | "failed" | "manual_bypass"; summary: string | null; strengths: Json; benefits: Json; missing_fields: Json; question_count: number; bypass_reason: string | null; prompt_version: string; completed_at: string | null; created_at: string; updated_at: string; };
+        Insert: { id?: string; case_id: string; status?: "pending" | "processing" | "interview" | "ready" | "completed" | "failed" | "manual_bypass"; summary?: string | null; strengths?: Json; benefits?: Json; missing_fields?: Json; question_count?: number; bypass_reason?: string | null; prompt_version?: string; completed_at?: string | null; created_at?: string; updated_at?: string; };
+        Update: Partial<Database["public"]["Tables"]["case_ai_sessions"]["Insert"]>;
+        Relationships: [];
+      };
+      case_ai_messages: {
+        Row: { id: string; session_id: string; case_id: string; role: "user" | "assistant" | "system"; content: string; sequence: number; metadata: Json; created_at: string; };
+        Insert: { id?: string; session_id: string; case_id: string; role: "user" | "assistant" | "system"; content: string; sequence: number; metadata?: Json; created_at?: string; };
+        Update: Partial<Database["public"]["Tables"]["case_ai_messages"]["Insert"]>;
+        Relationships: [];
+      };
+      case_ai_assessments: {
+        Row: { id: string; case_id: string; session_id: string; version: number; risk_score: number; risk_level: "low" | "medium" | "high"; factors: Json; risks: Json; strengths: Json; benefits: Json; rationale: string; model: string | null; prompt_version: string; review_status: "pending" | "approved" | "needs_correction"; reviewed_by: string | null; reviewed_at: string | null; review_note: string | null; created_at: string; };
+        Insert: { id?: string; case_id: string; session_id: string; version?: number; risk_score: number; risk_level: "low" | "medium" | "high"; factors?: Json; risks?: Json; strengths?: Json; benefits?: Json; rationale: string; model?: string | null; prompt_version?: string; review_status?: "pending" | "approved" | "needs_correction"; reviewed_by?: string | null; reviewed_at?: string | null; review_note?: string | null; created_at?: string; };
+        Update: Partial<Database["public"]["Tables"]["case_ai_assessments"]["Insert"]>;
+        Relationships: [];
+      };
+      case_payment_plans: {
+        Row: { id: string; case_id: string; assessment_id: string; plan_type: "light_payment" | "fast_close"; principal_amount: number; assumed_interest_rate: number; assumed_discount_rate: number; monthly_payment: number; term_months: number; total_payment: number; assumptions: Json; status: "proposed" | "selected" | "superseded"; selected_at: string | null; created_at: string; };
+        Insert: { id?: string; case_id: string; assessment_id: string; plan_type: "light_payment" | "fast_close"; principal_amount: number; assumed_interest_rate?: number; assumed_discount_rate?: number; monthly_payment: number; term_months: number; total_payment: number; assumptions?: Json; status?: "proposed" | "selected" | "superseded"; selected_at?: string | null; created_at?: string; };
+        Update: Partial<Database["public"]["Tables"]["case_payment_plans"]["Insert"]>;
+        Relationships: [];
+      };
+      ai_rate_policies: {
+        Row: { id: string; debt_type: string; min_interest_rate: number; max_interest_rate: number; min_discount_rate: number; max_discount_rate: number; active: boolean; updated_by: string | null; created_at: string; updated_at: string; };
+        Insert: { id?: string; debt_type: string; min_interest_rate?: number; max_interest_rate?: number; min_discount_rate?: number; max_discount_rate?: number; active?: boolean; updated_by?: string | null; created_at?: string; updated_at?: string; };
+        Update: Partial<Database["public"]["Tables"]["ai_rate_policies"]["Insert"]>;
+        Relationships: [];
+      };
+      ai_processing_jobs: {
+        Row: { id: string; case_id: string; document_id: string | null; job_type: "ocr" | "interview" | "assessment"; status: "queued" | "processing" | "completed" | "failed" | "manual_bypass"; attempts: number; payload: Json; result: Json; last_error: string | null; available_at: string; started_at: string | null; completed_at: string | null; created_at: string; updated_at: string; };
+        Insert: { id?: string; case_id: string; document_id?: string | null; job_type: "ocr" | "interview" | "assessment"; status?: "queued" | "processing" | "completed" | "failed" | "manual_bypass"; attempts?: number; payload?: Json; result?: Json; last_error?: string | null; available_at?: string; started_at?: string | null; completed_at?: string | null; created_at?: string; updated_at?: string; };
+        Update: Partial<Database["public"]["Tables"]["ai_processing_jobs"]["Insert"]>;
+        Relationships: [];
+      };
+      appointment_recording_consents: {
+        Row: { id: string; appointment_id: string; participant_profile_id: string; participant_role: "debtor" | "creditor" | "mediator"; consented: boolean; consent_version: string; consented_at: string; revoked_at: string | null; created_at: string; updated_at: string; };
+        Insert: { id?: string; appointment_id: string; participant_profile_id: string; participant_role: "debtor" | "creditor" | "mediator"; consented: boolean; consent_version: string; consented_at?: string; revoked_at?: string | null; created_at?: string; updated_at?: string; };
+        Update: Partial<Database["public"]["Tables"]["appointment_recording_consents"]["Insert"]>;
+        Relationships: [];
+      };
+      meeting_artifacts: {
+        Row: { id: string; appointment_id: string; artifact_type: "recording" | "native_transcript" | "manual_transcript"; provider: string; external_name: string | null; drive_file_id: string | null; source_uri: string | null; status: "discovered" | "downloading" | "copied" | "processed" | "failed" | "deleted"; metadata: Json; last_error: string | null; discovered_at: string; processed_at: string | null; created_at: string; };
+        Insert: { id?: string; appointment_id: string; artifact_type: "recording" | "native_transcript" | "manual_transcript"; provider?: string; external_name?: string | null; drive_file_id?: string | null; source_uri?: string | null; status?: "discovered" | "downloading" | "copied" | "processed" | "failed" | "deleted"; metadata?: Json; last_error?: string | null; discovered_at?: string; processed_at?: string | null; created_at?: string; };
+        Update: Partial<Database["public"]["Tables"]["meeting_artifacts"]["Insert"]>;
+        Relationships: [];
+      };
+      meeting_transcripts: {
+        Row: { id: string; appointment_id: string; artifact_id: string | null; status: "processing" | "ready" | "failed" | "expired"; language_code: string; source: "google_speech_v2" | "google_meet" | "manual"; raw_text: string | null; private_storage_path: string | null; average_confidence: number | null; retention_until: string; created_at: string; updated_at: string; };
+        Insert: { id?: string; appointment_id: string; artifact_id?: string | null; status?: "processing" | "ready" | "failed" | "expired"; language_code?: string; source?: "google_speech_v2" | "google_meet" | "manual"; raw_text?: string | null; private_storage_path?: string | null; average_confidence?: number | null; retention_until?: string; created_at?: string; updated_at?: string; };
+        Update: Partial<Database["public"]["Tables"]["meeting_transcripts"]["Insert"]>;
+        Relationships: [];
+      };
+      meeting_transcript_segments: {
+        Row: { id: string; transcript_id: string; sequence: number; start_offset_ms: number; end_offset_ms: number; speaker_label: string; verified_participant_profile_id: string | null; text: string; confidence: number | null; created_at: string; };
+        Insert: { id?: string; transcript_id: string; sequence: number; start_offset_ms?: number; end_offset_ms?: number; speaker_label: string; verified_participant_profile_id?: string | null; text: string; confidence?: number | null; created_at?: string; };
+        Update: Partial<Database["public"]["Tables"]["meeting_transcript_segments"]["Insert"]>;
+        Relationships: [];
+      };
+      meeting_processing_jobs: {
+        Row: { id: string; appointment_id: string; job_type: "artifact_poll" | "transcribe" | "summarize" | "retention_cleanup"; status: "queued" | "processing" | "completed" | "failed" | "manual_required"; attempts: number; next_attempt_at: string; payload: Json; result: Json; last_error: string | null; started_at: string | null; completed_at: string | null; created_at: string; updated_at: string; };
+        Insert: { id?: string; appointment_id: string; job_type: "artifact_poll" | "transcribe" | "summarize" | "retention_cleanup"; status?: "queued" | "processing" | "completed" | "failed" | "manual_required"; attempts?: number; next_attempt_at?: string; payload?: Json; result?: Json; last_error?: string | null; started_at?: string | null; completed_at?: string | null; created_at?: string; updated_at?: string; };
+        Update: Partial<Database["public"]["Tables"]["meeting_processing_jobs"]["Insert"]>;
+        Relationships: [];
+      };
+      meeting_minutes: {
+        Row: { id: string; appointment_id: string; case_id: string; current_version: number; status: "draft" | "approved"; approved_by: string | null; approved_at: string | null; created_at: string; updated_at: string; };
+        Insert: { id?: string; appointment_id: string; case_id: string; current_version?: number; status?: "draft" | "approved"; approved_by?: string | null; approved_at?: string | null; created_at?: string; updated_at?: string; };
+        Update: Partial<Database["public"]["Tables"]["meeting_minutes"]["Insert"]>;
+        Relationships: [];
+      };
+      meeting_minute_versions: {
+        Row: { id: string; minutes_id: string; version: number; meeting_datetime: string | null; verified_attendees: Json; objective: string; key_points: Json; party_positions: Json; monetary_proposals: Json; confirmed_agreements: Json; unresolved_issues: Json; action_items: Json; next_steps: Json; low_confidence_items: Json; source_segment_ids: Json; status: "draft" | "approved" | "superseded"; created_by: string | null; approved_by: string | null; approved_at: string | null; created_at: string; };
+        Insert: { id?: string; minutes_id: string; version: number; meeting_datetime?: string | null; verified_attendees?: Json; objective?: string; key_points?: Json; party_positions?: Json; monetary_proposals?: Json; confirmed_agreements?: Json; unresolved_issues?: Json; action_items?: Json; next_steps?: Json; low_confidence_items?: Json; source_segment_ids?: Json; status?: "draft" | "approved" | "superseded"; created_by?: string | null; approved_by?: string | null; approved_at?: string | null; created_at?: string; };
+        Update: Partial<Database["public"]["Tables"]["meeting_minute_versions"]["Insert"]>;
         Relationships: [];
       };
       audit_logs: {
@@ -1421,6 +1271,10 @@ export type Database = {
         Args: Record<string, never>;
         Returns: boolean;
       };
+      can_access_case: { Args: { target_case_id: string }; Returns: boolean };
+      can_staff_case: { Args: { target_case_id: string }; Returns: boolean };
+      can_access_appointment: { Args: { target_appointment_id: string }; Returns: boolean };
+      can_staff_appointment: { Args: { target_appointment_id: string }; Returns: boolean };
     };
     Enums: {
       app_role: AppRole;

@@ -14,6 +14,8 @@ import { formError, type FormState } from "@/lib/form-state";
 import { createClient } from "@/lib/supabase/server";
 import { recalculateMediatorTrustScore } from "@/lib/trust-score";
 import type { AppointmentStatus, MeetingType } from "@/types/database";
+import { createGoogleMeetForAppointment } from "@/lib/google/workspace-meet";
+import { queueMeetingProcessing } from "@/lib/meetings/processing";
 
 const MEDIATOR_PROFILE_IMAGES_BUCKET = "mediator-profile-images";
 
@@ -65,7 +67,13 @@ async function saveProfile(formData: FormData, submit: boolean): Promise<FormSta
 
   const supabase = await createClient();
   const current = await getMediatorProfileByUser(profile.id);
-  const nextStatus = submit ? "submitted" : current?.status === "approved" ? "submitted" : "draft";
+  const nextStatus = submit
+    ? "submitted"
+    : current?.status === "approved"
+      ? "submitted"
+      : current?.status === "needs_revision"
+        ? "needs_revision"
+        : "draft";
   let uploadedProfilePhotoUrl: string | null = null;
 
   try {
@@ -393,6 +401,17 @@ export async function updateAppointmentMeetingUrl(formData: FormData) {
   go(`/mediator/appointments/${appointment.id}`, "บันทึกลิงก์ประชุมแล้ว");
 }
 
+export async function createMediatorGoogleMeet(formData: FormData) {
+  const { profile, appointment } = await getMediatorAppointment(formData);
+  try {
+    await createGoogleMeetForAppointment(appointment.id, profile.id);
+  } catch (error) {
+    console.error("Mediator Google Meet creation failed", error);
+    go(`/mediator/appointments/${appointment.id}`, error instanceof Error ? error.message : "สร้าง Google Meet ไม่สำเร็จ", "error");
+  }
+  go(`/mediator/appointments/${appointment.id}`, "สร้าง Google Meet และส่งคำเชิญแล้ว");
+}
+
 export async function markAppointmentOutcome(formData: FormData) {
   const { profile, supabase, appointment } = await getMediatorAppointment(formData);
   const nextStatus = String(formData.get("status") ?? "") as AppointmentStatus;
@@ -407,6 +426,7 @@ export async function markAppointmentOutcome(formData: FormData) {
   await recordAppointmentHistory(appointment.id, appointment.status, nextStatus, profile.id, note || "ผู้ไกล่เกลี่ยอัปเดตผลนัดหมาย");
   if (nextStatus === "completed") {
     await supabase.from("cases").update({ status: "in_mediation" }).eq("id", appointment.case_id);
+    if (appointment.recording_status === "enabled") await queueMeetingProcessing(appointment.id);
   }
   await recalculateMediatorTrustScore(appointment.mediator_id);
 

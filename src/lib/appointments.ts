@@ -174,6 +174,20 @@ export async function getActiveAppointmentForCase(caseId: string) {
   return (data ?? null) as AppointmentWithDetails | null;
 }
 
+export async function getLatestAppointmentForCase(caseId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("mediation_appointments")
+    .select("*, appointment_participants(*), appointment_status_history(*)")
+    .eq("case_id", caseId)
+    .order("appointment_date", { ascending: false })
+    .order("start_time", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return (data ?? null) as AppointmentWithDetails | null;
+}
+
 export async function getAppointmentDetail(appointmentId: string) {
   const supabase = await createClient();
   const { data } = await supabase

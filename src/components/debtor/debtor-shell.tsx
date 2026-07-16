@@ -5,12 +5,12 @@ import { logout } from "@/app/auth/actions";
 import { NtLogoMark } from "@/components/nt-logo-mark";
 import { AppFooter } from "@/components/app-footer";
 import type { AuthProfile } from "@/lib/auth/server";
-import { countUpcomingDebtorAppointments } from "@/lib/portal-counts";
+import { countPendingDebtorAiInterviews, countUpcomingDebtorAppointments } from "@/lib/portal-counts";
 
 const navItems = [
   { href: "/debtor", label: "ภาพรวม", icon: Home },
   { href: "/debtor/cases/new", label: "สร้างใบคำขอ", icon: FileText },
-  { href: "#", label: "สัมภาษณ์ AI", icon: MessageSquareText },
+  { href: "/debtor/interviews", label: "สัมภาษณ์ AI", icon: MessageSquareText },
   { href: "/debtor/appointments", label: "นัดหมาย", icon: CalendarClock },
   { href: "/debtor/agreements", label: "ข้อตกลง", icon: Scale },
 ];
@@ -28,8 +28,12 @@ export async function DebtorShell({
   activePath: string;
   children: ReactNode;
 }) {
-  const upcomingAppointments = await countUpcomingDebtorAppointments(profile.id);
+  const [upcomingAppointments, pendingAiInterviews] = await Promise.all([
+    countUpcomingDebtorAppointments(profile.id),
+    countPendingDebtorAiInterviews(profile.id),
+  ]);
   const itemCounts: Record<string, number> = {
+    "/debtor/interviews": pendingAiInterviews,
     "/debtor/appointments": upcomingAppointments,
   };
 

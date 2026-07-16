@@ -5,12 +5,12 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CaseAiAssessmentCard } from "@/components/cases/case-ai-assessment-card";
 import { requireRole } from "@/lib/auth/server";
 import { getActiveAppointmentForCase } from "@/lib/appointments";
 import { caseStatusLabels } from "@/lib/cases";
 import { getClosingForCase, resultStatusLabels } from "@/lib/closing";
 import { getCreditorCase, getCreditorOfficer, getCreditorOrganization, getCreditorResponses } from "@/lib/creditor";
-import { isActiveCase } from "@/lib/cases";
 
 export const dynamic = "force-dynamic";
 
@@ -99,7 +99,7 @@ export default async function CreditorCaseDetailPage({
             </div>
             <div>
               <h3 className="font-semibold">สรุปการสัมภาษณ์โดย AI</h3>
-              <p className="mt-2 rounded-lg bg-[#F8FAFC] p-4 text-sm text-[#6B7280]">ข้อมูลสรุปจาก AI จะแสดงเมื่อโมดูลสัมภาษณ์พร้อมใช้งาน</p>
+              <div className="mt-2"><CaseAiAssessmentCard caseId={item.id} /></div>
             </div>
             <div>
               <h3 className="font-semibold">รายละเอียดข้อตกลงล่าสุด</h3>
@@ -111,7 +111,7 @@ export default async function CreditorCaseDetailPage({
         </section>
 
         <aside className="space-y-5">
-          {isActiveCase(item.status) ? (
+          {item.status === "creditor_review" ? (
             <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
               <h2 className="font-semibold">การพิจารณาของเจ้าหนี้</h2>
               <form action={acceptCreditorCase} className="mt-4 space-y-3">
@@ -126,23 +126,33 @@ export default async function CreditorCaseDetailPage({
                 <p className="text-xs text-[#6B7280]">ระบบจะบันทึกส่วนลดรวมในข้อเสนอ และใช้ยอดข้อตกลงหลังส่วนลดสำหรับการพิจารณาแผนชำระ</p>
                 <Button type="submit" className="h-11 w-full rounded-lg font-semibold">รับคำขอ</Button>
               </form>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <form action={requestCreditorMoreInfo}>
+              <div className="mt-4 grid gap-4">
+                <form action={requestCreditorMoreInfo} className="rounded-lg bg-[#F8FAFC] p-3">
                   <input type="hidden" name="case_id" value={item.id} />
-                  <input type="hidden" name="note" value="เจ้าหนี้ขอข้อมูลเพิ่มเติม" />
-                  <Button type="submit" variant="outline" className="h-11 w-full rounded-lg font-semibold">ขอข้อมูลเพิ่มเติม</Button>
+                  <label className="text-sm font-medium">รายละเอียดข้อมูลที่ต้องการเพิ่มเติม</label>
+                  <textarea name="note" required className="mt-2 min-h-20 w-full rounded-lg border border-[#D1D5DB] bg-white px-3 py-2 text-sm" placeholder="ระบุข้อมูลหรือเอกสารที่ต้องการจากลูกหนี้" />
+                  <Button type="submit" variant="outline" className="mt-2 h-11 w-full rounded-lg font-semibold">ขอข้อมูลเพิ่มเติม</Button>
                 </form>
-                <form action={rejectCreditorCase}>
+                <form action={rejectCreditorCase} className="rounded-lg bg-red-50 p-3">
                   <input type="hidden" name="case_id" value={item.id} />
-                  <input type="hidden" name="note" value="เจ้าหนี้ปฏิเสธคำขอ" />
-                  <Button type="submit" variant="outline" className="h-11 w-full rounded-lg font-semibold">ปฏิเสธคำขอ</Button>
+                  <label className="text-sm font-medium text-red-800">เหตุผลที่ปฏิเสธคำขอ</label>
+                  <textarea name="note" required className="mt-2 min-h-20 w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm" placeholder="ระบุเหตุผลเพื่อแจ้งให้ลูกหนี้ทราบ" />
+                  <Button type="submit" variant="outline" className="mt-2 h-11 w-full rounded-lg border-red-200 font-semibold text-red-700 hover:bg-red-100">ปฏิเสธคำขอ</Button>
                 </form>
               </div>
             </section>
           ) : (
             <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
               <h2 className="font-semibold">การพิจารณาของเจ้าหนี้</h2>
-              <p className="mt-2 text-sm text-[#6B7280]">เคสนี้อยู่ในสถานะที่ปิดการรับคำขอแล้ว จึงไม่สามารถรับหรือปฏิเสธใหม่จากหน้านี้ได้</p>
+              <p className="mt-2 text-sm text-[#6B7280]">บันทึกผลการพิจารณาแล้ว ข้อมูลส่วนนี้แก้ไขไม่ได้</p>
+              {responses[0] ? (
+                <div className="mt-4 rounded-lg bg-[#F8FAFC] p-4 text-sm">
+                  <p className="font-semibold">ผล: {responses[0].response}</p>
+                  {responses[0].reason ? <p className="mt-2 whitespace-pre-line">{responses[0].reason}</p> : null}
+                  {responses[0].proposed_terms ? <p className="mt-2 whitespace-pre-line">{responses[0].proposed_terms}</p> : null}
+                  <p className="mt-2 text-xs text-[#6B7280]">{new Date(responses[0].created_at).toLocaleString("th-TH")}</p>
+                </div>
+              ) : <p className="mt-4 text-sm text-[#6B7280]">ยังไม่มีรายละเอียดผลการพิจารณา</p>}
             </section>
           )}
 

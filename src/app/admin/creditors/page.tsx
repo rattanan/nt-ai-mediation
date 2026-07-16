@@ -113,7 +113,7 @@ export default async function AdminCreditorsPage({
           <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
             <h2 className="font-semibold">รายละเอียดองค์กร</h2>
             {selectedOrganization ? (
-              <form action={updateCreditorOrganizationInfo} className="mt-4 space-y-4 text-sm">
+              <form key={selectedOrganization.id} action={updateCreditorOrganizationInfo} className="mt-4 space-y-4 text-sm">
                 <input type="hidden" name="organization_id" value={selectedOrganization.id} />
                 <label className="block">
                   <span className="font-medium">ชื่อองค์กร</span>

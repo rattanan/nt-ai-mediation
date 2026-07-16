@@ -1,6 +1,6 @@
 {
   "name": "nt-ai-mediation",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -8,8 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test:unit": "node --test --experimental-strip-types --experimental-default-type=module tests/unit/*.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:list": "playwright test --list",
+    "google:oauth": "node --env-file=.env scripts/google-oauth-authorize.mjs",
     "seed:demo": "node scripts/seed-demo.mjs",
     "seed:role-profiles": "node scripts/seed-role-profiles.mjs",
     "cleanup:demo": "node scripts/cleanup-demo-data.mjs"
@@ -19,6 +21,7 @@
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.0",
     "clsx": "^2.1.1",
+    "google-auth-library": "10.5.0",
     "lucide-react": "^1.23.0",
     "next": "^16.2.10",
     "pdf-lib": "^1.17.1",

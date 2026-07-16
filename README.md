@@ -70,6 +70,74 @@ gcloud run services update nt-ai-mediation \
 
 Do not expose the Supabase service role key in browser code or `NEXT_PUBLIC_*` variables.
 
+### AI case preparation and Google Calendar mediation
+
+The AI/OCR, Calendar, Meet, Drive, Speech-to-Text, and background job integrations are server-only. Store all credentials in Secret Manager or server environment variables; never prefix them with `NEXT_PUBLIC_`.
+
+Calendar and Google Meet link creation can use a regular Google/Gmail account through OAuth 2.0. Google Workspace and domain-wide delegation are not required for this mode. Create a Web application OAuth client, authorize the organizer account once with offline access, and store its refresh token:
+
+```bash
+# OpenAI-compatible text endpoint
+OPENAI_API_URL=https://YOUR_PRIVATE_AI_ENDPOINT/v1
+OPENAI_API_KEY=YOUR_SECRET
+OPENAI_MODEL=openai/gpt-oss-120b
+# Development only when the endpoint is on a trusted private HTTP network
+ALLOW_INSECURE_AI_HTTP=false
+
+# Google Cloud OCR and Thai Speech-to-Text
+GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID
+GOOGLE_DOCUMENT_AI_LOCATION=asia-southeast1
+GOOGLE_DOCUMENT_AI_PROCESSOR=YOUR_ENTERPRISE_OCR_PROCESSOR_ID
+GOOGLE_SPEECH_LOCATION=asia-southeast1
+GOOGLE_SPEECH_RECOGNIZER=YOUR_RECOGNIZER_ID
+GOOGLE_MEETING_TEMP_BUCKET=YOUR_PRIVATE_TEMP_BUCKET
+
+# Google Cloud service account used only for OCR, Speech-to-Text, and Storage.
+# On Cloud Run, Application Default Credentials can be used instead, so these
+# two variables may be omitted when the runtime service account has access.
+GOOGLE_SERVICE_ACCOUNT_EMAIL=workspace-integration@YOUR_PROJECT.iam.gserviceaccount.com
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=YOUR_SECRET_MANAGER_VALUE
+
+# Regular Gmail/Google account used to create Calendar events and Meet links
+GOOGLE_OAUTH_CLIENT_ID=YOUR_WEB_OAUTH_CLIENT_ID
+GOOGLE_OAUTH_CLIENT_SECRET=YOUR_WEB_OAUTH_CLIENT_SECRET
+GOOGLE_CALENDAR_OAUTH_REFRESH_TOKEN=YOUR_OFFLINE_REFRESH_TOKEN
+GOOGLE_CALENDAR_ORGANIZER_EMAIL=YOUR_GOOGLE_ACCOUNT@gmail.com
+GOOGLE_CALENDAR_ID=primary
+
+# Keep this false for the free Gmail mode. Recording and recording-artifact
+# processing depend on account capabilities and additional restricted scopes.
+GOOGLE_MEET_AUTO_RECORDING=false
+MEETING_RECORDING_CONSENT_VERSION=2026-07-13
+MEETING_TRANSCRIPT_RETENTION_DAYS=180
+
+# Cloud Scheduler -> POST /api/internal/meeting-jobs
+INTERNAL_JOB_SECRET=YOUR_RANDOM_SECRET
+SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
+```
+
+For the free Gmail mode, request `https://www.googleapis.com/auth/calendar.events` and offline access when generating the refresh token. Calendar can create Google Meet conference details by sending `conferenceDataVersion=1`.
+
+To authorize the Gmail account:
+
+1. Create an OAuth client of type **Web application** in Google Cloud.
+2. Add `http://127.0.0.1:53682/oauth2/callback` as an authorized redirect URI.
+3. Put `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`.
+4. Run `npm run google:oauth`, open the printed URL, and approve access.
+5. Copy the resulting refresh token into `GOOGLE_CALENDAR_OAUTH_REFRESH_TOKEN` in `.env` and Secret Manager.
+
+If recording ingestion is enabled later, the Meet and `drive.meet.readonly` scopes are also required. `drive.meet.readonly` is restricted and may require Google verification/security assessment. Configure a Cloud Scheduler HTTP job to call `/api/internal/meeting-jobs` every few minutes with `Authorization: Bearer $INTERNAL_JOB_SECRET`. Also configure a lifecycle rule on the private temporary bucket as a second safety net to delete meeting recordings after one day.
+
+The legacy Workspace domain-wide delegation variables remain supported for deployments that already use them:
+
+```bash
+GOOGLE_WORKSPACE_ORGANIZER_EMAIL=mediation@YOUR_WORKSPACE_DOMAIN
+GOOGLE_SERVICE_ACCOUNT_EMAIL=workspace-integration@YOUR_PROJECT.iam.gserviceaccount.com
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=YOUR_SECRET_MANAGER_VALUE
+```
+
+The database migration `20260713142255_ai_case_preparation_and_meeting_records.sql` adds RLS-protected AI/meeting artifacts. Apply migrations before enabling either workflow.
+
 ### Seed demo data
 
 The demo seed creates admin, debtor, creditor, mediator, case, appointment, invoice, settlement, review, and trust score records for QA.

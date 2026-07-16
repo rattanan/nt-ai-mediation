@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/auth/server";
 import { getCaseForDebtor } from "@/lib/cases";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { updateGoogleCalendarEvent } from "@/lib/google/workspace-meet";
 
 export async function bookAppointment(caseId: string, formData: FormData) {
   const debtor = await requireRole("debtor");
@@ -54,8 +55,8 @@ export async function bookAppointment(caseId: string, formData: FormData) {
     confirmed_by_debtor_at: now,
     confirmed_by_creditor_at: null,
     confirmed_by_mediator_at: null,
-    meeting_url: null,
-    meeting_provider: "manual_link" as const,
+    meeting_url: activeAppointment?.meeting_url ?? null,
+    meeting_provider: activeAppointment?.meeting_provider ?? "manual_link" as const,
     cancellation_reason: null,
   };
 
@@ -155,6 +156,9 @@ export async function bookAppointment(caseId: string, formData: FormData) {
   });
 
   await notifyAppointmentRequested({ appointmentId: appointment.id, caseId: currentCase.id, status: "pending_confirmation" });
+  if (activeAppointment?.status === "reschedule_requested" && appointment.calendar_event_id) {
+    await updateGoogleCalendarEvent(appointment.id, debtor.id).catch((syncError) => console.error("Google Calendar reschedule sync failed", syncError));
+  }
   redirect(`/debtor/cases/${caseId}/appointments/${appointment.id}?success=${encodeURIComponent(activeAppointment?.status === "reschedule_requested" ? "เลือกเวลานัดใหม่แล้ว รอทุกฝ่ายยืนยันอีกครั้ง" : "ส่งคำขอนัดหมายแล้ว")}`);
 }
 

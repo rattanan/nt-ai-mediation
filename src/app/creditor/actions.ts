@@ -266,7 +266,7 @@ export async function submitCreditorResponse(formData: FormData) {
   redirect(`/creditor/cases/${caseId}?success=${encodeURIComponent("บันทึกการตอบกลับแล้ว")}`);
 }
 
-async function updateCreditorCase(formData: FormData, response: CreditorResponseStatus, nextStatus: "creditor_accepted" | "creditor_rejected" | "needs_more_info", defaultMessage: string) {
+async function updateCreditorCase(formData: FormData, response: CreditorResponseStatus, nextStatus: "mediator_matching" | "creditor_rejected" | "needs_more_info", defaultMessage: string) {
   const profile = await requireRole("creditor");
   const officer = await getCreditorOfficer(profile.id);
   const caseId = String(formData.get("case_id") ?? "");
@@ -282,6 +282,9 @@ async function updateCreditorCase(formData: FormData, response: CreditorResponse
   if (!officer?.organization_id || !caseId) {
     redirectWithError("/creditor", "ไม่พบองค์กรเจ้าหนี้หรือเคสที่ต้องการดำเนินการ");
   }
+  if ((response === "rejected" || response === "needs_more_info") && !note) {
+    redirectWithError(`/creditor/cases/${caseId}`, response === "rejected" ? "กรุณาระบุเหตุผลที่ปฏิเสธคำขอ" : "กรุณาระบุข้อมูลที่ต้องการเพิ่มเติม");
+  }
 
   const supabase = await createClient();
   const { data: currentCase } = await supabase
@@ -294,10 +297,11 @@ async function updateCreditorCase(formData: FormData, response: CreditorResponse
   if (!currentCase) {
     redirectWithError("/creditor", "ไม่พบเคสที่เชื่อมกับองค์กรนี้");
   }
+  if (currentCase.status !== "creditor_review") {
+    redirectWithError(`/creditor/cases/${caseId}`, "เคสนี้ผ่านขั้นตอนการพิจารณาของเจ้าหนี้แล้ว");
+  }
 
-  const resolvedNextStatus: CaseStatus = nextStatus === "creditor_accepted" && currentCase.selected_mediator_profile_id
-    ? "mediator_selected"
-    : nextStatus;
+  const resolvedNextStatus: CaseStatus = nextStatus;
 
   const enrichedProposedTerms = [
     proposedTerms || null,
@@ -355,14 +359,14 @@ async function updateCreditorCase(formData: FormData, response: CreditorResponse
     case_id: caseId,
     from_status: currentCase.status,
     to_status: resolvedNextStatus,
-    note: [note || defaultMessage, currentCase.selected_mediator_profile_id && resolvedNextStatus === "mediator_selected" ? "ใช้ผู้ไกล่เกลี่ยที่ลูกหนี้เลือกไว้ล่วงหน้า" : null, enrichedProposedTerms].filter(Boolean).join(" | "),
+    note: [note || defaultMessage, enrichedProposedTerms].filter(Boolean).join(" | "),
   });
 
   redirect(`/creditor/cases/${caseId}?success=${encodeURIComponent("บันทึกการพิจารณาแล้ว")}`);
 }
 
 export async function acceptCreditorCase(formData: FormData) {
-  await updateCreditorCase(formData, "accepted", "creditor_accepted", "เจ้าหนี้รับคำขอไกล่เกลี่ย");
+  await updateCreditorCase(formData, "accepted", "mediator_matching", "เจ้าหนี้รับคำขอไกล่เกลี่ย");
 }
 
 export async function rejectCreditorCase(formData: FormData) {

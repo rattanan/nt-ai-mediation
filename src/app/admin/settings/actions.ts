@@ -73,3 +73,16 @@ export async function saveConsentVersion(formData: FormData) {
   if (error) redirect(`/admin/settings?error=${encodeURIComponent("บันทึก Consent Version ไม่สำเร็จ")}`);
   redirect(`/admin/settings?success=${encodeURIComponent("บันทึก Consent Version แล้ว")}`);
 }
+
+export async function saveAiRatePolicy(formData: FormData) {
+  const profile = await requireRole("admin");
+  const supabase = await createClient();
+  const debtType = String(formData.get("debt_type") ?? "*").trim() || "*";
+  const minInterest = Math.max(0, num(formData, "min_interest_rate", 0));
+  const maxInterest = Math.max(minInterest, num(formData, "max_interest_rate", minInterest));
+  const minDiscount = Math.min(100, Math.max(0, num(formData, "min_discount_rate", 0)));
+  const maxDiscount = Math.min(100, Math.max(minDiscount, num(formData, "max_discount_rate", minDiscount)));
+  const { error } = await supabase.from("ai_rate_policies").upsert({ debt_type: debtType, min_interest_rate: minInterest, max_interest_rate: maxInterest, min_discount_rate: minDiscount, max_discount_rate: maxDiscount, active: true, updated_by: profile.id }, { onConflict: "debt_type" });
+  if (error) redirect(`/admin/settings?error=${encodeURIComponent("บันทึกช่วงสมมติฐาน AI ไม่สำเร็จ")}`);
+  redirect(`/admin/settings?success=${encodeURIComponent("บันทึกช่วงดอกเบี้ยและส่วนลดสำหรับ AI แล้ว")}`);
+}

@@ -2,6 +2,7 @@ import { closeMediationCase } from "@/app/mediator/closing/actions";
 import { PortalShell } from "@/components/portal-shell";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { ClosingDraftForm } from "@/components/mediator/closing-draft-form";
 import { requireRole } from "@/lib/auth/server";
 import { mediatorSidebar } from "@/lib/mediator-portal";
 import { getMediatorProfileByUser } from "@/lib/mediators";
@@ -22,6 +23,10 @@ export default async function MediatorClosingPage({
   const { appointment, error } = await searchParams;
   const supabase = await createClient();
   const { data: item } = await supabase.from("cases").select("*").eq("id", caseId).eq("selected_mediator_profile_id", mediator?.id ?? "").maybeSingle();
+  const { data: approvedMinutes } = appointment ? await supabase.from("meeting_minutes").select("id").eq("appointment_id", appointment).eq("status", "approved").maybeSingle() : { data: null };
+  const { data: approvedMinuteVersion } = approvedMinutes ? await supabase.from("meeting_minute_versions").select("objective, confirmed_agreements, unresolved_issues, next_steps").eq("minutes_id", approvedMinutes.id).eq("status", "approved").order("version", { ascending: false }).limit(1).maybeSingle() : { data: null };
+  const minuteText = (value: unknown) => Array.isArray(value) ? value.map((entry) => entry && typeof entry === "object" && "text" in entry ? String(entry.text) : String(entry)).filter(Boolean) : [];
+  const minutesPrefill = approvedMinuteVersion ? [approvedMinuteVersion.objective, ...minuteText(approvedMinuteVersion.confirmed_agreements), ...minuteText(approvedMinuteVersion.unresolved_issues), ...minuteText(approvedMinuteVersion.next_steps)].filter(Boolean).join("\n") : "";
 
   return (
     <PortalShell
@@ -34,10 +39,11 @@ export default async function MediatorClosingPage({
       table={{ title: "Closing", description: "Closing form", columns: [], actionLabel: "Back" }}
     >
       {error ? <Alert variant="destructive" className="mb-5">{error}</Alert> : null}
+      {minutesPrefill ? <Alert className="mb-5">นำข้อมูลจากบันทึกการประชุมที่อนุมัติแล้วมา prefill กรุณาตรวจสอบและยืนยันยอด/เงื่อนไขทุกครั้งก่อนปิดเคส</Alert> : null}
       {!item ? (
         <Alert variant="destructive">ไม่พบเคสที่คุณได้รับมอบหมาย</Alert>
       ) : (
-        <form action={closeMediationCase} className="grid gap-6 xl:grid-cols-[1fr_24rem]">
+        <ClosingDraftForm caseId={item.id} action={closeMediationCase} className="grid gap-6 xl:grid-cols-[1fr_24rem]">
           <input type="hidden" name="case_id" value={item.id} />
           <input type="hidden" name="appointment_id" value={appointment ?? ""} />
           <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
@@ -91,7 +97,7 @@ export default async function MediatorClosingPage({
               </label>
               <label className="block sm:col-span-2">
                 <span className="text-sm font-medium">สรุปข้อตกลง / สรุปการพูดคุย</span>
-                <textarea name="settlement_summary" className="mt-2 min-h-28 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" />
+                <textarea name="settlement_summary" defaultValue={minutesPrefill} className="mt-2 min-h-28 w-full rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm" />
               </label>
               <label className="block sm:col-span-2">
                 <span className="text-sm font-medium">เหตุผลที่ไม่สำเร็จ</span>
@@ -114,7 +120,7 @@ export default async function MediatorClosingPage({
               <li>อัปเดตสถานะเคสเป็น settled / not_settled</li>
             </ul>
           </aside>
-        </form>
+        </ClosingDraftForm>
       )}
     </PortalShell>
   );

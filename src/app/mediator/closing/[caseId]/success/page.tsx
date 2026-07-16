@@ -2,15 +2,19 @@ import { PortalShell } from "@/components/portal-shell";
 import { Button } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth/server";
 import { getClosingDetail, invoiceDocumentUrl, settlementDocumentPageUrl, settlementDocumentUrl } from "@/lib/closing";
+import { ClearClosingDraft } from "@/components/mediator/closing-draft-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClosingSuccessPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ caseId: string }>;
   searchParams: Promise<{ closing?: string }>;
 }) {
   const profile = await requireRole("mediator");
+  const { caseId } = await params;
   const { closing } = await searchParams;
   const detail = closing ? await getClosingDetail(closing) : null;
   const document = detail?.settlement_documents?.[0];
@@ -26,6 +30,7 @@ export default async function ClosingSuccessPage({
       metrics={[]}
       table={{ title: "Closing", description: "Success", columns: [], actionLabel: "Back" }}
     >
+      <ClearClosingDraft caseId={caseId} />
       <section className="rounded-lg border border-emerald-200 bg-emerald-50 p-6">
         <h2 className="text-xl font-semibold text-emerald-900">บันทึกผลการไกล่เกลี่ยเรียบร้อย</h2>
         <p className="mt-2 text-sm text-emerald-800">เปิดเอกสารเพื่อลงนาม ส่งต่อให้คู่กรณีลงนาม หรือดาวน์โหลด PDF ได้ทันที</p>

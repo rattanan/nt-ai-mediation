@@ -12,6 +12,8 @@ function redirectWithError(path: string, message: string): never {
 }
 
 const CASE_DOCUMENTS_BUCKET = "case-documents";
+const OCR_MIME_TYPES = new Set(["application/pdf", "image/jpeg", "image/png"]);
+const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024;
 
 function safeFileName(name: string) {
   const cleaned = name.normalize("NFKD").replace(/[^\w.\-]+/g, "-").replace(/-+/g, "-");
@@ -23,7 +25,14 @@ async function uploadCaseDocuments(supabase: Awaited<ReturnType<typeof createCli
     .getAll("documents")
     .filter((entry): entry is File => entry instanceof File && entry.size > 0);
 
-  const uploadedDocuments = [];
+  const uploadedDocuments: Array<{ name: string; path: string; size: number; type: string | null }> = [];
+
+  if (files.some((file) => !OCR_MIME_TYPES.has(file.type))) {
+    return { error: "รองรับเอกสาร PDF, JPEG และ PNG เท่านั้น", documents: uploadedDocuments };
+  }
+  if (files.some((file) => file.size > MAX_DOCUMENT_BYTES)) {
+    return { error: "เอกสารแต่ละไฟล์ต้องมีขนาดไม่เกิน 20 MB", documents: uploadedDocuments };
+  }
 
   for (const file of files) {
     const path = `${userId}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
@@ -92,6 +101,20 @@ export async function createCase(_state: CaseFormState, formData: FormData): Pro
     return formError(formData, "บันทึกคำขอไม่สำเร็จ กรุณาลองอีกครั้ง");
   }
 
+  if (uploaded.documents.length > 0) {
+    const { error: documentError } = await supabase.from("case_documents").insert(
+      uploaded.documents.map((document) => ({
+        case_id: data.id,
+        uploaded_by: profile.id,
+        storage_path: document.path,
+        file_name: document.name,
+        mime_type: document.type,
+        size_bytes: document.size,
+      })),
+    );
+    if (documentError) console.error("Case document metadata insert failed", documentError);
+  }
+
   await supabase.from("case_status_history").insert({
     case_id: data.id,
     from_status: null,
@@ -99,7 +122,7 @@ export async function createCase(_state: CaseFormState, formData: FormData): Pro
     note: preferredMediator ? "สร้างแบบร่างคำขอไกล่เกลี่ยพร้อมผู้ไกล่เกลี่ยที่เลือกไว้ล่วงหน้า" : "สร้างแบบร่างคำขอไกล่เกลี่ย",
   });
 
-  redirect(`/debtor/cases/${data.id}?success=${encodeURIComponent("บันทึกแบบร่างสำเร็จ")}`);
+  redirect(`/debtor/cases/${data.id}/ai?success=${encodeURIComponent("บันทึกแบบร่างแล้ว กรุณาเตรียมเคสกับ AI ก่อนส่ง")}`);
 }
 
 export async function updateCase(caseId: string, _state: CaseFormState, formData: FormData): Promise<CaseFormState> {
@@ -137,6 +160,21 @@ export async function updateCase(caseId: string, _state: CaseFormState, formData
     return formError(formData, "บันทึกการแก้ไขไม่สำเร็จ กรุณาลองอีกครั้ง");
   }
 
+
+  if (uploaded.documents.length > 0) {
+    const { error: documentError } = await supabase.from("case_documents").insert(
+      uploaded.documents.map((document) => ({
+        case_id: caseId,
+        uploaded_by: profile.id,
+        storage_path: document.path,
+        file_name: document.name,
+        mime_type: document.type,
+        size_bytes: document.size,
+      })),
+    );
+    if (documentError) console.error("Case document metadata insert failed", documentError);
+  }
+
   redirect(`/debtor/cases/${caseId}?success=${encodeURIComponent("บันทึกการแก้ไขสำเร็จ")}`);
 }
 
@@ -155,6 +193,16 @@ export async function submitCase(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const [{ data: aiSession }, { data: selectedPlan }] = await Promise.all([
+    supabase.from("case_ai_sessions").select("status").eq("case_id", caseId).maybeSingle(),
+    supabase.from("case_payment_plans").select("id").eq("case_id", caseId).eq("status", "selected").maybeSingle(),
+  ]);
+  if (!aiSession || (!["completed", "manual_bypass"].includes(aiSession.status))) {
+    redirectWithError(`/debtor/cases/${caseId}/ai`, "กรุณาเตรียมเคสกับ AI ให้เสร็จก่อนส่งคำขอ");
+  }
+  if (aiSession.status !== "manual_bypass" && !selectedPlan) {
+    redirectWithError(`/debtor/cases/${caseId}/ai`, "กรุณาเลือกแผนชำระหนึ่งรูปแบบก่อนส่งคำขอ");
+  }
   const { error } = await supabase
     .from("cases")
     .update({

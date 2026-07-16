@@ -12,6 +12,16 @@ function textField(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
 }
 
+function isValidPngDataUrl(value: string) {
+  if (!value.startsWith("data:image/png;base64,") || value.length > 300000) return false;
+  try {
+    const bytes = Buffer.from(value.slice("data:image/png;base64,".length), "base64");
+    return bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  } catch {
+    return false;
+  }
+}
+
 function redirectWithMessage(documentId: string, messageType: "success" | "error", message: string) {
   const params = new URLSearchParams();
   params.set(messageType, message);
@@ -26,9 +36,13 @@ export async function signSettlementDocument(formData: FormData) {
   const caseId = textField(formData, "case_id");
   const signerRole = textField(formData, "signer_role");
   const signerName = textField(formData, "signer_name") || profile.full_name;
+  const signatureImageData = textField(formData, "signature_image_data");
 
   if (!documentId || !caseId || !["debtor", "creditor", "mediator"].includes(signerRole)) {
     redirectWithMessage(documentId || caseId, "error", "ข้อมูลการลงนามไม่ครบถ้วน");
+  }
+  if (!isValidPngDataUrl(signatureImageData)) {
+    redirectWithMessage(documentId, "error", "กรุณาวาดลายเซ็นในช่องลงนาม");
   }
 
   const supabase = await createClient();
@@ -64,21 +78,37 @@ export async function signSettlementDocument(formData: FormData) {
     return;
   }
 
-  const { error } = await supabase.from("settlement_document_signatures").upsert(
-    {
-      document_id: documentId,
-      case_id: caseId,
-      signer_role: signerRole as "debtor" | "creditor" | "mediator",
-      signer_user_id: profile.id,
-      signer_name: signerName,
-      signed_at: new Date().toISOString(),
-    },
-    { onConflict: "document_id,signer_role" },
-  );
+  const { data: existingSignature } = await supabase
+    .from("settlement_document_signatures")
+    .select("id, signer_user_id")
+    .eq("document_id", documentId)
+    .eq("signer_role", signerRole as "debtor" | "creditor" | "mediator")
+    .maybeSingle();
+
+  if (existingSignature) {
+    redirectWithMessage(
+      documentId,
+      existingSignature.signer_user_id === profile.id ? "success" : "error",
+      existingSignature.signer_user_id === profile.id ? "คุณลงนามเอกสารนี้เรียบร้อยแล้ว" : "เอกสารนี้มีผู้ลงนามในบทบาทดังกล่าวแล้ว",
+    );
+  }
+
+  const { error } = await supabase.from("settlement_document_signatures").insert({
+    document_id: documentId,
+    case_id: caseId,
+    signer_role: signerRole as "debtor" | "creditor" | "mediator",
+    signer_user_id: profile.id,
+    signer_name: signerName,
+    signature_image_data: signatureImageData,
+    signed_at: new Date().toISOString(),
+  });
 
   if (error) {
+    if (error.code === "23505") {
+      redirectWithMessage(documentId, "success", "ลงนามเรียบร้อยแล้ว");
+    }
+    console.error("Settlement signature insert failed", { documentId, caseId, signerRole, code: error.code, message: error.message });
     redirectWithMessage(documentId, "error", "ลงนามไม่สำเร็จ");
-    return;
   }
 
   const { data: signatures } = await supabase

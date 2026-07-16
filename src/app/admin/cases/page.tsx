@@ -4,9 +4,12 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getPage, paginateItems, Pagination } from "@/components/ui/pagination";
+import { CaseAiAssessmentCard } from "@/components/cases/case-ai-assessment-card";
 import { requireAdmin } from "@/lib/admin/auth";
 import { caseStatusLabels, getCaseComments, getCaseHistory } from "@/lib/cases";
 import { getClosingForCase, resultStatusLabels } from "@/lib/closing";
+import { getLatestAppointmentForCase } from "@/lib/appointments";
+import { getMediatorProfile } from "@/lib/mediators";
 import { getCreditorResponses } from "@/lib/creditor";
 import { createClient } from "@/lib/supabase/server";
 import { rejectCaseByAdmin, requestCaseMoreInfo, sendCaseToCreditorReview } from "@/app/admin/cases/actions";
@@ -33,6 +36,10 @@ export default async function AdminCasesPage({
   const comments = selectedCase ? await getCaseComments(selectedCase.id) : [];
   const creditorResponses = selectedCase?.creditor_organization_id ? await getCreditorResponses(selectedCase.id, selectedCase.creditor_organization_id) : [];
   const closing = selectedCase ? await getClosingForCase(selectedCase.id) : null;
+  const appointment = selectedCase ? await getLatestAppointmentForCase(selectedCase.id) : null;
+  const selectedMediator = selectedCase?.selected_mediator_profile_id
+    ? await getMediatorProfile(selectedCase.selected_mediator_profile_id)
+    : null;
 
   return (
     <AdminShell profile={profile} activePath="/admin/cases" title="Case Review" subtitle="ตรวจสอบคำขอที่ลูกหนี้ส่งเข้าระบบและจัดการงานระหว่างรอเจ้าหนี้พิจารณา">
@@ -74,16 +81,19 @@ export default async function AdminCasesPage({
               </div>
               <div className="flex flex-wrap gap-2">
                 {tab === "active" && ["submitted", "reviewing", "admin_review"].includes(selectedCase.status) ? (
-                  <>
-                    <CaseAction action={sendCaseToCreditorReview} caseId={selectedCase.id} label="ส่งให้เจ้าหนี้พิจารณา" />
-                    <CaseAction action={requestCaseMoreInfo} caseId={selectedCase.id} label="ขอข้อมูลเพิ่มเติม" variant="outline" />
-                    <CaseAction action={rejectCaseByAdmin} caseId={selectedCase.id} label="ปิดเคส" variant="outline" />
-                  </>
+                  <CaseAction action={sendCaseToCreditorReview} caseId={selectedCase.id} label="ส่งให้เจ้าหนี้พิจารณา" />
                 ) : tab === "completed" ? (
                   <span className="rounded-lg bg-[#F8FAFC] px-3 py-2 text-sm text-[#6B7280]">เคสที่สำเร็จแล้วจัดการได้เฉพาะการดูรายละเอียด</span>
                 ) : <span className="rounded-lg bg-[#F8FAFC] px-3 py-2 text-sm text-[#6B7280]">กำลังรอผู้รับผิดชอบในขั้นตอนปัจจุบันดำเนินการ</span>}
               </div>
             </div>
+
+            {tab === "active" && ["submitted", "reviewing", "admin_review"].includes(selectedCase.status) ? (
+              <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                <DetailedCaseAction action={requestCaseMoreInfo} caseId={selectedCase.id} label="ขอข้อมูลเพิ่มเติม" placeholder="ระบุข้อมูลหรือเอกสารที่ต้องการให้ลูกหนี้ส่งเพิ่มเติม" />
+                <DetailedCaseAction action={rejectCaseByAdmin} caseId={selectedCase.id} label="ปิดเคส" placeholder="ระบุเหตุผลที่ปิดเคสเพื่อแจ้งให้ลูกหนี้ทราบ" destructive />
+              </div>
+            ) : null}
 
             <div className="mt-5 grid gap-4 md:grid-cols-3">
               <Info label="ยอดหนี้" value={`${Number(selectedCase.debt_amount).toLocaleString("th-TH")} บาท`} />
@@ -93,11 +103,19 @@ export default async function AdminCasesPage({
               <Info label="ค่าใช้จ่าย/เดือน" value={`${Number(selectedCase.monthly_expense ?? 0).toLocaleString("th-TH")} บาท`} />
               <Info label="ผ่อนได้/เดือน" value={`${Number(selectedCase.affordable_monthly_payment ?? 0).toLocaleString("th-TH")} บาท`} />
             </div>
+            <div className="mt-6"><CaseAiAssessmentCard caseId={selectedCase.id} allowAdminReview /></div>
 
             <div className="mt-6 grid gap-5 lg:grid-cols-2">
               <TextPanel title="รายละเอียดปัญหา" value={selectedCase.problem_description} />
               <TextPanel title="ข้อเสนอที่ต้องการ" value={selectedCase.desired_solution} />
             </div>
+
+            {(selectedCase.selected_mediator_profile_id || appointment) ? (
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <Info label="ผู้ไกล่เกลี่ย" value={selectedMediator ? `${selectedMediator.title ?? ""} ${selectedMediator.first_name} ${selectedMediator.last_name}`.trim() : "เลือกแล้ว (ไม่พบรายละเอียดโปรไฟล์)"} />
+                <Info label="วันเวลานัดหมาย" value={appointment ? `${new Date(`${appointment.appointment_date}T${appointment.start_time}`).toLocaleDateString("th-TH")} เวลา ${appointment.start_time.slice(0, 5)}–${appointment.end_time.slice(0, 5)} น.` : "ยังไม่ได้นัดหมาย"} />
+              </div>
+            ) : null}
 
             <div className="mt-6 grid gap-5 lg:grid-cols-2">
               <TextPanel
@@ -163,6 +181,17 @@ function CaseAction({ action, caseId, label, variant = "default" }: { action: (f
     <form action={action}>
       <input type="hidden" name="case_id" value={caseId} />
       <Button type="submit" variant={variant} className="rounded-lg font-semibold">{label}</Button>
+    </form>
+  );
+}
+
+function DetailedCaseAction({ action, caseId, label, placeholder, destructive = false }: { action: (formData: FormData) => Promise<void>; caseId: string; label: string; placeholder: string; destructive?: boolean }) {
+  return (
+    <form action={action} className="rounded-lg border border-black/5 bg-[#F8FAFC] p-4">
+      <input type="hidden" name="case_id" value={caseId} />
+      <label className="block text-sm font-medium">รายละเอียดที่จะแสดงให้ลูกหนี้เห็น</label>
+      <textarea name="note" required className="mt-2 min-h-24 w-full rounded-lg border border-[#D1D5DB] bg-white px-3 py-2 text-sm" placeholder={placeholder} />
+      <Button type="submit" variant="outline" className={destructive ? "mt-3 rounded-lg border-red-200 font-semibold text-red-700 hover:bg-red-50" : "mt-3 rounded-lg font-semibold"}>{label}</Button>
     </form>
   );
 }

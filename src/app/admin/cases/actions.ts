@@ -18,6 +18,9 @@ async function updateCaseStatus(formData: FormData, status: CaseStatus, defaultN
   if (!caseId) {
     redirect(`/admin/cases?error=${encodeURIComponent("ไม่พบเคสที่ต้องการดำเนินการ")}`);
   }
+  if (["needs_more_info", "closed"].includes(status) && !note) {
+    go(caseId, status === "needs_more_info" ? "กรุณาระบุข้อมูลที่ต้องการเพิ่มเติม" : "กรุณาระบุเหตุผลที่ปิดเคส", "error");
+  }
 
   const supabase = await createClient();
   const { data: currentCase } = await supabase.from("cases").select("status").eq("id", caseId).maybeSingle();
@@ -57,7 +60,7 @@ async function updateCaseStatus(formData: FormData, status: CaseStatus, defaultN
     await supabase.from("case_comments").insert({
       case_id: caseId,
       author_profile_id: profile.id,
-      audience: "internal",
+      audience: status === "needs_more_info" || status === "closed" ? "debtor" : "internal",
       comment: note,
     });
   }
@@ -76,4 +79,18 @@ export async function requestCaseMoreInfo(formData: FormData) {
 
 export async function rejectCaseByAdmin(formData: FormData) {
   await updateCaseStatus(formData, "closed", "ผู้ดูแลปฏิเสธคำขอและปิดเคส");
+}
+
+export async function reviewCaseAiAssessment(formData: FormData) {
+  const profile = await requireAdmin();
+  const caseId = String(formData.get("case_id") ?? "");
+  const assessmentId = String(formData.get("assessment_id") ?? "");
+  const status = String(formData.get("review_status") ?? "");
+  const note = String(formData.get("review_note") ?? "").trim();
+  if (!caseId || !assessmentId || !["approved", "needs_correction"].includes(status)) go(caseId, "ข้อมูลตรวจ AI assessment ไม่ถูกต้อง", "error");
+  const supabase = await createClient();
+  const { error } = await supabase.from("case_ai_assessments").update({ review_status: status as "approved" | "needs_correction", reviewed_by: profile.id, reviewed_at: new Date().toISOString(), review_note: note || null }).eq("id", assessmentId).eq("case_id", caseId);
+  if (error) go(caseId, "บันทึกผลตรวจ AI assessment ไม่สำเร็จ", "error");
+  await supabase.from("audit_logs").insert({ actor_profile_id: profile.id, action: "case_ai_assessment.reviewed", entity_table: "case_ai_assessments", entity_id: assessmentId, metadata: { case_id: caseId, review_status: status } });
+  revalidatePath("/admin/cases");
 }

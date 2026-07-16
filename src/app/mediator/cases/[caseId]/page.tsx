@@ -11,6 +11,7 @@ import { getCreditorResponses } from "@/lib/creditor";
 import { mediatorSidebar } from "@/lib/mediator-portal";
 import { getMediatorProfileByUser } from "@/lib/mediators";
 import { createClient } from "@/lib/supabase/server";
+import { CaseAiAssessmentCard } from "@/components/cases/case-ai-assessment-card";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,7 @@ export default async function MediatorCaseDetailPage({
             <TextPanel title="รายละเอียดปัญหา" value={item.problem_description} />
             <TextPanel title="แนวทางที่ลูกหนี้ต้องการ" value={item.desired_solution} />
           </div>
+          <div className="mt-6"><CaseAiAssessmentCard caseId={item.id} /></div>
 
           <div className="mt-6 grid gap-5 lg:grid-cols-2">
             <TextPanel title="รายละเอียดข้อตกลงจากเจ้าหนี้" value={item.creditor_response_note || "ยังไม่มีการส่งเงื่อนไขจากเจ้าหนี้"} />

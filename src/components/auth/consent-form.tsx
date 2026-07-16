@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { CheckCircle2 } from "lucide-react";
 import { acceptConsent } from "@/app/auth/consent/actions";
@@ -21,13 +21,13 @@ const checkboxText = {
   ],
 };
 
-function SubmitButton({ disabled }: { disabled: boolean }) {
+function SubmitButton() {
   const { pending } = useFormStatus();
 
   return (
     <button
       type="submit"
-      disabled={disabled || pending}
+      disabled={pending}
       className="h-12 w-full rounded-lg bg-[#FFD200] px-4 text-sm font-semibold text-[#111827] transition hover:bg-[#F5B800] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#FFD200]/50 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {pending ? "กำลังบันทึก..." : "ยอมรับและดำเนินการต่อ"}
@@ -47,11 +47,43 @@ export function ConsentForm({
   const [language, setLanguage] = useState<"th" | "en">("th");
   const [scrolled, setScrolled] = useState(false);
   const [checked, setChecked] = useState([false, false, false, false]);
-  const allChecked = checked.every(Boolean);
-  const canContinue = scrolled && allChecked;
+  const termsRef = useRef<HTMLElement>(null);
+  const endMarkerRef = useRef<HTMLDivElement>(null);
   const terms = language === "th" ? consent.content_th : consent.content_en;
   const title = language === "th" ? consent.title_th : consent.title_en;
   const paragraphs = useMemo(() => terms.split("\n").filter((line) => line.trim().length > 0), [terms]);
+  const detectScrollEnd = useCallback(() => {
+    const element = termsRef.current;
+    if (!element) return;
+    const remaining = element.scrollHeight - element.clientHeight - element.scrollTop;
+    if (remaining <= 24) setScrolled(true);
+  }, []);
+  const queueScrollEndCheck = useCallback(() => {
+    requestAnimationFrame(detectScrollEnd);
+  }, [detectScrollEnd]);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(detectScrollEnd);
+    const element = termsRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return () => cancelAnimationFrame(frame);
+    const observer = new ResizeObserver(detectScrollEnd);
+    observer.observe(element);
+    const endMarker = endMarkerRef.current;
+    const intersectionObserver = endMarker && typeof IntersectionObserver !== "undefined"
+      ? new IntersectionObserver(
+          ([entry]) => {
+            if (entry?.isIntersecting) setScrolled(true);
+          },
+          { root: element, threshold: 0.5 },
+        )
+      : null;
+    if (endMarker) intersectionObserver?.observe(endMarker);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      intersectionObserver?.disconnect();
+    };
+  }, [detectScrollEnd, language, terms]);
 
   return (
     <form action={acceptConsent} className="rounded-lg border border-black/10 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#111827] sm:p-7">
@@ -89,14 +121,14 @@ export function ConsentForm({
       ) : null}
 
       <section
+        ref={termsRef}
         aria-label={title}
         tabIndex={0}
-        onScroll={(event) => {
-          const element = event.currentTarget;
-          if (element.scrollTop + element.clientHeight >= element.scrollHeight - 8) {
-            setScrolled(true);
-          }
-        }}
+        onScroll={detectScrollEnd}
+        onWheel={queueScrollEndCheck}
+        onTouchEnd={queueScrollEndCheck}
+        onPointerUp={queueScrollEndCheck}
+        onKeyUp={queueScrollEndCheck}
         className="mt-6 max-h-[22rem] overflow-y-auto rounded-lg border border-[#E5E7EB] bg-[#FAFAFA] p-4 text-sm leading-7 text-[#374151] outline-none focus:ring-3 focus:ring-[#FFD200]/40 dark:border-white/10 dark:bg-[#0B1220] dark:text-white/80"
       >
         <h2 className="text-lg font-semibold text-[#111827] dark:text-white">{title}</h2>
@@ -108,11 +140,12 @@ export function ConsentForm({
             </p>
           ))}
         </div>
+        <div ref={endMarkerRef} aria-hidden="true" className="h-px w-full" />
       </section>
 
       <div className="mt-3 flex items-center gap-2 text-xs font-medium text-[#6B7280] dark:text-white/60">
         <CheckCircle2 className={`h-4 w-4 ${scrolled ? "text-emerald-600" : "text-[#9CA3AF]"}`} />
-        {scrolled ? "อ่านเงื่อนไขครบแล้ว" : "กรุณาเลื่อนอ่านเงื่อนไขจนจบ"}
+        {scrolled ? "อ่านเงื่อนไขครบแล้ว" : "แนะนำให้เลื่อนอ่านเงื่อนไขจนจบก่อนยืนยัน"}
       </div>
 
       <fieldset className="mt-6 space-y-3" aria-describedby="consent-help">
@@ -122,6 +155,7 @@ export function ConsentForm({
           <label key={label} className="flex gap-3 rounded-lg border border-[#E5E7EB] p-3 text-sm leading-6 text-[#374151] dark:border-white/10 dark:text-white/80">
             <input
               type="checkbox"
+              required
               name={["agree_terms", "agree_pdpa", "agree_ai", "agree_recording"][index]}
               checked={checked[index]}
               onChange={(event) => {
@@ -137,7 +171,7 @@ export function ConsentForm({
       </fieldset>
 
       <div className="mt-6">
-        <SubmitButton disabled={!canContinue} />
+        <SubmitButton />
       </div>
     </form>
   );

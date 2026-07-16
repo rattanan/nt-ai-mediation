@@ -18,13 +18,12 @@ function safeNext(value: FormDataEntryValue | null) {
 export async function acceptConsent(formData: FormData) {
   const active = await getActiveConsentVersion();
   const language = String(formData.get("language") ?? "th") === "en" ? "en" : "th";
-  const scrolled = formData.get("scrolled_to_bottom") === "true";
   const checks = ["agree_terms", "agree_pdpa", "agree_ai", "agree_recording"].every(
     (name) => formData.get(name) === "on",
   );
 
-  if (!scrolled || !checks) {
-    redirect(`/auth/consent?error=${encodeURIComponent("กรุณาอ่านเงื่อนไขให้ครบและยืนยันทุกข้อ")}`);
+  if (!checks) {
+    redirect(`/auth/consent?error=${encodeURIComponent("กรุณายืนยันข้อตกลงให้ครบทุกข้อ")}`);
   }
 
   const profile = await getCurrentProfile();

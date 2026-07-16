@@ -1,5 +1,7 @@
 import { AppointmentStatusBadge } from "@/components/appointments/appointment-status-badge";
 import { Badge } from "@/components/ui/badge";
+import { RecordingConsentCard } from "@/components/appointments/recording-consent-card";
+import { ApprovedMinutesCard } from "@/components/appointments/approved-minutes-card";
 import {
   appointmentStatusLabels,
   formatAppointmentDateTime,
@@ -53,6 +55,8 @@ export function AppointmentDetail({ appointment, actions }: { appointment: Appoi
       </section>
 
       <aside className="space-y-5">
+        <RecordingConsentCard appointmentId={appointment.id} />
+        <ApprovedMinutesCard appointmentId={appointment.id} />
         <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
           <h2 className="font-semibold">สถานะผู้เข้าร่วม</h2>
           <div className="mt-4 space-y-3">

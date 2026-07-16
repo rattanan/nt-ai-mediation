@@ -5,6 +5,7 @@ import { notifyAppointmentCancelled, notifyRescheduleRequested } from "@/lib/app
 import { normalizeMeetingUrl, recordAppointmentHistory, requestAppointmentReschedule } from "@/lib/appointments";
 import { requireRole } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
+import { cancelGoogleCalendarEvent, createGoogleMeetForAppointment } from "@/lib/google/workspace-meet";
 
 function go(message: string, kind: "success" | "error" = "success"): never {
   redirect(`/admin/appointments?${kind}=${encodeURIComponent(message)}`);
@@ -26,7 +27,19 @@ export async function adminCancelAppointment(formData: FormData) {
   if (error) go("ยกเลิกนัดหมายไม่สำเร็จ", "error");
   await recordAppointmentHistory(appointment.id, appointment.status, "cancelled", admin.id, reason);
   await notifyAppointmentCancelled({ appointmentId: appointment.id, caseId: appointment.case_id, status: "cancelled" });
+  await cancelGoogleCalendarEvent(appointment.id, admin.id).catch((syncError) => console.error("Google Calendar cancellation failed", syncError));
   go("ยกเลิกนัดหมายแล้ว");
+}
+
+export async function adminCreateGoogleMeet(formData: FormData) {
+  const { admin, appointment } = await getAdminAppointment(formData);
+  try {
+    await createGoogleMeetForAppointment(appointment.id, admin.id);
+  } catch (error) {
+    console.error("Admin Google Meet creation failed", error);
+    go(error instanceof Error ? error.message : "สร้าง Google Meet ไม่สำเร็จ", "error");
+  }
+  go("สร้าง Google Meet และส่งคำเชิญแล้ว");
 }
 
 export async function adminForceReschedule(formData: FormData) {

@@ -1,16 +1,18 @@
-import { saveConsentVersion, saveFeeSettings } from "@/app/admin/settings/actions";
+import { saveAiRatePolicy, saveConsentVersion, saveFeeSettings } from "@/app/admin/settings/actions";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth/server";
 import { getActiveConsentVersion } from "@/lib/consent";
 import { getFeeSettings } from "@/lib/closing";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSettingsPage({ searchParams }: { searchParams: Promise<{ success?: string; error?: string }> }) {
   const profile = await requireRole("admin");
-  const [settings, consent] = await Promise.all([getFeeSettings(), getActiveConsentVersion()]);
+  const supabase = await createClient();
+  const [settings, consent, { data: aiPolicy }] = await Promise.all([getFeeSettings(), getActiveConsentVersion(), supabase.from("ai_rate_policies").select("*").eq("debt_type", "*").maybeSingle()]);
   const { success, error } = await searchParams;
   return (
     <AdminShell profile={profile} activePath="/admin/settings" title="Platform Fee Settings" subtitle="ตั้งค่าค่าธรรมเนียมแพลตฟอร์มและข้อมูลชำระเงิน">
@@ -57,6 +59,13 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           </label>
         </div>
         <Button type="submit" className="mt-5 h-11 rounded-lg font-semibold">บันทึก Consent Version</Button>
+      </form>
+
+      <form action={saveAiRatePolicy} className="mt-6 rounded-lg border border-black/5 bg-white p-5 shadow-sm">
+        <div className="mb-5"><h2 className="text-lg font-semibold">AI Payment Plan Guardrails</h2><p className="mt-1 text-sm text-[#6B7280]">AI เลือกสมมติฐานได้เฉพาะภายในช่วงนี้ ระบบเป็นผู้คำนวณค่างวดและระยะเวลาเอง</p></div>
+        <input type="hidden" name="debt_type" value="*"/>
+        <div className="grid gap-4 md:grid-cols-4"><Field name="min_interest_rate" label="ดอกเบี้ยต่ำสุด (%)" value={aiPolicy?.min_interest_rate ?? 0}/><Field name="max_interest_rate" label="ดอกเบี้ยสูงสุด (%)" value={aiPolicy?.max_interest_rate ?? 15}/><Field name="min_discount_rate" label="ส่วนลดต่ำสุด (%)" value={aiPolicy?.min_discount_rate ?? 0}/><Field name="max_discount_rate" label="ส่วนลดสูงสุด (%)" value={aiPolicy?.max_discount_rate ?? 20}/></div>
+        <Button type="submit" className="mt-5 h-11 rounded-lg font-semibold">บันทึก AI Guardrails</Button>
       </form>
     </AdminShell>
   );

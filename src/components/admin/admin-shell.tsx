@@ -15,6 +15,7 @@ import { logout } from "@/app/auth/actions";
 import { NtLogoMark } from "@/components/nt-logo-mark";
 import { AppFooter } from "@/components/app-footer";
 import type { AuthProfile } from "@/lib/auth/server";
+import { countActiveAdminCases, countUpcomingAdminAppointments } from "@/lib/portal-counts";
 
 const navItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -28,7 +29,7 @@ const navItems = [
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
-export function AdminShell({
+export async function AdminShell({
   profile,
   activePath,
   title,
@@ -41,6 +42,14 @@ export function AdminShell({
   subtitle: string;
   children: ReactNode;
 }) {
+  const [activeCaseCount, upcomingAppointmentCount] = await Promise.all([
+    countActiveAdminCases(),
+    countUpcomingAdminAppointments(),
+  ]);
+  const navCounts: Record<string, number | undefined> = {
+    "/admin/cases": activeCaseCount,
+    "/admin/appointments": upcomingAppointmentCount,
+  };
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#111827]">
       <div className="flex min-h-screen">
@@ -69,7 +78,8 @@ export function AdminShell({
                   }`}
                 >
                   <Icon className="h-4 w-4" aria-hidden="true" />
-                  {label}
+                  <span className="flex-1">{label}</span>
+                  {navCounts[href] !== undefined ? <span className="rounded-full bg-[#111827] px-2 py-0.5 text-xs font-semibold text-white">{navCounts[href]?.toLocaleString("th-TH")}</span> : null}
                 </Link>
               );
             })}
@@ -108,7 +118,7 @@ export function AdminShell({
                     activePath === href ? "bg-[#FFD200]" : "bg-[#F3F4F6] text-[#4B5563]"
                   }`}
                 >
-                  {label}
+                  <span className="flex items-center justify-between gap-2">{label}{navCounts[href] !== undefined ? <span className="rounded-full bg-[#111827] px-2 py-0.5 text-xs text-white">{navCounts[href]?.toLocaleString("th-TH")}</span> : null}</span>
                 </Link>
               ))}
             </nav>

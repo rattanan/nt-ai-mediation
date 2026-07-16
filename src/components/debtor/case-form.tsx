@@ -82,6 +82,14 @@ export function CaseForm({
               <option value="other">อื่น ๆ</option>
             </select>
           </label>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
+        <p className="text-sm font-semibold text-[#A87900]">ขั้นตอนที่ 2</p>
+        <h2 className="mt-1 text-lg font-semibold">ข้อมูลหนี้และการติดต่อ</h2>
+        <p className="mt-2 text-sm text-[#6B7280]">ระบุข้อมูลหนี้ พื้นที่ และช่องทางติดต่อสำหรับการตรวจสอบคำขอ</p>
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
           <label className="block">
             <span className="text-sm font-medium">ประเภทหนี้</span>
             <Input name="debt_type" defaultValue={debtType} className="mt-2" placeholder="เช่น สินเชื่อส่วนบุคคล" required />
@@ -112,12 +120,6 @@ export function CaseForm({
           </label>
           <CaseLocationFields province={province} district={district} />
         </div>
-      </section>
-
-      <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
-        <p className="text-sm font-semibold text-[#A87900]">ขั้นตอนที่ 2</p>
-        <h2 className="mt-1 text-lg font-semibold">ข้อมูลหนี้และการติดต่อ</h2>
-        <p className="mt-2 text-sm text-[#6B7280]">ระบุข้อมูลหนี้ พื้นที่ และช่องทางติดต่อสำหรับการตรวจสอบคำขอ</p>
       </section>
 
       <section className="rounded-lg border border-black/5 bg-white p-5 shadow-sm">
@@ -179,7 +181,7 @@ export function CaseForm({
         ) : null}
         <label className="mt-4 block">
           <span className="text-sm font-medium">อัปโหลดเอกสารประกอบ</span>
-          <Input name="documents" type="file" multiple className="mt-2 file:mr-3 file:rounded-md file:border-0 file:bg-[#FFF2A8] file:px-3 file:py-1.5 file:text-sm file:font-medium" />
+          <Input name="documents" type="file" accept="application/pdf,image/jpeg,image/png" multiple className="mt-2 file:mr-3 file:rounded-md file:border-0 file:bg-[#FFF2A8] file:px-3 file:py-1.5 file:text-sm file:font-medium" />
         </label>
         <label className="mt-4 block">
           <span className="text-sm font-medium">ลิงก์เอกสารเพิ่มเติม (ถ้ามี)</span>
