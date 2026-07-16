@@ -141,7 +141,7 @@ export function Hero({ content }: { content: LandingContent["hero"] }) {
             {isDemoOpen ? (
               <iframe
                 className="size-full"
-                src="https://www.youtube-nocookie.com/embed/equupu5HFyk?autoplay=1&rel=0"
+                src="https://www.youtube-nocookie.com/embed/ulgsUkAZV4Y?autoplay=1&rel=0"
                 title={content.demoModalTitle}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerPolicy="strict-origin-when-cross-origin"
