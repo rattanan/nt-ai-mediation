@@ -84,15 +84,17 @@ OPENAI_MODEL=openai/gpt-oss-120b
 # Development only when the endpoint is on a trusted private HTTP network
 ALLOW_INSECURE_AI_HTTP=false
 
-# Google Cloud OCR and Thai Speech-to-Text
+# Gemini OCR and Google Cloud Thai Speech-to-Text
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+GEMINI_MODEL=gemini-2.5-flash
+
+# Google Cloud Thai Speech-to-Text
 GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID
-GOOGLE_DOCUMENT_AI_LOCATION=asia-southeast1
-GOOGLE_DOCUMENT_AI_PROCESSOR=YOUR_ENTERPRISE_OCR_PROCESSOR_ID
 GOOGLE_SPEECH_LOCATION=asia-southeast1
 GOOGLE_SPEECH_RECOGNIZER=YOUR_RECOGNIZER_ID
 GOOGLE_MEETING_TEMP_BUCKET=YOUR_PRIVATE_TEMP_BUCKET
 
-# Google Cloud service account used only for OCR, Speech-to-Text, and Storage.
+# Google Cloud service account used only for Speech-to-Text and Storage.
 # On Cloud Run, Application Default Credentials can be used instead, so these
 # two variables may be omitted when the runtime service account has access.
 GOOGLE_SERVICE_ACCOUNT_EMAIL=workspace-integration@YOUR_PROJECT.iam.gserviceaccount.com

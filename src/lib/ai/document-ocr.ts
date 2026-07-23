@@ -1,37 +1,60 @@
 import "server-only";
 
-import { getGoogleAccessToken } from "@/lib/google/auth";
-
 export async function processDocumentOcr(content: Uint8Array, mimeType: string) {
-  const project = process.env.GOOGLE_CLOUD_PROJECT;
-  const location = process.env.GOOGLE_DOCUMENT_AI_LOCATION || "asia-southeast1";
-  const processor = process.env.GOOGLE_DOCUMENT_AI_PROCESSOR;
-  if (!project || !processor) throw new Error("Google Document AI is not configured");
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
+  const configuredModel = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+  const model = configuredModel.replace(/^models\//, "");
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
 
-  const token = await getGoogleAccessToken(["https://www.googleapis.com/auth/cloud-platform"]);
-  const endpoint = `${location}-documentai.googleapis.com`;
-  const response = await fetch(
-    `https://${endpoint}/v1/projects/${project}/locations/${location}/processors/${processor}:process`,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ rawDocument: { content: Buffer.from(content).toString("base64"), mimeType } }),
-      cache: "no-store",
-    },
-  );
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 90_000);
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      {
+        method: "POST",
+        headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            role: "user",
+            parts: [
+              {
+                text: [
+                  "อ่านข้อความทั้งหมดที่ปรากฏในเอกสารนี้อย่างเที่ยงตรง",
+                  "ส่งกลับเฉพาะข้อความที่อ่านได้ตามลำดับโดยไม่สรุป ไม่ตีความ และไม่เพิ่มข้อมูลที่ไม่มีในเอกสาร",
+                  "คงตัวเลข วันที่ ชื่อบุคคล และข้อความภาษาไทยตามต้นฉบับให้มากที่สุด",
+                ].join(" "),
+              },
+              { inlineData: { mimeType, data: Buffer.from(content).toString("base64") } },
+            ],
+          }],
+          generationConfig: { temperature: 0, maxOutputTokens: 32768 },
+        }),
+        signal: controller.signal,
+        cache: "no-store",
+      },
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+
   if (!response.ok) {
     const detail = (await response.text()).replace(/\s+/g, " ").trim().slice(0, 500);
-    throw new Error(`Document AI returned ${response.status}${detail ? `: ${detail}` : ""}`);
+    throw new Error(`Gemini OCR returned ${response.status}${detail ? `: ${detail}` : ""}`);
   }
+
   const payload = await response.json() as {
-    document?: { text?: string; pages?: Array<{ layout?: { confidence?: number } }> };
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> }; finishReason?: string }>;
   };
-  const text = payload.document?.text?.trim();
-  if (!text) throw new Error("Document AI returned no text");
-  const confidences = payload.document?.pages?.map((page) => page.layout?.confidence).filter((value): value is number => typeof value === "number") ?? [];
+  const candidate = payload.candidates?.[0];
+  const text = candidate?.content?.parts?.map((part) => part.text ?? "").join("\n").trim();
+  if (!text) throw new Error(`Gemini OCR returned no text${candidate?.finishReason ? ` (${candidate.finishReason})` : ""}`);
+
   return {
     text,
-    pageCount: payload.document?.pages?.length || null,
-    confidence: confidences.length ? confidences.reduce((sum, value) => sum + value, 0) / confidences.length : null,
+    pageCount: null,
+    confidence: null,
   };
 }
