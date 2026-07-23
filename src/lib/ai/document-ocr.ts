@@ -19,7 +19,10 @@ export async function processDocumentOcr(content: Uint8Array, mimeType: string) 
       cache: "no-store",
     },
   );
-  if (!response.ok) throw new Error(`Document AI returned ${response.status}`);
+  if (!response.ok) {
+    const detail = (await response.text()).replace(/\s+/g, " ").trim().slice(0, 500);
+    throw new Error(`Document AI returned ${response.status}${detail ? `: ${detail}` : ""}`);
+  }
   const payload = await response.json() as {
     document?: { text?: string; pages?: Array<{ layout?: { confidence?: number } }> };
   };
@@ -32,4 +35,3 @@ export async function processDocumentOcr(content: Uint8Array, mimeType: string) 
     confidence: confidences.length ? confidences.reduce((sum, value) => sum + value, 0) / confidences.length : null,
   };
 }
-

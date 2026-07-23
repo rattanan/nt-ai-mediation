@@ -3,6 +3,7 @@ import "server-only";
 import { calculateRiskAssessment, createPaymentPlans } from "@/lib/ai/assessment";
 import { requestStructuredAi, stringArray } from "@/lib/ai/client";
 import { processDocumentOcr } from "@/lib/ai/document-ocr";
+import { hasReachedOcrRetryLimit } from "@/lib/ai/ocr-retry";
 import {
   interviewTranscript,
   isRepeatedInterviewQuestion,
@@ -45,16 +46,12 @@ export async function initializeCasePreparation(caseId: string) {
 
   const { data: documents } = await admin.from("case_documents").select("*").eq("case_id", caseId).order("created_at");
   const ocrTexts: string[] = [];
-  let ocrFailed = false;
   for (const document of documents ?? []) {
     if (document.ocr_status === "completed" && document.ocr_text) {
       ocrTexts.push(document.ocr_text);
       continue;
     }
-    if (document.retry_count >= 3) {
-      ocrFailed = true;
-      continue;
-    }
+    if (hasReachedOcrRetryLimit(document.retry_count)) continue;
     await admin.from("case_documents").update({ ocr_status: "processing", last_error: null }).eq("id", document.id);
     try {
       const { data: file, error: downloadError } = await admin.storage.from("case-documents").download(document.storage_path);
@@ -63,12 +60,11 @@ export async function initializeCasePreparation(caseId: string) {
       ocrTexts.push(ocr.text);
       await admin.from("case_documents").update({ ocr_status: "completed", ocr_text: ocr.text, page_count: ocr.pageCount, ocr_confidence: ocr.confidence, processed_at: new Date().toISOString() }).eq("id", document.id);
     } catch (ocrError) {
-      ocrFailed = true;
       const attempts = document.retry_count + 1;
       await admin.from("case_documents").update({ ocr_status: "failed", retry_count: attempts, last_error: ocrError instanceof Error ? ocrError.message : "OCR failed" }).eq("id", document.id);
+      if (!hasReachedOcrRetryLimit(attempts)) throw new Error("OCR processing is incomplete");
     }
   }
-  if (ocrFailed) throw new Error("OCR processing is incomplete");
 
   const { data: messages } = await admin.from("case_ai_messages").select("role, content, sequence").eq("case_id", caseId).order("sequence");
   const transcript = interviewTranscript(messages ?? []);

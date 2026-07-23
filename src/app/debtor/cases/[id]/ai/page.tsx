@@ -27,7 +27,7 @@ export default async function AiCasePreparationPage({ params, searchParams }: { 
     supabase.from("case_ai_messages").select("*").eq("case_id", id).order("sequence"),
     supabase.from("case_payment_plans").select("*").eq("case_id", id).order("monthly_payment"),
     supabase.from("ai_processing_jobs").select("attempts, status").eq("case_id", id).order("created_at", { ascending: false }).limit(1),
-    supabase.from("case_documents").select("id, file_name, ocr_status, retry_count").eq("case_id", id),
+    supabase.from("case_documents").select("id, file_name, ocr_status, retry_count, last_error").eq("case_id", id),
   ]);
   const lastMessage = messages?.at(-1);
   const canBypass = jobs?.[0]?.status === "failed" && jobs[0].attempts >= 3;
@@ -41,7 +41,7 @@ export default async function AiCasePreparationPage({ params, searchParams }: { 
         <section className="rounded-xl border border-black/5 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3"><div><Badge>ขั้นตอนก่อนส่งเคส</Badge><h2 className="mt-3 text-xl font-semibold">อ่านเอกสารและสัมภาษณ์ข้อมูลที่ยังขาด</h2></div>
           <form action={startAiPreparation}><input type="hidden" name="case_id" value={id}/><StartAiInterviewSubmit hasSession={Boolean(session)} /></form></div>
-          {documents?.length ? <div className="mt-4 grid gap-2 sm:grid-cols-2">{documents.map((document) => <div key={document.id} className="rounded-lg bg-[#F8FAFC] p-3 text-sm"><p className="font-medium">{document.file_name}</p><p className="mt-1 text-[#6B7280]">OCR: {document.ocr_status} · ลองแล้ว {document.retry_count}/3</p></div>)}</div> : <p className="mt-4 text-sm text-[#6B7280]">ไม่มีเอกสารแนบ ระบบจะใช้ข้อมูลจากแบบฟอร์มและการสัมภาษณ์</p>}
+          {documents?.length ? <div className="mt-4 grid gap-2 sm:grid-cols-2">{documents.map((document) => <div key={document.id} className="rounded-lg bg-[#F8FAFC] p-3 text-sm"><p className="font-medium">{document.file_name}</p><p className="mt-1 text-[#6B7280]">OCR: {document.ocr_status} · ลองแล้ว {document.retry_count}/3</p>{document.ocr_status === "failed" && document.retry_count >= 3 ? <p className="mt-2 text-xs text-amber-700">อ่านเอกสารนี้ไม่สำเร็จ ระบบจะใช้ข้อมูลจากแบบฟอร์มและการสัมภาษณ์ต่อ</p> : null}</div>)}</div> : <p className="mt-4 text-sm text-[#6B7280]">ไม่มีเอกสารแนบ ระบบจะใช้ข้อมูลจากแบบฟอร์มและการสัมภาษณ์</p>}
         </section>
 
         {messages?.length ? <section className="rounded-xl border border-black/5 bg-white p-5 shadow-sm"><h2 className="font-semibold">การสัมภาษณ์</h2><div className="mt-4 space-y-3">{messages.map((message) => <div key={message.id} className={`max-w-[88%] rounded-xl p-3 text-sm leading-6 ${message.role === "user" ? "ml-auto bg-[#111827] text-white" : "bg-[#FFF3BF] text-[#3F2D00]"}`}>{message.content}</div>)}</div>

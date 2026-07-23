@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { hasReachedOcrRetryLimit } from "../../src/lib/ai/ocr-retry.ts";
 import { googleCalendarEventId, isGoogleMeetEligible, resolveParticipantEmail } from "../../src/lib/google/calendar-event.ts";
 
 test("calendar event id is stable for appointment id", () => {
@@ -20,4 +21,9 @@ test("participant email falls back to the role-specific profile", () => {
   assert.equal(resolveParticipantEmail("profile@example.com", "officer@example.com"), "profile@example.com");
   assert.equal(resolveParticipantEmail(null, " officer@example.com "), "officer@example.com");
   assert.equal(resolveParticipantEmail("", ""), null);
+});
+
+test("OCR stops retrying after three failed attempts", () => {
+  assert.equal(hasReachedOcrRetryLimit(2), false);
+  assert.equal(hasReachedOcrRetryLimit(3), true);
 });
