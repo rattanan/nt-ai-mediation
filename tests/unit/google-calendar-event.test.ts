@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { googleCalendarEventId, isGoogleMeetEligible } from "../../src/lib/google/calendar-event.ts";
+import { googleCalendarEventId, isGoogleMeetEligible, resolveParticipantEmail } from "../../src/lib/google/calendar-event.ts";
 
 test("calendar event id is stable for appointment id", () => {
   const appointment = "b9de7c69-6a83-4a86-9f35-cdf2066cde55";
@@ -16,3 +16,8 @@ test("only active online or hybrid appointments can create Meet", () => {
   assert.equal(isGoogleMeetEligible("online", "cancelled"), false);
 });
 
+test("participant email falls back to the role-specific profile", () => {
+  assert.equal(resolveParticipantEmail("profile@example.com", "officer@example.com"), "profile@example.com");
+  assert.equal(resolveParticipantEmail(null, " officer@example.com "), "officer@example.com");
+  assert.equal(resolveParticipantEmail("", ""), null);
+});

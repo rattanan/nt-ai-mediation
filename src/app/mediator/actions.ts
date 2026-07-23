@@ -393,7 +393,7 @@ export async function updateAppointmentMeetingUrl(formData: FormData) {
 
   const { error } = await supabase
     .from("mediation_appointments")
-    .update({ meeting_url: normalized.url, meeting_provider: normalized.provider })
+    .update({ meeting_url: normalized.url, meeting_provider: normalized.provider, google_sync_error: null })
     .eq("id", appointment.id);
 
   if (error) go(`/mediator/appointments/${appointment.id}`, "บันทึกลิงก์ประชุมไม่สำเร็จ", "error");

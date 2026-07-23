@@ -10,6 +10,7 @@ import { AppointmentDetail } from "@/components/appointments/appointment-detail"
 import { PortalShell } from "@/components/portal-shell";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { requireRole } from "@/lib/auth/server";
 import { getAppointmentDetail } from "@/lib/appointments";
 import { mediatorSidebar } from "@/lib/mediator-portal";
@@ -45,7 +46,19 @@ export default async function MediatorAppointmentDetailPage({
         appointment={appointment}
         actions={
           <div className="grid gap-4 lg:grid-cols-2">
-            {["online", "hybrid"].includes(appointment.meeting_type) && !["cancelled", "completed"].includes(appointment.status) ? <form action={createMediatorGoogleMeet} className="space-y-3"><input type="hidden" name="appointment_id" value={appointment.id}/><input type="hidden" name="case_id" value={appointment.case_id}/><p className="text-sm text-[#6B7280]">ระบบจะส่ง Calendar invite ให้ผู้เข้าร่วมทุกฝ่าย</p><Button type="submit" className="h-11 w-full rounded-lg font-semibold" disabled={appointment.google_sync_status === "creating"}>{appointment.meeting_url ? "Google Meet พร้อมใช้งาน" : "สร้าง Google Meet"}</Button></form> : null}
+            {["online", "hybrid"].includes(appointment.meeting_type) && !["cancelled", "completed"].includes(appointment.status) ? (
+              <form action={createMediatorGoogleMeet} className="space-y-3 rounded-lg border border-[#E5E7EB] bg-[#F8FAFC] p-4">
+                <input type="hidden" name="appointment_id" value={appointment.id} />
+                <input type="hidden" name="case_id" value={appointment.case_id} />
+                <div>
+                  <h3 className="font-semibold text-[#111827]">สร้าง Google Meet อัตโนมัติ</h3>
+                  <p className="mt-1 text-sm text-[#6B7280]">ระบบจะสร้างห้องประชุมและส่ง Calendar invite ให้ผู้เข้าร่วมทุกฝ่าย</p>
+                </div>
+                <Button type="submit" className="h-11 w-full rounded-lg font-semibold" disabled={appointment.google_sync_status === "creating"}>
+                  {appointment.meeting_url ? "สร้างหรือซิงก์ Google Meet" : "สร้าง Google Meet"}
+                </Button>
+              </form>
+            ) : null}
             {!appointment.confirmed_by_mediator_at && appointment.status !== "cancelled" ? (
               <form action={confirmMediatorAppointment} className="space-y-3">
                 <input type="hidden" name="appointment_id" value={appointment.id} />
@@ -55,11 +68,29 @@ export default async function MediatorAppointmentDetailPage({
               </form>
             ) : null}
 
-            <form action={updateAppointmentMeetingUrl} className="space-y-3">
+            <form action={updateAppointmentMeetingUrl} className="space-y-3 rounded-lg border border-[#E5E7EB] bg-white p-4 lg:col-span-2">
               <input type="hidden" name="appointment_id" value={appointment.id} />
               <input type="hidden" name="case_id" value={appointment.case_id} />
-              <input name="meeting_url" type="url" defaultValue={appointment.meeting_url ?? ""} className="h-11 w-full rounded-lg border border-[#D1D5DB] px-3 text-sm" placeholder="https://meet.google.com/..." />
-              <Button type="submit" variant="outline" className="h-11 w-full rounded-lg font-semibold">บันทึก Meeting URL</Button>
+              <div>
+                <h3 className="font-semibold text-[#111827]">ใส่ลิงก์ประชุมด้วยตนเอง</h3>
+                <p id="manual-meeting-url-description" className="mt-1 text-sm text-[#6B7280]">
+                  ใช้ลิงก์ Google Meet, Zoom, Microsoft Teams หรือระบบประชุมอื่นได้
+                </p>
+              </div>
+              <label htmlFor="manual-meeting-url" className="block text-sm font-medium text-[#374151]">
+                Meeting URL
+              </label>
+              <Input
+                id="manual-meeting-url"
+                name="meeting_url"
+                type="url"
+                inputMode="url"
+                aria-describedby="manual-meeting-url-description"
+                defaultValue={appointment.meeting_url ?? ""}
+                placeholder="https://meet.google.com/..."
+                required
+              />
+              <Button type="submit" variant="outline" className="h-11 w-full rounded-lg font-semibold">บันทึกลิงก์ประชุม</Button>
             </form>
 
             {appointment.status !== "completed" && appointment.status !== "cancelled" ? (

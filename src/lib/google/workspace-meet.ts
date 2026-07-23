@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getGoogleAccessToken } from "@/lib/google/auth";
-import { googleCalendarEventId, isGoogleMeetEligible } from "@/lib/google/calendar-event";
+import { googleCalendarEventId, isGoogleMeetEligible, resolveParticipantEmail } from "@/lib/google/calendar-event";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database, Json } from "@/types/database";
 
@@ -31,17 +31,60 @@ async function googleRequest<T>(url: string, init: RequestInit, scopes: string[]
 async function resolveAttendees(appointment: Appointment) {
   const admin = createAdminClient();
   const { data: mediator } = await admin.from("mediator_profiles").select("user_id").eq("id", appointment.mediator_id).single();
-  const ids = [appointment.debtor_user_id, appointment.creditor_officer_user_id, mediator?.user_id].filter((id): id is string => Boolean(id));
+  let creditorOfficerQuery = appointment.creditor_organization_id
+    ? admin
+      .from("creditor_officers")
+      .select("user_id, email, first_name, last_name")
+      .eq("organization_id", appointment.creditor_organization_id)
+      .eq("status", "active")
+    : null;
+  if (creditorOfficerQuery && appointment.creditor_officer_user_id) {
+    creditorOfficerQuery = creditorOfficerQuery.eq("user_id", appointment.creditor_officer_user_id);
+  }
+  const { data: creditorOfficer } = creditorOfficerQuery
+    ? await creditorOfficerQuery.order("created_at", { ascending: true }).limit(1).maybeSingle()
+    : { data: null };
+  const creditorOfficerUserId = appointment.creditor_officer_user_id ?? creditorOfficer?.user_id ?? null;
+  const ids = [appointment.debtor_user_id, creditorOfficerUserId, mediator?.user_id].filter((id): id is string => Boolean(id));
   const { data: profiles } = await admin.from("profiles").select("id, email, full_name").in("id", ids);
   const byId = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
   const required = [
     { role: "debtor", id: appointment.debtor_user_id },
-    { role: "creditor", id: appointment.creditor_officer_user_id },
+    {
+      role: "creditor",
+      id: creditorOfficerUserId,
+      fallbackEmail: creditorOfficer?.user_id === creditorOfficerUserId ? creditorOfficer.email : null,
+      fallbackName: creditorOfficer?.user_id === creditorOfficerUserId
+        ? `${creditorOfficer.first_name} ${creditorOfficer.last_name}`.trim()
+        : null,
+    },
     { role: "mediator", id: mediator?.user_id },
   ];
-  const missing = required.filter((item) => !item.id || !byId.get(item.id)?.email).map((item) => item.role);
+  const missing = required
+    .filter((item) => !item.id || !resolveParticipantEmail(byId.get(item.id)?.email, item.fallbackEmail))
+    .map((item) => item.role);
   if (missing.length) throw new Error(`Missing participant email: ${missing.join(", ")}`);
-  return required.map((item) => ({ email: byId.get(item.id!)!.email!, displayName: byId.get(item.id!)!.full_name }));
+
+  if (!appointment.creditor_officer_user_id && creditorOfficerUserId) {
+    await Promise.all([
+      admin
+        .from("mediation_appointments")
+        .update({ creditor_officer_user_id: creditorOfficerUserId })
+        .eq("id", appointment.id)
+        .is("creditor_officer_user_id", null),
+      admin
+        .from("appointment_participants")
+        .update({ profile_id: creditorOfficerUserId })
+        .eq("appointment_id", appointment.id)
+        .eq("role", "creditor_officer")
+        .is("profile_id", null),
+    ]);
+  }
+
+  return required.map((item) => ({
+    email: resolveParticipantEmail(byId.get(item.id!)?.email, item.fallbackEmail)!,
+    displayName: byId.get(item.id!)?.full_name || item.fallbackName || item.role,
+  }));
 }
 
 function eventBody(appointment: Appointment, attendees: Awaited<ReturnType<typeof resolveAttendees>>) {
@@ -68,7 +111,6 @@ export async function createGoogleMeetForAppointment(appointmentId: string, acto
   if (!isGoogleMeetEligible(appointment.meeting_type, appointment.status)) throw new Error("Appointment is not eligible for Google Meet");
   if (appointment.calendar_event_id && appointment.meeting_url) return appointment;
 
-  const attendees = await resolveAttendees(appointment);
   const calendarId = encodeURIComponent(process.env.GOOGLE_CALENDAR_ID || organizer());
   if (appointment.calendar_event_id) {
     const existing = await googleRequest<CalendarEvent>(`https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${encodeURIComponent(appointment.calendar_event_id)}`, { method: "GET" });
@@ -79,6 +121,7 @@ export async function createGoogleMeetForAppointment(appointmentId: string, acto
   }
   await admin.from("mediation_appointments").update({ google_sync_status: "creating", google_sync_error: null }).eq("id", appointment.id);
   try {
+    const attendees = await resolveAttendees(appointment);
     const event = await googleRequest<CalendarEvent>(
       `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?conferenceDataVersion=1&sendUpdates=all`,
       { method: "POST", body: JSON.stringify({ id: googleCalendarEventId(appointment.id), ...eventBody(appointment, attendees) }) },

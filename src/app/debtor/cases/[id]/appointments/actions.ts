@@ -26,10 +26,11 @@ export async function bookAppointment(caseId: string, formData: FormData) {
   }
 
   const supabase = await createClient();
+  const admin = createAdminClient();
   const now = new Date().toISOString();
   const activeAppointment = await getActiveAppointmentForCase(caseId);
   const { data: creditorOfficer } = currentCase.creditor_organization_id
-    ? await supabase
+    ? await admin
       .from("creditor_officers")
       .select("user_id")
       .eq("organization_id", currentCase.creditor_organization_id)
@@ -136,7 +137,6 @@ export async function bookAppointment(caseId: string, formData: FormData) {
 
   if (!updateCaseError && !updatedCase) {
     try {
-      const admin = createAdminClient();
       await admin
         .from("cases")
         .update({ status: "appointment_scheduling" })
